@@ -1,0 +1,1220 @@
+<meta charset="utf-8">
+<title>Rezeptdurchsicht</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap">
+<style>
+  /* Layout: eine Spalte Rezeptkarten unter einer stehenden Filterleiste.
+     Jede Karte klappt Varianten, Zutaten und Arbeitsschritte auf. */
+  :root {
+    --papier: #f2f5f1;
+    --flaeche: #ffffff;
+    --flaeche-2: #e9eee8;
+    --rand: #d9e1d8;
+    --rand-stark: #bfcabd;
+    --ink: #1a221d;
+    --ink-leise: #58645d;
+    --akzent: #2c6347;
+    --akzent-weich: #e1ebe3;
+    --akzent-ink: #ffffff;
+    --warn: #845511;
+    --warn-weich: #f7ebd3;
+    --fehler: #972d25;
+    --fehler-weich: #f7e1de;
+    --schrift-display: "Newsreader", Georgia, "Times New Roman", serif;
+    --schrift-text: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    --schrift-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+    --radius: 10px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --papier: #131613;
+      --flaeche: #1b201b;
+      --flaeche-2: #232923;
+      --rand: #2e352e;
+      --rand-stark: #414941;
+      --ink: #e7ebe6;
+      --ink-leise: #9ba59c;
+      --akzent: #7cc099;
+      --akzent-weich: #1e2b23;
+      --akzent-ink: #0f1510;
+      --warn: #dcae5e;
+      --warn-weich: #2b2517;
+      --fehler: #e28a80;
+      --fehler-weich: #2e1d1b;
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --papier: #131613;
+    --flaeche: #1b201b;
+    --flaeche-2: #232923;
+    --rand: #2e352e;
+    --rand-stark: #414941;
+    --ink: #e7ebe6;
+    --ink-leise: #9ba59c;
+    --akzent: #7cc099;
+    --akzent-weich: #1e2b23;
+    --akzent-ink: #0f1510;
+    --warn: #dcae5e;
+    --warn-weich: #2b2517;
+    --fehler: #e28a80;
+    --fehler-weich: #2e1d1b;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--papier);
+    color: var(--ink);
+    font-family: var(--schrift-text);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: env(safe-area-inset-top, 0px);
+    background: var(--papier);
+    z-index: 10;
+  }
+
+  .innen {
+    max-width: 1000px;
+    margin-inline: auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  /* ----------------------------------------------------------- Kopf */
+
+  .kopf { border-bottom: 1px solid var(--rand); }
+  .kopf .innen { padding-block: 28px 20px; }
+
+  .augenbraue {
+    font-family: var(--schrift-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-leise);
+    margin: 0 0 6px;
+  }
+
+  h1 {
+    font-family: var(--schrift-display);
+    font-weight: 600;
+    font-size: clamp(30px, 6vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .lede {
+    max-width: 62ch;
+    margin: 10px 0 0;
+    color: var(--ink-leise);
+  }
+
+  .zahlen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    margin-top: 18px;
+    font-family: var(--schrift-mono);
+    font-size: 12.5px;
+    color: var(--ink-leise);
+  }
+  .zahlen b { color: var(--ink); font-weight: 500; }
+
+  .regeln {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .regel {
+    border: 1px solid var(--rand);
+    background: var(--flaeche);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--ink-leise);
+  }
+  .regel b { color: var(--ink); font-weight: 500; }
+
+  .fortschritt {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .balken {
+    flex: 1 1 220px;
+    min-width: 0;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--flaeche-2);
+    overflow: hidden;
+  }
+  .balken i {
+    display: block;
+    height: 100%;
+    width: var(--anteil, 0%);
+    background: var(--akzent);
+    transition: width 0.2s ease;
+  }
+  .fortschritt .text {
+    font-family: var(--schrift-mono);
+    font-size: 12.5px;
+    color: var(--ink-leise);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .speicher-hinweis {
+    margin-top: 12px;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    background: var(--warn-weich);
+    color: var(--warn);
+    font-size: 13px;
+  }
+
+  /* ------------------------------------------------------- Filterleiste */
+
+  .leiste {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 5;
+    background: var(--papier);
+    border-bottom: 1px solid var(--rand);
+  }
+  .leiste .innen {
+    padding-block: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  input[type="search"], select, textarea, button {
+    font: inherit;
+    color: inherit;
+  }
+
+  input[type="search"] {
+    flex: 1 1 200px;
+    min-width: 0;
+    padding: 7px 11px;
+    border: 1px solid var(--rand-stark);
+    border-radius: var(--radius);
+    background: var(--flaeche);
+  }
+
+  select {
+    padding: 7px 9px;
+    border: 1px solid var(--rand-stark);
+    border-radius: var(--radius);
+    background: var(--flaeche);
+    font-size: 13.5px;
+  }
+
+  .treffer {
+    font-family: var(--schrift-mono);
+    font-size: 12.5px;
+    color: var(--ink-leise);
+    font-variant-numeric: tabular-nums;
+    margin-left: auto;
+  }
+
+  .knopf {
+    padding: 7px 12px;
+    border: 1px solid var(--rand-stark);
+    border-radius: var(--radius);
+    background: var(--flaeche);
+    cursor: pointer;
+    font-size: 13.5px;
+  }
+  .knopf:hover { border-color: var(--akzent); }
+
+  :where(a, button, summary, input, select, textarea):focus-visible {
+    outline: 2px solid var(--akzent);
+    outline-offset: 2px;
+  }
+
+  /* ------------------------------------------------------------ Karten */
+
+  main .innen { padding-block: 20px 40px; }
+
+  .karte {
+    background: var(--flaeche);
+    border: 1px solid var(--rand);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+  }
+  .karte[open] { border-color: var(--rand-stark); }
+
+  .karte > summary {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 11px 14px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .karte > summary::-webkit-details-marker { display: none; }
+
+  .punkt {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    align-self: center;
+    border: 1px solid var(--rand-stark);
+    background: transparent;
+  }
+  .punkt[data-status="ok"] { background: var(--akzent); border-color: var(--akzent); }
+  .punkt[data-status="aendern"] { background: var(--warn); border-color: var(--warn); }
+
+  .titel {
+    font-family: var(--schrift-display);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.25;
+    flex: 1 1 14ch;
+    min-width: 0;
+  }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-family: var(--schrift-mono);
+    font-size: 11.5px;
+    color: var(--ink-leise);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .marke {
+    font-family: var(--schrift-text);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--flaeche-2);
+    color: var(--ink-leise);
+  }
+  .marke.kern { background: var(--akzent-weich); color: var(--akzent); }
+
+  .woche { display: flex; gap: 2px; }
+  .woche span {
+    width: 22px;
+    text-align: center;
+    padding: 2px 0;
+    border-radius: 3px;
+    background: var(--flaeche-2);
+    color: var(--ink-leise);
+    opacity: 0.55;
+    font-size: 10.5px;
+  }
+  .woche span.an {
+    background: var(--akzent-weich);
+    color: var(--akzent);
+    opacity: 1;
+    font-weight: 500;
+  }
+
+  /* ------------------------------------------------------ Karteninhalt */
+
+  .inhalt {
+    border-top: 1px solid var(--rand);
+    padding: 16px 14px 14px;
+    display: grid;
+    gap: 18px;
+  }
+
+  .fakten {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px 20px;
+    font-size: 13px;
+  }
+  .fakt dt {
+    font-family: var(--schrift-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-leise);
+    margin: 0 0 2px;
+  }
+  .fakt dd { margin: 0; }
+
+  .notiz-zeile {
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    background: var(--warn-weich);
+    color: var(--warn);
+  }
+  .notiz-zeile.schlimm { background: var(--fehler-weich); color: var(--fehler); }
+
+  .variante {
+    border-top: 1px dashed var(--rand);
+    padding-top: 14px;
+  }
+  .variante:first-of-type { border-top: 0; padding-top: 0; }
+
+  .v-kopf {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .v-name {
+    font-family: var(--schrift-text);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .v-slots {
+    font-family: var(--schrift-mono);
+    font-size: 11.5px;
+    color: var(--ink-leise);
+  }
+  .v-hinweis {
+    margin: 2px 0 10px;
+    font-size: 13px;
+    color: var(--ink-leise);
+    max-width: 68ch;
+  }
+
+  .protein {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    font-family: var(--schrift-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pbar {
+    position: relative;
+    flex: 1 1 160px;
+    min-width: 0;
+    max-width: 320px;
+    height: 10px;
+    border-radius: 3px;
+    background: var(--flaeche-2);
+    overflow: hidden;
+  }
+  .pbar i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--anteil, 0%);
+    background: var(--akzent);
+  }
+  .pbar i.knapp { background: var(--warn); }
+  /* Die Pflichtmarke bei 30 g – der Wert, den MO und MI erreichen müssen. */
+  .pbar b {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    left: var(--marke, 60%);
+    width: 2px;
+    background: var(--ink);
+    opacity: 0.55;
+  }
+  .protein .abw { color: var(--warn); }
+
+  .abteilung { margin-bottom: 10px; }
+  .abteilung h4 {
+    font-family: var(--schrift-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-leise);
+    margin: 0 0 3px;
+    font-weight: 400;
+  }
+  .zutaten { margin: 0; padding: 0; list-style: none; }
+  .zutaten li {
+    display: grid;
+    grid-template-columns: 7.5em 1fr;
+    gap: 8px;
+    padding: 1.5px 0;
+    font-size: 13.5px;
+  }
+  .zutaten .menge {
+    font-family: var(--schrift-mono);
+    font-size: 12.5px;
+    text-align: right;
+    color: var(--ink-leise);
+    font-variant-numeric: tabular-nums;
+  }
+  .zutaten .optional { color: var(--ink-leise); }
+  .zutaten .flagge {
+    font-family: var(--schrift-mono);
+    font-size: 11px;
+    color: var(--warn);
+    cursor: help;
+  }
+  .spalten {
+    columns: 2 220px;
+    column-gap: 28px;
+  }
+  .spalten > * { break-inside: avoid; }
+
+  .schritte { margin: 0; padding-left: 1.4em; max-width: 72ch; }
+  .schritte li { padding: 2px 0; font-size: 13.5px; }
+  .schritte li.extra { color: var(--akzent); }
+
+  /* ------------------------------------------------------- Durchsicht */
+
+  .durchsicht {
+    border-top: 1px solid var(--rand);
+    padding-top: 14px;
+    display: grid;
+    gap: 8px;
+  }
+  .durchsicht .zeile {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .durchsicht .frage {
+    font-family: var(--schrift-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-leise);
+    margin-right: 4px;
+  }
+  .wahl {
+    padding: 5px 12px;
+    border: 1px solid var(--rand-stark);
+    border-radius: 999px;
+    background: var(--flaeche);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .wahl[aria-pressed="true"] {
+    background: var(--akzent);
+    border-color: var(--akzent);
+    color: var(--akzent-ink);
+  }
+  .wahl.aendern[aria-pressed="true"] {
+    background: var(--warn);
+    border-color: var(--warn);
+    color: var(--papier);
+  }
+  textarea {
+    width: 100%;
+    min-height: 2.6em;
+    padding: 8px 10px;
+    border: 1px solid var(--rand-stark);
+    border-radius: var(--radius);
+    background: var(--flaeche);
+    resize: vertical;
+    font-size: 13.5px;
+  }
+  .gesichert {
+    font-family: var(--schrift-mono);
+    font-size: 11px;
+    color: var(--ink-leise);
+    min-height: 1.2em;
+  }
+
+  .leer {
+    padding: 32px 0;
+    text-align: center;
+    color: var(--ink-leise);
+  }
+
+  footer { border-top: 1px solid var(--rand); }
+  footer .innen {
+    padding-block: 20px 32px;
+    font-size: 12.5px;
+    color: var(--ink-leise);
+    max-width: 1000px;
+  }
+  footer code {
+    font-family: var(--schrift-mono);
+    font-size: 12px;
+    background: var(--flaeche-2);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<header class="kopf">
+  <div class="innen">
+    <p class="augenbraue">Essensplaner · Stammdaten</p>
+    <h1>Rezeptdurchsicht</h1>
+    <p class="lede">
+      Vor dem ersten Lauf: stimmen Mengen, Zeiten und Zubereitung? Der Planer
+      prüft Regeln, nicht Geschmack – ob 300 g Veggie-Hack in der Suppe für vier
+      Personen passt, weiß nur die Küche. Markieren, was geändert werden soll.
+    </p>
+    <div class="zahlen" id="zahlen"></div>
+    <div class="regeln" id="regeln"></div>
+    <div class="fortschritt">
+      <div class="balken"><i id="balken"></i></div>
+      <div class="text" id="fortschritt-text">noch nichts markiert</div>
+    </div>
+    <div class="speicher-hinweis" id="speicher-hinweis" hidden></div>
+  </div>
+</header>
+
+<div class="leiste">
+  <div class="innen">
+    <input type="search" id="suche" placeholder="Rezept oder Zutat suchen" autocomplete="off">
+    <select id="f-art" aria-label="Art">
+      <option value="">Alle Arten</option>
+      <option value="kern">Kernrezepte</option>
+      <option value="variation">Variationen</option>
+      <option value="baustein">Bausteine</option>
+    </select>
+    <select id="f-slot" aria-label="Slot">
+      <option value="">Alle Slots</option>
+    </select>
+    <select id="f-monat" aria-label="Monat">
+      <option value="">Ganzes Jahr</option>
+    </select>
+    <select id="f-status" aria-label="Durchsicht">
+      <option value="">Jeder Stand</option>
+      <option value="offen">Noch offen</option>
+      <option value="ok">Passt</option>
+      <option value="aendern">Ändern</option>
+    </select>
+    <button class="knopf" id="alle-zu" type="button">Alle zuklappen</button>
+    <span class="treffer" id="treffer"></span>
+  </div>
+</div>
+
+<main>
+  <div class="innen" id="liste"></div>
+</main>
+
+<footer>
+  <div class="innen">
+    <p id="fuss-jahr"></p>
+    <p>
+      Die Rezepte liegen als YAML in <code>data/recipes/</code>, die Zutaten in
+      <code>data/ingredients.yaml</code>. Diese Seite neu bauen:
+      <code>python tools/uebersicht.py --html</code>.
+    </p>
+  </div>
+</footer>
+
+<script id="daten" type="application/json">__DATEN__</script>
+<script>
+  (function () {
+    "use strict";
+
+    var D = JSON.parse(document.getElementById("daten").textContent);
+    var R = D.regeln;
+    var SLOTS = ["FR", "SA", "SO", "MO", "MI"];
+    var MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
+      "August", "September", "Oktober", "November", "Dezember"];
+    /* Die Protein-Skala endet bei 50 g: darüber wird die Marke bei 30 g
+       zu klein, um noch etwas zu zeigen. */
+    var P_SKALA = 50;
+
+    var nf = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
+
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text !== undefined && text !== null) n.textContent = text;
+      return n;
+    }
+
+    function art(r) {
+      if (!r.slots.length) return "baustein";
+      return r.core ? "kern" : "variation";
+    }
+
+    function artName(a) {
+      return a === "kern" ? "Kern" : a === "baustein" ? "Baustein" : "Variation";
+    }
+
+    function proteinVariante(r) {
+      for (var i = 0; i < r.varianten.length; i++) {
+        if (r.varianten[i].name === "protein") return r.varianten[i];
+      }
+      return null;
+    }
+
+    function istVorkoch(r) {
+      return r.slots.some(function (s) { return R.protein_slots.indexOf(s) >= 0; });
+    }
+
+    /* ---------------------------------------------------------- Kopfzeilen */
+
+    var fehlerGesamt = D.rezepte.reduce(function (n, r) { return n + r.fehler.length; }, 0);
+    var zahlen = [
+      [D.rezepte.length, "Rezepte"],
+      [D.zutaten_gesamt, "Zutaten"],
+      [D.rezepte.filter(function (r) { return r.core; }).length, "davon Kernrezepte"],
+      [fehlerGesamt, fehlerGesamt === 1 ? "Regelverstoß" : "Regelverstöße"]
+    ];
+    var zBox = document.getElementById("zahlen");
+    zahlen.forEach(function (paar) {
+      var s = el("span");
+      s.appendChild(el("b", null, String(paar[0])));
+      s.appendChild(document.createTextNode(" " + paar[1]));
+      zBox.appendChild(s);
+    });
+
+    var regeln = [
+      ["Protein ≥ " + nf.format(R.protein_min_g) + " g", "in " + R.protein_slots.join(" und ")],
+      ["max. " + R.max_pro_monat + "×", "pro Monat"],
+      ["≥ " + R.min_abstand_tage + " Tage", "Abstand"],
+      [Math.round(R.core_anteil * 100) + " %", "Kernrezepte"],
+      [R.erwachsene + " + " + R.kinder, "Erwachsene + Kinder"],
+      ["ausgeschlossen", R.ausschluesse.join(", ")]
+    ];
+    var rBox = document.getElementById("regeln");
+    regeln.forEach(function (paar) {
+      var s = el("span", "regel");
+      s.appendChild(el("b", null, paar[0]));
+      s.appendChild(document.createTextNode(" " + paar[1]));
+      rBox.appendChild(s);
+    });
+
+    var fussJahr = document.getElementById("fuss-jahr");
+    if (D.beispieljahr.gerechnet) {
+      fussJahr.textContent = "Die Häufigkeiten stammen aus zwölf geplanten Monaten "
+        + "des Jahres " + D.beispieljahr.jahr + " mit festem Seed "
+        + D.beispieljahr.seed + ". Sie zeigen, wie oft ein Gericht tatsächlich "
+        + "auf dem Tisch landet – nicht, wie oft es erlaubt wäre.";
+    } else {
+      fussJahr.textContent = "Ohne Häufigkeiten gebaut (--kein-jahr).";
+    }
+
+    /* Slot- und Monatsfilter aus den Stammdaten füllen. */
+    var fSlot = document.getElementById("f-slot");
+    SLOTS.forEach(function (s) {
+      var info = R.slots[s];
+      var o = el("option", null, s + " – " + (info ? info.kochtag : s));
+      o.value = s;
+      fSlot.appendChild(o);
+    });
+    var fMonat = document.getElementById("f-monat");
+    MONATE.forEach(function (name, i) {
+      var o = el("option", null, name);
+      o.value = String(i + 1);
+      fMonat.appendChild(o);
+    });
+
+    /* -------------------------------------------------------------- Karten */
+
+    function wochenStreifen(r) {
+      var box = el("span", "woche");
+      SLOTS.forEach(function (s) {
+        var an = r.slots.indexOf(s) >= 0;
+        var sp = el("span", an ? "an" : null, s);
+        var info = R.slots[s];
+        if (info) {
+          sp.title = s + ": gekocht " + info.kochtag + ", deckt " + info.deckt_ab
+            + " (" + nf.format(info.portionen) + " Portionen)"
+            + (an ? "" : " – für dieses Gericht nicht vorgesehen");
+        }
+        box.appendChild(sp);
+      });
+      return box;
+    }
+
+    function proteinZeile(r, v) {
+      var zeile = el("div", "protein");
+      var pflicht = v.name === "protein" || (istVorkoch(r) && !proteinVariante(r));
+      var anteil = Math.min(100, (v.protein_angabe / P_SKALA) * 100);
+      var knapp = pflicht && v.protein_angabe < R.protein_min_g;
+
+      zeile.appendChild(el("span", null, nf.format(v.protein_angabe) + " g Protein"));
+
+      var bar = el("div", "pbar");
+      bar.style.setProperty("--anteil", anteil.toFixed(1) + "%");
+      bar.style.setProperty("--marke", ((R.protein_min_g / P_SKALA) * 100).toFixed(1) + "%");
+      var fuellung = el("i", knapp ? "knapp" : null);
+      bar.appendChild(fuellung);
+      var marke = el("b");
+      marke.title = "Pflichtgrenze " + nf.format(R.protein_min_g) + " g je Erwachsenenportion";
+      bar.appendChild(marke);
+      zeile.appendChild(bar);
+
+      var text = "nachgerechnet " + nf.format(v.protein_gerechnet) + " g";
+      var abw = el("span", v.protein_abweichung > 0.15 ? "abw" : null, text);
+      if (v.protein_abweichung > 0.15) {
+        abw.textContent = text + " (" + Math.round(v.protein_abweichung * 100) + " % Abweichung)";
+        abw.title = "Angabe und Nachrechnung aus den Zutaten liegen auseinander.";
+      }
+      zeile.appendChild(abw);
+
+      if (knapp) {
+        var w = el("span", "abw", "unter " + nf.format(R.protein_min_g) + " g");
+        zeile.appendChild(w);
+      }
+      return zeile;
+    }
+
+    function zutatenBlock(v) {
+      var nachAbteilung = {};
+      v.zutaten.forEach(function (z) {
+        (nachAbteilung[z.abteilung] = nachAbteilung[z.abteilung] || []).push(z);
+      });
+      var reihenfolge = (R.abteilungen || []).filter(function (a) { return nachAbteilung[a]; });
+      Object.keys(nachAbteilung).sort().forEach(function (a) {
+        if (reihenfolge.indexOf(a) < 0) reihenfolge.push(a);
+      });
+
+      var box = el("div", "spalten");
+      reihenfolge.forEach(function (abt) {
+        var gruppe = el("div", "abteilung");
+        gruppe.appendChild(el("h4", null, abt));
+        var ul = el("ul", "zutaten");
+        nachAbteilung[abt].forEach(function (z) {
+          var li = el("li");
+          li.appendChild(el("span", "menge", z.menge));
+          var rechts = el("span", z.optional ? "optional" : null);
+          rechts.appendChild(document.createTextNode(z.name));
+          if (z.optional) rechts.appendChild(document.createTextNode(" (optional)"));
+          if (z.hinweis) rechts.appendChild(document.createTextNode(" – " + z.hinweis));
+          if (z.empfindlich) {
+            var f = el("span", "flagge", " empfindlich");
+            f.title = "Hält sich nur wenige Tage – sperrt den Mittwoch-Slot.";
+            rechts.appendChild(f);
+          }
+          if (!z.protein_bekannt && !z.kleinmenge) {
+            var q = el("span", "flagge", " ?");
+            q.title = "Für diese Zutat steht kein Proteinwert in den Stammdaten.";
+            rechts.appendChild(q);
+          }
+          li.appendChild(rechts);
+          ul.appendChild(li);
+        });
+        gruppe.appendChild(ul);
+        box.appendChild(gruppe);
+      });
+      return box;
+    }
+
+    function variantenBlock(r, v, basisSchritte) {
+      var box = el("section", "variante");
+      var kopf = el("div", "v-kopf");
+      kopf.appendChild(el("span", "v-name", v.name === "basis" ? "Basisfassung" : "Variante „" + v.name + "“"));
+
+      var slots = v.name === "protein"
+        ? r.slots.filter(function (s) { return R.protein_slots.indexOf(s) >= 0; })
+        : r.slots.filter(function (s) { return R.protein_slots.indexOf(s) < 0 || !proteinVariante(r); });
+      kopf.appendChild(el("span", "v-slots", slots.length ? "für " + slots.join(", ") : "ohne eigenen Slot"));
+      box.appendChild(kopf);
+
+      if (v.hinweis) box.appendChild(el("p", "v-hinweis", v.hinweis));
+      box.appendChild(proteinZeile(r, v));
+      box.appendChild(zutatenBlock(v));
+
+      var ol = el("ol", "schritte");
+      v.steps.forEach(function (s, i) {
+        /* Die Zusatzschritte der Variante hängen hinten an – farblich
+           abgesetzt, damit sichtbar ist, was gegenüber der Basis dazukommt. */
+        var neu = v.name !== "basis" && i >= basisSchritte;
+        ol.appendChild(el("li", neu ? "extra" : null, s));
+      });
+      box.appendChild(ol);
+      return box;
+    }
+
+    function fakt(dl, label, wert) {
+      var d = el("div", "fakt");
+      d.appendChild(el("dt", null, label));
+      d.appendChild(el("dd", null, wert));
+      dl.appendChild(d);
+    }
+
+    function inhaltBauen(r, ziel) {
+      var dl = el("dl", "fakten");
+      fakt(dl, "Zubereitung", r.prep_minutes + " Minuten");
+      fakt(dl, "Grundmenge", r.base_servings + " Erwachsenenportionen");
+      fakt(dl, "Saison", r.ganzjaehrig ? "ganzjährig" : r.saison_namen.join(", "));
+      fakt(dl, "Slots", r.slots.length ? r.slots.join(", ") : "keine – nur als Beilage");
+      fakt(dl, "Tags", r.tags.length ? r.tags.join(", ") : "–");
+
+      var h = r.haeufigkeit || { gesamt: 0, slots: {} };
+      if (D.beispieljahr.gerechnet) {
+        var detail = Object.keys(h.slots).sort(function (a, b) {
+          return h.slots[b] - h.slots[a];
+        }).map(function (s) { return s + " " + h.slots[s]; }).join(", ");
+        fakt(dl, "Im Beispieljahr",
+          r.slots.length
+            ? h.gesamt + "× geplant" + (detail ? " (" + detail + ")" : "")
+            : "nicht eingeplant – Baustein");
+      }
+      fakt(dl, "Datei", r.quelle || "–");
+      ziel.appendChild(dl);
+
+      r.fehler.forEach(function (f) {
+        ziel.appendChild(el("p", "notiz-zeile schlimm", f));
+      });
+      r.hinweise.forEach(function (f) {
+        ziel.appendChild(el("p", "notiz-zeile", f));
+      });
+      if (r.empfindlich.length) {
+        ziel.appendChild(el("p", "notiz-zeile",
+          "Empfindliche Frischware: " + r.empfindlich.join(", ")
+          + ". Deshalb kein Mittwoch – der liegt fünf Tage nach dem Einkauf."));
+      }
+
+      var basisSchritte = r.varianten[0].steps.length;
+      r.varianten.forEach(function (v) {
+        ziel.appendChild(variantenBlock(r, v, basisSchritte));
+      });
+
+      ziel.appendChild(durchsichtBlock(r));
+    }
+
+    /* ---------------------------------------------------------- Durchsicht */
+
+    var stand = new Map();
+    var karten = new Map();
+    var schreiben = null;
+    var speicherArt = "keiner";
+
+    function durchsichtBlock(r) {
+      var box = el("div", "durchsicht");
+      var zeile = el("div", "zeile");
+      zeile.appendChild(el("span", "frage", "Durchsicht"));
+
+      ["ok", "aendern"].forEach(function (wert) {
+        var b = el("button", "wahl " + wert, wert === "ok" ? "Passt" : "Ändern");
+        b.type = "button";
+        b.setAttribute("aria-pressed", "false");
+        b.dataset.wert = wert;
+        b.addEventListener("click", function () {
+          var jetzt = stand.get(r.slug) || {};
+          var neu = jetzt.status === wert ? "offen" : wert;
+          setzen(r.slug, { status: neu, notiz: jetzt.notiz || "" });
+        });
+        zeile.appendChild(b);
+      });
+      box.appendChild(zeile);
+
+      var ta = el("textarea");
+      ta.id = "notiz-" + r.slug;
+      ta.placeholder = "Was soll anders werden? (Menge, Zeit, Zubereitung, Zutat)";
+      var zeitgeber = null;
+      ta.addEventListener("input", function () {
+        if (zeitgeber) clearTimeout(zeitgeber);
+        zeitgeber = setTimeout(function () {
+          var jetzt = stand.get(r.slug) || {};
+          setzen(r.slug, {
+            status: jetzt.status === "offen" || !jetzt.status
+              ? (ta.value.trim() ? "aendern" : "offen")
+              : jetzt.status,
+            notiz: ta.value
+          });
+        }, 600);
+      });
+      box.appendChild(ta);
+      box.appendChild(el("div", "gesichert"));
+
+      karten.get(r.slug).steuerung = {
+        knoepfe: zeile.querySelectorAll(".wahl"),
+        notiz: ta,
+        gesichert: box.querySelector(".gesichert")
+      };
+      return box;
+    }
+
+    var laeuft = new Map();
+
+    function setzen(slug, wert) {
+      stand.set(slug, { status: wert.status || "offen", notiz: wert.notiz || "" });
+      standAnzeigen();
+      if (!schreiben) return;
+      /* Ein Schreibvorgang pro Rezept: der nächste wartet, bis der
+         laufende durch ist, sonst überholen sich zwei Tastendrücke. */
+      var kette = (laeuft.get(slug) || Promise.resolve()).then(function () {
+        return schreiben(slug, stand.get(slug));
+      }).then(function () {
+        meldung(slug, "gespeichert");
+      }, function (fehler) {
+        meldung(slug, "nicht gespeichert: " + ((fehler && fehler.code) || "Fehler"));
+      });
+      laeuft.set(slug, kette);
+    }
+
+    function meldung(slug, text) {
+      var k = karten.get(slug);
+      if (!k || !k.steuerung) return;
+      k.steuerung.gesichert.textContent = text;
+      if (text === "gespeichert") {
+        setTimeout(function () {
+          if (k.steuerung.gesichert.textContent === "gespeichert") {
+            k.steuerung.gesichert.textContent = "";
+          }
+        }, 2000);
+      }
+    }
+
+    function standAnzeigen() {
+      var zahl = { ok: 0, aendern: 0 };
+      karten.forEach(function (k, slug) {
+        var s = (stand.get(slug) || {}).status || "offen";
+        if (zahl[s] !== undefined) zahl[s]++;
+        k.punkt.dataset.status = s;
+        k.punkt.title = s === "ok" ? "Passt" : s === "aendern" ? "Soll geändert werden" : "Noch nicht durchgesehen";
+        if (!k.steuerung) return;
+        Array.prototype.forEach.call(k.steuerung.knoepfe, function (b) {
+          b.setAttribute("aria-pressed", b.dataset.wert === s ? "true" : "false");
+        });
+        var notiz = (stand.get(slug) || {}).notiz || "";
+        if (document.activeElement !== k.steuerung.notiz && k.steuerung.notiz.value !== notiz) {
+          k.steuerung.notiz.value = notiz;
+        }
+      });
+
+      var fertig = zahl.ok + zahl.aendern;
+      var gesamt = D.rezepte.length;
+      document.getElementById("balken").style.setProperty(
+        "--anteil", ((fertig / gesamt) * 100).toFixed(1) + "%");
+      document.getElementById("fortschritt-text").textContent = fertig === 0
+        ? "noch nichts markiert · " + gesamt + " Rezepte"
+        : fertig + " von " + gesamt + " durchgesehen · " + zahl.ok + "× passt · "
+          + zahl.aendern + "× ändern";
+      filtern();
+    }
+
+    /* ------------------------------------------------------------- Filter */
+
+    var liste = document.getElementById("liste");
+    var leerBox = el("p", "leer", "Kein Rezept passt zu diesen Filtern.");
+    leerBox.hidden = true;
+
+    D.rezepte.forEach(function (r) {
+      var karte = el("details", "karte");
+      karte.id = "k-" + r.slug;
+
+      var summary = el("summary");
+      var punkt = el("span", "punkt");
+      punkt.dataset.status = "offen";
+      summary.appendChild(punkt);
+      summary.appendChild(el("span", "titel", r.name));
+
+      var meta = el("span", "meta");
+      var a = art(r);
+      meta.appendChild(el("span", "marke " + a, artName(a)));
+      meta.appendChild(wochenStreifen(r));
+      meta.appendChild(el("span", null, r.prep_minutes + " min"));
+
+      var pv = proteinVariante(r);
+      var ptext = nf.format(r.varianten[0].protein_angabe) + " g";
+      if (pv) ptext += " → " + nf.format(pv.protein_angabe) + " g";
+      var pspan = el("span", null, ptext);
+      pspan.title = pv
+        ? "Protein in der Basisfassung und in der Protein-Variante für MO/MI"
+        : "Protein je Erwachsenenportion";
+      meta.appendChild(pspan);
+
+      if (D.beispieljahr.gerechnet && r.slots.length) {
+        var h = el("span", null, (r.haeufigkeit.gesamt || 0) + "× / Jahr");
+        h.title = "So oft im Beispieljahr " + D.beispieljahr.jahr + " geplant";
+        meta.appendChild(h);
+      }
+      if (r.fehler.length) {
+        meta.appendChild(el("span", "marke", "Regelverstoß"));
+      }
+      summary.appendChild(meta);
+      karte.appendChild(summary);
+
+      var inhalt = el("div", "inhalt");
+      karte.appendChild(inhalt);
+
+      var eintrag = {
+        rezept: r,
+        knoten: karte,
+        punkt: punkt,
+        inhalt: inhalt,
+        gebaut: false,
+        steuerung: null,
+        suchtext: (r.name + " " + r.slug + " " + r.tags.join(" ") + " "
+          + r.varianten.map(function (v) {
+            return v.zutaten.map(function (z) { return z.name; }).join(" ");
+          }).join(" ")).toLowerCase()
+      };
+      karten.set(r.slug, eintrag);
+
+      karte.addEventListener("toggle", function () {
+        if (karte.open && !eintrag.gebaut) {
+          eintrag.gebaut = true;
+          inhaltBauen(r, inhalt);
+          standAnzeigen();
+        }
+      });
+
+      liste.appendChild(karte);
+    });
+    liste.appendChild(leerBox);
+
+    var suche = document.getElementById("suche");
+    var fArt = document.getElementById("f-art");
+    var fStatus = document.getElementById("f-status");
+    var treffer = document.getElementById("treffer");
+
+    function filtern() {
+      var q = suche.value.trim().toLowerCase();
+      var vArt = fArt.value;
+      var vSlot = fSlot.value;
+      var vMonat = fMonat.value ? parseInt(fMonat.value, 10) : 0;
+      var vStatus = fStatus.value;
+      var sichtbar = 0;
+
+      karten.forEach(function (k, slug) {
+        var r = k.rezept;
+        var s = (stand.get(slug) || {}).status || "offen";
+        var zeigen = true;
+        if (q && k.suchtext.indexOf(q) < 0) zeigen = false;
+        if (vArt && art(r) !== vArt) zeigen = false;
+        if (vSlot && r.slots.indexOf(vSlot) < 0) zeigen = false;
+        if (vMonat && r.seasons.indexOf(vMonat) < 0) zeigen = false;
+        if (vStatus && s !== vStatus) zeigen = false;
+        k.knoten.hidden = !zeigen;
+        if (zeigen) sichtbar++;
+      });
+
+      leerBox.hidden = sichtbar > 0;
+      treffer.textContent = sichtbar === D.rezepte.length
+        ? D.rezepte.length + " Rezepte"
+        : sichtbar + " von " + D.rezepte.length;
+    }
+
+    [suche, fArt, fSlot, fMonat, fStatus].forEach(function (n) {
+      n.addEventListener("input", filtern);
+      n.addEventListener("change", filtern);
+    });
+
+    var alleZu = document.getElementById("alle-zu");
+    alleZu.addEventListener("click", function () {
+      var offene = 0;
+      karten.forEach(function (k) { if (k.knoten.open && !k.knoten.hidden) offene++; });
+      var aufklappen = offene === 0;
+      karten.forEach(function (k) {
+        if (!k.knoten.hidden) k.knoten.open = aufklappen;
+      });
+      alleZu.textContent = aufklappen ? "Alle zuklappen" : "Alle aufklappen";
+    });
+
+    /* ----------------------------------------------------------- Speicher */
+
+    var hinweisBox = document.getElementById("speicher-hinweis");
+    function hinweis(text) {
+      hinweisBox.textContent = text || "";
+      hinweisBox.hidden = !text;
+    }
+
+    function lokalLesen() {
+      try {
+        var roh = window.localStorage.getItem("essensplaner-durchsicht");
+        if (!roh) return;
+        var daten = JSON.parse(roh);
+        Object.keys(daten).forEach(function (slug) {
+          stand.set(slug, {
+            status: daten[slug].status || "offen",
+            notiz: daten[slug].notiz || ""
+          });
+        });
+      } catch (e) { /* privates Fenster, gesperrte Speicherung */ }
+    }
+
+    function lokalSchreiben() {
+      try {
+        var daten = {};
+        stand.forEach(function (w, slug) { daten[slug] = w; });
+        window.localStorage.setItem("essensplaner-durchsicht", JSON.stringify(daten));
+      } catch (e) { /* nicht verfügbar – dann eben nicht */ }
+    }
+
+    function nurLokal(grund) {
+      speicherArt = "lokal";
+      schreiben = function (slug, wert) {
+        lokalSchreiben();
+        return Promise.resolve();
+      };
+      lokalLesen();
+      hinweis(grund + " Die Markierungen bleiben nur in diesem Browser.");
+      standAnzeigen();
+    }
+
+    function speicherStarten() {
+      var api = window.claude && window.claude.use;
+      if (!api) { nurLokal("Kein Artifact-Speicher erreichbar."); return; }
+
+      Promise.resolve(window.claude.use("db")).then(function (db) {
+        if (!db) { nurLokal("Der Artifact-Speicher ist für diese Ansicht nicht verfügbar."); return; }
+        speicherArt = "db";
+        var sammlung = db.collection("durchsicht");
+
+        var wartet = setTimeout(function () {
+          hinweis("Der Speicher antwortet noch nicht – der angezeigte Stand kann veraltet sein.");
+        }, 10000);
+
+        sammlung.onSnapshot(function (snap) {
+          if (!snap.metadata.fromCache) {
+            clearTimeout(wartet);
+            hinweis("");
+          }
+          snap.docChanges().forEach(function (c) {
+            if (c.type === "removed") stand.delete(c.doc.id);
+          });
+          snap.docs.forEach(function (d) {
+            var w = d.data() || {};
+            var offen = document.activeElement;
+            var k = karten.get(d.id);
+            /* Was gerade getippt wird, nicht überschreiben. */
+            var tippt = k && k.steuerung && offen === k.steuerung.notiz;
+            stand.set(d.id, {
+              status: w.status || "offen",
+              notiz: tippt ? (stand.get(d.id) || {}).notiz || "" : (w.notiz || "")
+            });
+          });
+          standAnzeigen();
+        }, function (fehler) {
+          clearTimeout(wartet);
+          nurLokal("Der Artifact-Speicher meldet „" + (fehler && fehler.code) + "“.");
+        });
+
+        schreiben = function (slug, wert) {
+          return sammlung.doc(slug).set({
+            slug: slug,
+            status: wert.status || "offen",
+            notiz: wert.notiz || "",
+            geaendert: new Date().toISOString()
+          });
+        };
+      }, function () {
+        nurLokal("Der Artifact-Speicher ließ sich nicht laden.");
+      });
+    }
+
+    standAnzeigen();
+    speicherStarten();
+  })();
+</script>

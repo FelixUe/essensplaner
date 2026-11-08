@@ -185,6 +185,25 @@ Zwei Felder steuern die Planung:
   Zutatenüberlappung. Sonst gäbe es fünf Tage Kartoffeln, nur weil der Sack
   schon offen ist.
 
+### Alle Rezepte am Stück durchsehen
+
+52 YAML-Dateien liest niemand gern nacheinander. `tools/uebersicht.py` baut
+daraus eine Seite, auf der alles steht, was beim Durchsehen zählt: die Mengen
+der Basis- und der Protein-Variante nebeneinander, das aus den Zutaten
+nachgerechnete Protein neben der Angabe, die empfindlichen Zutaten und wie oft
+ein Gericht in einem Beispieljahr tatsächlich geplant wird.
+
+```bash
+python tools/uebersicht.py --html
+```
+
+Das schreibt `tools/rezepte.json` und `tools/uebersicht.build.html` – beide
+sind Ergebnisse, keine Quelldateien, und stehen in `.gitignore`. Die Vorlage
+ist `tools/uebersicht.html`. Als Artifact veröffentlicht merkt sich die Seite
+zusätzlich, welches Rezept schon durchgesehen ist.
+
+---
+
 ---
 
 ## Aufbau
@@ -210,6 +229,7 @@ src/essensplaner/
   scheduler.py           eingebauter Scheduler
   cli.py                 Kommandozeile
 tools/protein_sync.py    Proteinangaben mit der Nachrechnung abgleichen
+tools/uebersicht.py      alle Rezepte als JSON und als Seite zum Durchsehen
 tests/                   die sechs Akzeptanzkriterien und alles darum
 ```
 
