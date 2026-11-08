@@ -1,0 +1,41 @@
+slug: kuerbissuppe
+name: Kürbissuppe
+core: true
+slots: [MO, MI, FR, SA]
+tags: [lunchbox_ok, freezer_ok, kids_ok]
+seasons: [9, 10, 11, 12, 1, 2]
+prep_minutes: 35
+base_servings: 4
+protein_per_serving_g: 11
+ingredients:
+  - { item: hokkaido, qty: 1000, unit: g }
+  - { item: kartoffeln_mehlig, qty: 300, unit: g }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: ingwer, qty: 20, unit: g }
+  - { item: oel_sonnenblume, qty: 2, unit: EL }
+  - { item: kokosmilch, qty: 1, unit: Dose }
+  - { item: gemuesebruehe, qty: 2, unit: EL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: muskat, qty: 1, unit: Prise }
+  - { item: mischbrot, qty: 200, unit: g }
+steps:
+  - Hokkaido waschen, entkernen und mit Schale in Würfel schneiden. Kartoffeln schälen und würfeln.
+  - Zwiebel und Ingwer hacken und in Öl andünsten.
+  - Kürbis und Kartoffeln zugeben, mit 800 ml Wasser und Brühe aufgießen und 20 Minuten weich kochen.
+  - Kokosmilch zugeben und fein pürieren, mit Salz, Pfeffer und Muskat abschmecken.
+  - Brot dazu reichen.
+variants:
+  protein:
+    hinweis: >-
+      Rote Linsen kochen mit und machen die Suppe sämig, Kichererbsen als
+      Topping und Skyr bringen sie für MO/MI über 30 g.
+    zusatz:
+      - { item: rote_linsen, qty: 200, unit: g }
+      - { item: kichererbsen_dose, qty: 1, unit: Dose }
+      - { item: skyr, qty: 150, unit: g }
+    protein_per_serving_g: 31
+    zusatz_steps:
+      - Rote Linsen zusammen mit dem Kürbis mitkochen.
+      - Kichererbsen abtropfen, mit Paprikapulver im Ofen rösten und als Topping aufstreuen.
+      - Skyr auf dem Teller einrühren.

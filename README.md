@@ -1,0 +1,290 @@
+# Essensplaner
+
+Automatisierter Monatsessensplan für eine Familie mit zwei Erwachsenen und zwei
+Kindern. Einmal im Monat entsteht der komplette Plan für den Folgemonat, jeden
+Freitag kommt die Einkaufsliste für die Woche per Mail.
+
+Läuft als Container – zunächst unter Coolify auf einem Hetzner-Server, später
+unverändert auf eigener Homelab-Hardware.
+
+Die fachlichen Vorgaben stehen in [SPEC.md](SPEC.md).
+
+---
+
+## Was der Planer macht
+
+- **Vegetarisch**, mit einer einzigen Ausnahme: Fischstäbchen, höchstens einmal
+  im Monat.
+- **Harte Ausschlüsse**: kein Blauschimmelkäse, kein Salbei, kein Fenchel in
+  irgendeiner Form. Jedes Rezept und jede Variante wird vor dem Einplanen
+  dagegen geprüft, Synonyme eingeschlossen. Gewürzmischungen sind nur erlaubt,
+  wenn sie ausdrücklich als fenchelfrei markiert sind.
+- **Montags und mittwochs** wird für zwei Erwachsene auf vier Portionen
+  vorgekocht, die den jeweils nächsten Mittag mitabdecken. Dort gilt ein
+  Mindestwert von 30 g Protein je Portion – notfalls greift die
+  Protein-Variante des Rezepts.
+- **Wochenende** darf aufwendiger sein; pro Wochenende steht mindestens ein
+  süßes oder zünftiges Gericht auf dem Plan.
+- **Abwechslung**: ein Gericht höchstens dreimal im Monat, nie zweimal
+  innerhalb von sieben Tagen, nie zweimal in derselben Woche. Rund 60 % der
+  Slots gehen an die Lieblingsgerichte, der Rest an Variationen.
+- **Haltbarkeit**: Eingekauft wird freitags, der Mittwoch liegt fünf Tage
+  später. Rezepte mit Blattsalat, frischen Kräutern, Avocado, Pilzen oder
+  Beeren landen deshalb nie im Mittwochs-Slot.
+- **Saison**: Melone-Feta nur im Sommer, Kürbissuppe nur von September bis
+  Februar.
+
+## Der Wochenrhythmus
+
+Einkaufstag ist Freitag, eine Planungswoche läuft deshalb **Freitag bis
+Donnerstag**.
+
+| Slot | Kochtag  | Deckt ab            | Portionen              |
+|------|----------|---------------------|------------------------|
+| FR   | Freitag  | Freitagabend        | Familie (2,5)          |
+| SA   | Samstag  | Samstag             | Familie (2,5)          |
+| SO   | Sonntag  | Sonntag             | Familie (2,5)          |
+| MO   | Montag   | Montag + Dienstag   | 4 Erwachsenenportionen |
+| MI   | Mittwoch | Mittwoch + Donnerstag | 4 Erwachsenenportionen |
+
+Die Kinder essen Mo–Fr mittags in der Kita, unter der Woche wird nichts für sie
+geplant. Ein Kind zählt als halbe Erwachsenenportion, eine Familienmahlzeit
+also als 2,5 Portionen. Beides ist in `config.yaml` einstellbar.
+
+Ein Monatsplan beginnt mit der Woche, die am letzten Freitag vor dem
+Monatsersten startet, und endet vor der Woche, die den Folgemonat einläutet.
+Die Übergangswoche gehört damit immer genau einem Monat – dem neuen.
+
+## Die beiden Mails
+
+- **Monatsmail**, am letzten Freitag vor Monatsbeginn, zusammen mit dem
+  normalen Wocheneinkauf: Übersicht aller Gerichte des Monats und die
+  **Vorratsliste** – alle haltbaren Zutaten des Monats, summiert und auf ganze
+  Packungen aufgerundet.
+- **Wochenmail**, jeden Freitag um 07:00 Europe/Berlin: die Gerichte von
+  Freitag bis Donnerstag mit Kochtag, die **Frischeliste** nach Abteilung
+  sortiert und mit aggregierten Mengen, dazu alle Rezepte mit den auf die
+  Portionen hochgerechneten Mengen.
+
+Beide Mails gehen als HTML mit Plain-Text-Fallback raus und sind auf dem Handy
+ohne Zoom lesbar.
+
+---
+
+## Schnellstart
+
+```bash
+python -m venv .venv && . .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+```
+
+Stammdaten prüfen:
+
+```bash
+essensplaner validate
+```
+
+Einen Plan erzeugen, ohne eine Mail zu verschicken:
+
+```bash
+essensplaner generate-month 2026-12 --seed 1 --dry-run
+```
+
+Die Mail ansehen, bevor sie jemand bekommt:
+
+```bash
+essensplaner preview weekly --monat 2026-12
+```
+
+Das schreibt `preview-weekly.html` und `preview-weekly.txt` ins
+Arbeitsverzeichnis – HTML im Browser öffnen.
+
+Tests:
+
+```bash
+pytest
+```
+
+## Die Kommandozeile
+
+| Befehl | Zweck |
+|---|---|
+| `essensplaner validate` | Zutaten und Rezepte gegen alle harten Regeln prüfen, Proteinangaben nachrechnen, Slotdeckung zeigen |
+| `essensplaner generate-month [MONAT]` | Monatsplan erzeugen und Vorschau mailen. Ohne Monat: der Folgemonat |
+| `essensplaner send-weekly` | Die Freitagsmail verschicken |
+| `essensplaner show MONAT` | Einen gespeicherten Plan im Terminal ansehen |
+| `essensplaner shopping MONAT` | Einkaufslisten im Terminal |
+| `essensplaner preview weekly\|monthly` | Eine Mail als HTML-Datei schreiben, ohne zu verschicken |
+| `essensplaner serve` | Eingebauter Scheduler für den Dauerbetrieb |
+
+`--dry-run` gibt es bei `generate-month` und `send-weekly`: alles wird gebaut
+und angezeigt, aber nichts verschickt.
+
+---
+
+## Ein Rezept hinzufügen oder ändern
+
+Rezepte sind einzelne YAML-Dateien unter `data/recipes/`, Zutaten stehen
+gesammelt in `data/ingredients.yaml`. Beides ist versioniert – eine Änderung
+ist ein Commit, und die Pipeline rollt sie aus.
+
+```yaml
+# data/recipes/mein-gericht.yaml
+slug: mein-gericht          # muss dem Dateinamen entsprechen
+name: Mein Gericht
+core: true                  # Lieblingsgericht, kommt häufiger vor
+slots: [MO, MI, SA]         # wo es eingeplant werden darf
+tags: [lunchbox_ok, freezer_ok, kids_ok]
+seasons: all                # oder [9, 10, 11, 12, 1, 2]
+prep_minutes: 35
+base_servings: 4            # Mengen gelten für vier Erwachsenenportionen
+protein_per_serving_g: 32
+ingredients:
+  - { item: kidneybohnen_dose, qty: 2, unit: Dose }
+  - { item: rote_linsen, qty: 150, unit: g }
+steps:
+  - Erster Arbeitsschritt.
+variants:
+  protein:                  # wird in den Slots MO und MI genommen
+    hinweis: Steht so in der Mail.
+    zusatz:
+      - { item: skyr, qty: 200, unit: g }
+    protein_per_serving_g: 35
+```
+
+Danach:
+
+```bash
+python tools/protein_sync.py          # Proteinangaben nachrechnen
+python tools/protein_sync.py --write  # und übernehmen
+essensplaner validate
+```
+
+`validate` meldet unter anderem eine Zutat ohne Stammdaten, eine
+ausgeschlossene Zutat, ein Rezept, das in einem Protein-Slot unter 30 g bleibt,
+und eine Proteinangabe, die nicht zu den Zutaten passt.
+
+### Zutaten-Stammdaten
+
+```yaml
+kidneybohnen_dose:
+  name: Kidneybohnen (Dose, 400 g)
+  type: pantry              # pantry = Vorratsliste, fresh = Wochenliste
+  department: Konserven     # Sortierung der Einkaufsliste
+  pack: { qty: 1, unit: Dose }
+  shelf_days: 730
+  protein_per_100: 8.0      # Grundlage der Nachrechnung
+  stk_gewicht_g: 240        # bei Dosen das Abtropfgewicht
+```
+
+Zwei Felder steuern die Planung:
+
+- `empfindlich: true` – nur in Slots nah am Einkaufstag (FR/SA/SO/MO).
+- `grundzutat: true` – Stärkebeilage. Der Planer vermeidet, dass dieselbe
+  Grundzutat die Woche dominiert, und zählt sie nicht als nützliche
+  Zutatenüberlappung. Sonst gäbe es fünf Tage Kartoffeln, nur weil der Sack
+  schon offen ist.
+
+---
+
+## Aufbau
+
+```
+config.yaml              Personen, Portionen, Protein-Ziel, Ausschlüsse, Regeln
+data/ingredients.yaml    Zutaten-Stammdaten
+data/recipes/*.yaml      ein Rezept je Datei
+plans/<JJJJ-MM>.json     erzeugte Pläne (Laufzeitdaten, im Volume)
+src/essensplaner/
+  models.py              Zutat, Rezept, Variante, Plan
+  config.py              Konfiguration und Secrets aus der Umgebung
+  data.py                Laden und Speichern
+  kalender.py            Wochenrhythmus Freitag bis Donnerstag
+  rules.py               harte Regeln: Ausschlüsse, Protein, Haltbarkeit, Wiederholung
+  nutrition.py           Protein aus den Zutaten nachrechnen
+  planner.py             regelbasierter Scheduler
+  shopping.py            Frischeliste und Vorratsliste
+  units.py               Einheiten zusammenfassen und ausgeben
+  mail.py                Mails rendern und verschicken
+  templates/             HTML- und Text-Vorlagen
+  runner.py              die beiden geplanten Läufe
+  scheduler.py           eingebauter Scheduler
+  cli.py                 Kommandozeile
+tools/protein_sync.py    Proteinangaben mit der Nachrechnung abgleichen
+tests/                   die sechs Akzeptanzkriterien und alles darum
+```
+
+Die Regeln sind an drei Stellen wirksam: beim Laden der Stammdaten, als
+Kandidatenfilter während der Planung und als Abnahme des fertigen Plans. Ein
+Plan, der eine harte Regel bricht, wird nicht gespeichert – lieber kein Plan
+als ein falscher.
+
+---
+
+## Deployment
+
+Die Pipeline baut bei jedem Push auf `main` ein Image, veröffentlicht es in der
+GitHub-Registry und löst den Rollout in Coolify aus. Der Rollout läuft nur,
+wenn vorher alle Prüfungen grün waren.
+
+Die vollständige Anleitung samt Coolify-Einrichtung, Secrets und Mailversand
+steht in [docs/deployment.md](docs/deployment.md).
+
+Kurzfassung:
+
+1. In Coolify eine Ressource vom Typ **Docker Image** anlegen, Image
+   `ghcr.io/<owner>/essensplaner:latest`.
+2. Ein Volume auf `/data/plans` legen, damit die Pläne einen Rollout überleben.
+3. Die SMTP- und Mail-Variablen setzen (siehe `.env.example`), Passwörter als
+   Secret.
+4. In Coolify ein API-Token mit der Berechtigung **Deploy** erzeugen und die
+   Deploy-URL der Ressource kopieren.
+5. Im GitHub-Repo die Secrets `COOLIFY_WEBHOOK` und `COOLIFY_TOKEN` setzen.
+
+Ohne diese beiden Secrets läuft die Pipeline trotzdem durch: Das Image landet
+in der Registry, nur der Rollout wird mit einem Hinweis übersprungen.
+
+### Zeitsteuerung
+
+Im Container läuft standardmäßig `essensplaner serve`. Der Scheduler schickt
+die Wochenmail freitags um 07:00 und erzeugt am vorletzten Freitag des Monats
+den Plan für den Folgemonat. Jede Aufgabe läuft pro Termin höchstens einmal;
+der Zustand liegt in `/data/plans/state.json`, ein Neustart löst also keine
+zweite Mail aus.
+
+Wer die Coolify-Scheduled-Tasks bevorzugt, überschreibt das Kommando und legt
+zwei Tasks an:
+
+| Task | Kommando | Zeitplan |
+|---|---|---|
+| `send-weekly` | `essensplaner send-weekly` | `0 7 * * 5` |
+| `generate-month` | `essensplaner generate-month` | `30 7 * * 5` (prüft selbst, ob der Termin passt) |
+
+### Umzug ins Homelab
+
+Das Image ist an nichts gebunden, was es nur bei Hetzner gibt. Auf der neuen
+Hardware genügt:
+
+```bash
+cp .env.example .env    # ausfüllen
+docker compose up -d
+```
+
+Das Volume `essensplaner-plans` mitnehmen, dann bleiben die bereits erzeugten
+Pläne erhalten.
+
+---
+
+## Nächste Schritte (v2)
+
+Aus der Spec noch offen:
+
+- Bewertung per Link in der Mail (👍/👎), die auf die Gewichtung wirkt.
+- Tausch-Link „Gericht ersetzen“ für einzelne Slots.
+- Vorratsbestand pflegen. Die Rechenseite steht schon: eine
+  `data/bestand.yaml` mit `slug: { qty, unit }` wird beim Erzeugen der
+  Vorratsliste abgezogen – es fehlt nur eine bequeme Pflege.
+- Export in eine Einkaufs-App wie Bring!.
+- Rezeptvorschläge über die Claude API. Vorgesehen ist eine
+  Review-Warteschlange unter `data/recipes/_pending/`; Vorschläge werden erst
+  nach Freigabe eingeplant und laufen vorher durch Ausschluss- und
+  Protein-Check.

@@ -1,0 +1,30 @@
+slug: flammkuchen
+name: Flammkuchen (selbstgemacht)
+core: true
+slots: [SA, SO]
+tags: [zuenftig, kids_ok]
+seasons: all
+prep_minutes: 60
+base_servings: 4
+protein_per_serving_g: 31
+ingredients:
+  - { item: mehl_550, qty: 400, unit: g }
+  - { item: trockenhefe, qty: 1, unit: Stk }
+  - { item: oel_oliven, qty: 4, unit: EL }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: creme_fraiche, qty: 300, unit: g }
+  - { item: schmand, qty: 100, unit: g }
+  - { item: zwiebel, qty: 3, unit: Stk }
+  - { item: tofu_geraeuchert, qty: 150, unit: g }
+  - { item: kaese_reibe, qty: 150, unit: g }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: muskat, qty: 1, unit: Prise }
+  - { item: schnittlauch, qty: 0.5, unit: Bund, optional: true }
+steps:
+  - Mehl, Hefe, Salz, 2 EL Öl und 230 ml lauwarmes Wasser zu einem glatten Teig verkneten und 45 Minuten gehen lassen.
+  - Ofen auf 250 °C Ober-/Unterhitze vorheizen, Blech mit einheizen.
+  - Crème fraîche und Schmand mit Salz, Pfeffer und Muskat verrühren.
+  - Zwiebeln in feine Ringe schneiden, geräucherten Tofu in kleine Würfel und beides in 2 EL Öl kurz anbraten.
+  - Teig in zwei Portionen sehr dünn ausrollen, mit der Creme bestreichen, Zwiebeln, Tofu und Käse darauf verteilen.
+  - Je 10–12 Minuten auf dem heißen Blech backen, bis die Ränder dunkel werden. Mit Schnittlauch servieren.
+  - Der geräucherte Tofu übernimmt die Rolle des Specks – gleiche Richtung, vegetarisch.

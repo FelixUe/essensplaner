@@ -1,0 +1,38 @@
+slug: schupfnudeln-gemuese
+name: Schupfnudeln mit Gemüse
+core: true
+slots: [FR, SA, SO, MI]
+tags: [kids_ok, lunchbox_ok, schnell]
+seasons: all
+prep_minutes: 25
+base_servings: 4
+protein_per_serving_g: 22
+ingredients:
+  - { item: schupfnudeln, qty: 1000, unit: g }
+  - { item: spitzkohl, qty: 500, unit: g }
+  - { item: moehren, qty: 2, unit: Stk }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: butter, qty: 30, unit: g }
+  - { item: oel_sonnenblume, qty: 2, unit: EL }
+  - { item: schmand, qty: 150, unit: g }
+  - { item: kaese_reibe, qty: 100, unit: g }
+  - { item: gemuesebruehe, qty: 1, unit: EL }
+  - { item: kuemmel_ganz, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Spitzkohl in Streifen schneiden, Möhren in Stifte, Zwiebel in Halbringe.
+  - Öl in der Pfanne erhitzen, Gemüse 8 Minuten braten, mit Kümmel, Salz und Pfeffer würzen, 100 ml Wasser mit Brühe angießen.
+  - Schupfnudeln in der Butter in einer zweiten Pfanne rundum goldbraun braten.
+  - Gemüse und Schupfnudeln mischen, Schmand unterrühren und mit Käse bestreuen.
+  - Kohl und Möhren halten sich gut – dieses Gericht passt auch in den MI-Slot.
+variants:
+  protein:
+    hinweis: Hüttenkäse und Linsen heben das Protein für MO/MI auf über 30 g.
+    zusatz:
+      - { item: huettenkaese, qty: 250, unit: g }
+      - { item: berglinsen, qty: 120, unit: g }
+    protein_per_serving_g: 37
+    zusatz_steps:
+      - Berglinsen 25 Minuten separat garen und unter das Gemüse mischen.
+      - Hüttenkäse zum Schluss unterheben, nicht mehr stark erhitzen.

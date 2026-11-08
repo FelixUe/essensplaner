@@ -1,0 +1,155 @@
+# Rollout auf den Hetzner-Server.
+#
+# Ablauf: erst alle Prüfungen, dann das Image nach ghcr.io, dann der
+# Rollout in Coolify. Der Rollout läuft nur, wenn vorher alles grün war –
+# so kommt kein Plan mit Fenchel oder zu wenig Protein auf den Server.
+#
+# Benötigte Repository-Secrets (Settings → Secrets and variables → Actions):
+#
+#   COOLIFY_WEBHOOK   Deploy-URL der Coolify-Ressource,
+#                     Form: https://<coolify-host>/api/v1/deploy?uuid=<uuid>
+#   COOLIFY_TOKEN     Coolify-API-Token mit der Berechtigung "Deploy"
+#
+# Fehlen die Secrets, endet der Workflow nach dem Image-Push mit einem
+# Hinweis statt mit einem Fehler – praktisch, solange Coolify noch nicht
+# eingerichtet ist.
+
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      ohne_rollout:
+        description: "Nur Image bauen und pushen, keinen Rollout auslösen"
+        type: boolean
+        default: false
+
+concurrency:
+  # Kein paralleler Rollout: zwei gleichzeitige Deploys auf denselben
+  # Container wären ein Glücksspiel.
+  group: deploy-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  pruefungen:
+    name: Prüfungen
+    uses: ./.github/workflows/_tests.yml
+
+  image:
+    name: Image veröffentlichen
+    needs: pruefungen
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: An der GitHub-Registry anmelden
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags und Labels bestimmen
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # Kleingeschrieben, weil GHCR nur Kleinbuchstaben akzeptiert.
+          images: ghcr.io/${{ github.repository_owner }}/essensplaner
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}}
+          labels: |
+            org.opencontainers.image.title=Essensplaner
+            org.opencontainers.image.description=Monatsessensplan mit wöchentlicher Einkaufsliste per Mail
+
+      - name: Bauen und pushen
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Veröffentlichtes Image notieren
+        run: |
+          {
+            echo "## Image veröffentlicht"
+            echo
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            echo
+            echo "Digest: \`${{ steps.build.outputs.digest }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  rollout:
+    name: Coolify-Rollout
+    needs: image
+    # Bei einem Push gibt es keine Inputs – dann immer ausrollen.
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.ohne_rollout }}
+    runs-on: ubuntu-latest
+    environment:
+      name: hetzner
+    env:
+      COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+    steps:
+      - name: Secrets prüfen
+        id: check
+        run: |
+          if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
+            echo "vorhanden=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Rollout übersprungen"
+              echo
+              echo "COOLIFY_WEBHOOK oder COOLIFY_TOKEN ist nicht gesetzt."
+              echo "Das Image liegt in der Registry und kann in Coolify"
+              echo "von Hand ausgerollt werden. Anleitung: docs/deployment.md"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "vorhanden=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rollout auslösen
+        if: steps.check.outputs.vorhanden == 'true'
+        run: |
+          # Coolify erwartet ein GET auf die Deploy-URL mit einem Token,
+          # das die Berechtigung "Deploy" hat. Der Accept-Header
+          # verhindert eine HTML-Antwort bei Authentifizierungsfehlern.
+          antwort=$(curl --silent --show-error --fail-with-body \
+            --max-time 60 \
+            --request GET "$COOLIFY_WEBHOOK" \
+            --header "Authorization: Bearer $COOLIFY_TOKEN" \
+            --header "Accept: application/json")
+          echo "Coolify-Antwort: $antwort"
+          {
+            echo "## Rollout ausgelöst"
+            echo
+            echo '```json'
+            echo "$antwort"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Hinweis zum Nachschauen
+        if: steps.check.outputs.vorhanden == 'true'
+        run: |
+          echo "Coolify zieht das Image und startet den Container neu."
+          echo "Der Healthcheck im Container prüft Rezepte und Zutaten –"
+          echo "steht die Ressource auf healthy, stimmen die Stammdaten."

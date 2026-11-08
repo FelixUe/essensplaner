@@ -1,0 +1,21 @@
+slug: beilage-gurkensalat
+name: Gurkensalat
+core: false
+slots: []
+tags: [beilage, schnell]
+seasons: all
+prep_minutes: 10
+base_servings: 4
+protein_per_serving_g: 1
+ingredients:
+  - { item: gurke, qty: 1, unit: Stk }
+  - { item: schmand, qty: 100, unit: g }
+  - { item: essig_apfel, qty: 2, unit: EL }
+  - { item: zucker, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: dill, qty: 0.5, unit: Bund, optional: true }
+steps:
+  - Gurke hobeln, salzen und 10 Minuten ziehen lassen, dann die Flüssigkeit abgießen.
+  - Mit Schmand, Essig, Zucker, Pfeffer und Dill anmachen.
+  - Baustein für Tortilla, Reibekuchen und Bauernfrühstück.

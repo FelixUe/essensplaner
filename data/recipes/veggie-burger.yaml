@@ -1,0 +1,29 @@
+slug: veggie-burger
+name: Vegetarische Burger mit Ofenpommes
+core: true
+slots: [FR, SA, SO]
+tags: [kids_ok, zuenftig, schnell]
+seasons: all
+prep_minutes: 35
+base_servings: 4
+protein_per_serving_g: 35
+ingredients:
+  - { item: veggie_burger_patty, qty: 4, unit: Stk }
+  - { item: burger_buns, qty: 4, unit: Stk }
+  - { item: cheddar, qty: 100, unit: g }
+  - { item: pommes_tk, qty: 750, unit: g }
+  - { item: tomaten, qty: 200, unit: g }
+  - { item: kopfsalat, qty: 0.5, unit: Stk }
+  - { item: gurke, qty: 0.3, unit: Stk }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: ketchup, qty: 4, unit: EL }
+  - { item: mayonnaise, qty: 3, unit: EL }
+  - { item: senf, qty: 1, unit: TL }
+  - { item: oel_sonnenblume, qty: 1, unit: EL }
+steps:
+  - Ofen auf 220 °C vorheizen, Pommes auf dem Blech verteilen und nach Packungsanweisung backen.
+  - Patties in der Pfanne mit etwas Öl von jeder Seite 4 Minuten braten, zum Schluss je eine Scheibe Cheddar auflegen und schmelzen lassen.
+  - Buns halbieren und in der trockenen Pfanne kurz anrösten – so werden sie nicht matschig.
+  - Mayonnaise mit Senf verrühren, untere Hälfte damit bestreichen.
+  - Mit Salat, Patty, Tomate, Gurke und Zwiebel belegen, Ketchup dazu und Deckel aufsetzen.
+  - Pommes separat servieren, damit sie knusprig bleiben.

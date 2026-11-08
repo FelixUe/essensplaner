@@ -1,0 +1,28 @@
+slug: pellkartoffeln-kraeuterquark
+name: Pellkartoffeln mit Kräuterquark und Ei
+core: false
+slots: [FR, SA, SO, MO]
+tags: [kids_ok, schnell, lunchbox_ok]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 30
+ingredients:
+  - { item: kartoffeln_fest, qty: 1200, unit: g }
+  - { item: magerquark, qty: 500, unit: g }
+  - { item: naturjoghurt, qty: 150, unit: g }
+  - { item: eier, qty: 4, unit: Stk }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: schnittlauch, qty: 1, unit: Bund }
+  - { item: petersilie, qty: 0.5, unit: Bund }
+  - { item: oel_oliven, qty: 2, unit: EL }
+  - { item: butter, qty: 30, unit: g }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Kartoffeln waschen und mit Schale in Salzwasser 25 Minuten garen.
+  - Eier 8 Minuten kochen, kalt abschrecken und schälen.
+  - Quark mit Joghurt, Olivenöl, fein gehackter Zwiebel, Schnittlauch und Petersilie verrühren.
+  - Mit Salz und Pfeffer kräftig abschmecken – Quark braucht mehr Salz als man denkt.
+  - Kartoffeln abgießen, kurz ausdampfen lassen und mit Butter, Quark und halbierten Eiern servieren.
+  - "Frische Kräuter: nur in FR/SA/SO/MO einplanen."

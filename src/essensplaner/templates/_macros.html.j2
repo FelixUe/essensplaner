@@ -1,0 +1,90 @@
+{# Bausteine, die Wochen- und Monatsmail gemeinsam nutzen. #}
+
+{% macro abschnitt(titel, hinweis='') %}
+<h2 style="margin:26px 0 10px; font-size:17px; font-weight:600; color:#23211d;
+           border-bottom:2px solid #3d5a40; padding-bottom:5px;">{{ titel }}</h2>
+{% if hinweis %}
+<p style="margin:0 0 12px; font-size:14px; color:#6c675d;">{{ hinweis }}</p>
+{% endif %}
+{% endmacro %}
+
+{% macro einkaufsliste(liste) %}
+{% for abteilung, items in liste.abteilungen %}
+<div style="margin:0 0 14px;">
+  <div style="font-size:13px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+              color:#3d5a40; margin-bottom:5px;">{{ abteilung }}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    {% for item in items %}
+    <tr>
+      <td width="22" valign="top" style="padding:3px 0; font-size:16px; color:#a8a39a;">&#9744;</td>
+      <td valign="top" style="padding:3px 0; font-size:15px;">
+        {{ item.anzeige }}
+        {% if item.optional %}
+        <span style="font-size:12px; color:#8a857b;">optional</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endfor %}
+{% if not liste.items %}
+<p style="margin:0; font-size:15px; color:#6c675d;">Nichts einzukaufen.</p>
+{% endif %}
+{% endmacro %}
+
+{% macro gerichtkarte(meal) %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="margin:0 0 12px; background:#faf9f6; border-left:4px solid #3d5a40; border-radius:5px;">
+  <tr>
+    <td style="padding:12px 14px;">
+      <div style="font-size:13px; font-weight:600; color:#3d5a40; letter-spacing:.04em;">
+        {{ meal.kochtag }}, {{ meal.datum_kurz }}
+      </div>
+      <div style="font-size:17px; font-weight:600; margin:2px 0 4px;">{{ meal.name }}</div>
+      <div style="font-size:14px; color:#6c675d;">
+        Deckt ab: {{ meal.deckt_ab }} &middot; {{ meal.portionen_text }}
+      </div>
+      <div style="font-size:14px; color:#6c675d;">
+        {{ meal.prep_minutes }} Min &middot; {{ meal.protein_text }}
+      </div>
+      {% if meal.batch_hinweis %}
+      <div style="margin-top:6px; font-size:14px; color:#8a5a1b; font-weight:600;">
+        {{ meal.batch_hinweis }}
+      </div>
+      {% endif %}
+      {% if meal.variante_hinweis %}
+      <div style="margin-top:6px; font-size:14px; color:#4a6b4d;">{{ meal.variante_hinweis }}</div>
+      {% endif %}
+    </td>
+  </tr>
+</table>
+{% endmacro %}
+
+{% macro rezeptblock(meal) %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="margin:0 0 20px; border:1px solid #e7e4dd; border-radius:6px;">
+  <tr>
+    <td style="padding:14px 16px;">
+      <div style="font-size:13px; color:#7d786e;">{{ meal.kochtag }}, {{ meal.datum_kurz }}</div>
+      <div style="font-size:17px; font-weight:600; margin:1px 0 10px;">{{ meal.name }}</div>
+
+      <div style="font-size:13px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+                  color:#3d5a40;">Zutaten</div>
+      <ul style="margin:5px 0 12px; padding-left:20px; font-size:15px;">
+        {% for zeile in meal.zutaten %}
+        <li style="margin-bottom:2px;">{{ zeile }}</li>
+        {% endfor %}
+      </ul>
+
+      <div style="font-size:13px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+                  color:#3d5a40;">Zubereitung</div>
+      <ol style="margin:5px 0 0; padding-left:20px; font-size:15px;">
+        {% for schritt in meal.steps %}
+        <li style="margin-bottom:5px;">{{ schritt }}</li>
+        {% endfor %}
+      </ol>
+    </td>
+  </tr>
+</table>
+{% endmacro %}

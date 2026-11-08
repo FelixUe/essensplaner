@@ -1,0 +1,40 @@
+slug: wirsing-kartoffel-eintopf
+name: Wirsing-Kartoffel-Eintopf
+core: true
+slots: [MO, MI]
+tags: [lunchbox_ok, freezer_ok, kids_ok]
+seasons: [9, 10, 11, 12, 1, 2, 3, 4]
+prep_minutes: 40
+base_servings: 4
+protein_per_serving_g: 10
+ingredients:
+  - { item: wirsing, qty: 800, unit: g }
+  - { item: kartoffeln_fest, qty: 600, unit: g }
+  - { item: moehren, qty: 2, unit: Stk }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: butter, qty: 20, unit: g }
+  - { item: gemuesebruehe, qty: 2, unit: EL }
+  - { item: kuemmel_ganz, qty: 1, unit: TL }
+  - { item: lorbeer, qty: 1, unit: Blatt }
+  - { item: sahne, qty: 100, unit: ml }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: muskat, qty: 1, unit: Prise }
+steps:
+  - Wirsing vom Strunk befreien, in Streifen schneiden und waschen.
+  - Kartoffeln und Möhren würfeln, Zwiebel fein hacken.
+  - Butter erhitzen, Zwiebel andünsten, Wirsing portionsweise zusammenfallen lassen.
+  - Kartoffeln, Möhren, 700 ml Wasser, Brühe, Kümmel und Lorbeer zugeben und 25 Minuten köcheln.
+  - Lorbeer entfernen, Sahne einrühren, mit Salz, Pfeffer und Muskat abschmecken.
+  - Kohl und Kartoffeln halten sich gut – der Eintopf passt deshalb auch in den MI-Slot.
+variants:
+  protein:
+    hinweis: Weiße Bohnen, Berglinsen und Veggie-Hack machen den Eintopf vorkochtauglich.
+    zusatz:
+      - { item: weisse_bohnen_dose, qty: 2, unit: Dose }
+      - { item: berglinsen, qty: 150, unit: g }
+      - { item: veggie_hack, qty: 150, unit: g }
+    protein_per_serving_g: 34
+    zusatz_steps:
+      - Berglinsen von Anfang an mitkochen, sie brauchen etwa 25 Minuten.
+      - Veggie-Hack separat anbraten, weiße Bohnen abgetropft zum Schluss unterrühren.

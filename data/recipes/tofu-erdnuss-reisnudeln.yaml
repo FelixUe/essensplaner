@@ -1,0 +1,31 @@
+slug: tofu-erdnuss-reisnudeln
+name: Reisnudeln mit Tofu in milder Erdnusssauce
+core: false
+slots: [MO, MI]
+tags: [lunchbox_ok, kids_ok, schnell]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 39
+ingredients:
+  - { item: reisnudeln, qty: 250, unit: g }
+  - { item: tofu_geraeuchert, qty: 400, unit: g }
+  - { item: erdnussbutter, qty: 150, unit: g }
+  - { item: kokosmilch, qty: 1, unit: Dose }
+  - { item: sojasauce, qty: 3, unit: EL }
+  - { item: limette, qty: 1, unit: Stk }
+  - { item: honig, qty: 1, unit: EL }
+  - { item: moehren, qty: 2, unit: Stk }
+  - { item: edamame_tk, qty: 200, unit: g }
+  - { item: fruehlingszwiebel, qty: 1, unit: Bund }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: ingwer, qty: 15, unit: g }
+  - { item: oel_sonnenblume, qty: 2, unit: EL }
+  - { item: sesam, qty: 2, unit: EL }
+steps:
+  - Tofu würfeln und in Öl rundum knusprig braten, herausnehmen.
+  - Knoblauch und Ingwer im gleichen Topf andünsten, Erdnussbutter und Kokosmilch zugeben und glatt rühren.
+  - Mit Sojasauce, Honig und Limettensaft abschmecken – mild halten, keine Chili.
+  - Möhrenstifte und Edamame 4 Minuten in der Sauce garen.
+  - Reisnudeln nach Packungsanweisung einweichen oder kochen, abgießen und unter die Sauce heben.
+  - Tofu, Frühlingszwiebeln und Sesam darüber geben.

@@ -1,0 +1,27 @@
+slug: pfannkuchen-suess
+name: Süße Pfannkuchen
+core: true
+slots: [SA, SO]
+tags: [suess, kids_ok, schnell]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 20
+ingredients:
+  - { item: mehl_405, qty: 300, unit: g }
+  - { item: milch, qty: 500, unit: ml }
+  - { item: eier, qty: 4, unit: Stk }
+  - { item: butter, qty: 50, unit: g }
+  - { item: zucker, qty: 30, unit: g }
+  - { item: vanillezucker, qty: 1, unit: Stk }
+  - { item: salz, qty: 1, unit: Prise }
+  - { item: apfelmus, qty: 360, unit: g }
+  - { item: beeren_tk, qty: 200, unit: g }
+  - { item: puderzucker, qty: 20, unit: g }
+steps:
+  - Mehl, Zucker, Vanillezucker und Salz mischen, Eier und Milch zugeben und glatt rühren.
+  - Teig 20 Minuten ruhen lassen, dann noch einmal durchrühren.
+  - Etwas Butter in der Pfanne schmelzen, eine Kelle Teig dünn ausgießen und von beiden Seiten goldgelb backen.
+  - Fertige Pfannkuchen im Ofen bei 80 °C warm halten, bis alle gebacken sind.
+  - Beeren mit 1 EL Zucker kurz erwärmen, bis sie Saft ziehen.
+  - Mit Apfelmus, Beeren und Puderzucker servieren.

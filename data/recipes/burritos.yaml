@@ -1,0 +1,36 @@
+slug: burritos
+name: Überbackene Burritos
+core: true
+slots: [FR, SA, SO]
+tags: [kids_ok, zuenftig]
+seasons: all
+prep_minutes: 50
+base_servings: 4
+protein_per_serving_g: 35
+ingredients:
+  - { item: tortillas, qty: 8, unit: Stk }
+  - { item: suesskartoffel, qty: 500, unit: g }
+  - { item: paprika_rot, qty: 2, unit: Stk }
+  - { item: zwiebel, qty: 2, unit: Stk }
+  - { item: schwarze_bohnen_dose, qty: 1, unit: Dose }
+  - { item: reis, qty: 150, unit: g }
+  - { item: kaese_reibe, qty: 200, unit: g }
+  - { item: avocado, qty: 2, unit: Stk }
+  - { item: limette, qty: 1, unit: Stk }
+  - { item: sour_cream, qty: 200, unit: g }
+  - { item: kopfsalat, qty: 1, unit: Stk }
+  - { item: tomaten, qty: 300, unit: g }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: kreuzkuemmel, qty: 2, unit: TL }
+  - { item: paprikapulver_geraeuchert, qty: 2, unit: TL }
+  - { item: oregano, qty: 1, unit: TL }
+  - { item: knoblauchpulver, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+steps:
+  - Ofen auf 200 °C vorheizen. Süßkartoffel würfeln, mit Paprikastreifen, Zwiebeln, Öl und den Gewürzen mischen und 25 Minuten rösten.
+  - Reis nach Packungsanweisung garen. Schwarze Bohnen abtropfen lassen.
+  - Für die Guacamole Avocados zerdrücken und mit Limettensaft und Salz abschmecken.
+  - Tortillas mit Reis, Ofengemüse, Bohnen und etwas Käse füllen, einrollen und in eine Auflaufform legen.
+  - Mit restlichem Käse bestreuen und 12 Minuten überbacken, bis der Käse geschmolzen ist.
+  - Mit Guacamole, Sour Cream, Salat und Tomatenwürfeln servieren.
+  - "Nicht scharf: die Würzmischung ist aus Einzelgewürzen, keine Fertigmischung."

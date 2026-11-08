@@ -1,0 +1,32 @@
+slug: suesskartoffel-bohnen-chili
+name: Süßkartoffel-Bohnen-Eintopf
+core: false
+slots: [MO, MI]
+tags: [lunchbox_ok, freezer_ok, kids_ok]
+seasons: all
+prep_minutes: 35
+base_servings: 4
+protein_per_serving_g: 31
+ingredients:
+  - { item: suesskartoffel, qty: 700, unit: g }
+  - { item: schwarze_bohnen_dose, qty: 2, unit: Dose }
+  - { item: rote_linsen, qty: 150, unit: g }
+  - { item: tomaten_gehackt_dose, qty: 1, unit: Dose }
+  - { item: mais_dose, qty: 1, unit: Dose }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: oel_oliven, qty: 2, unit: EL }
+  - { item: kreuzkuemmel, qty: 2, unit: TL }
+  - { item: paprikapulver_geraeuchert, qty: 1, unit: TL }
+  - { item: oregano, qty: 1, unit: TL }
+  - { item: gemuesebruehe, qty: 1, unit: EL }
+  - { item: skyr, qty: 200, unit: g }
+  - { item: limette, qty: 1, unit: Stk }
+  - { item: salz, qty: 1, unit: TL }
+steps:
+  - Süßkartoffeln schälen und in 2 cm große Würfel schneiden.
+  - Zwiebel und Knoblauch in Öl andünsten, Gewürze zugeben und kurz mitrösten.
+  - Süßkartoffeln, rote Linsen, gehackte Tomaten, 500 ml Wasser und Brühe zugeben und 20 Minuten köcheln.
+  - Abgetropfte Bohnen und Mais unterrühren und 5 Minuten ziehen lassen.
+  - Mit Limettensaft und Salz abschmecken, Skyr als Topping auf dem Teller.
+  - Süßkartoffeln halten sich lange – passt gut in den MI-Slot.

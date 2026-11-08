@@ -1,0 +1,29 @@
+slug: tortilla-espanola
+name: Spanische Tortilla mit Gurkensalat
+core: true
+slots: [FR, SA, SO]
+tags: [kids_ok, lunchbox_ok]
+seasons: all
+prep_minutes: 45
+base_servings: 4
+protein_per_serving_g: 20
+ingredients:
+  - { item: kartoffeln_fest, qty: 800, unit: g }
+  - { item: zwiebel, qty: 2, unit: Stk }
+  - { item: eier, qty: 8, unit: Stk }
+  - { item: oel_oliven, qty: 6, unit: EL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: gurke, qty: 1, unit: Stk }
+  - { item: schmand, qty: 100, unit: g }
+  - { item: essig_apfel, qty: 2, unit: EL }
+  - { item: zucker, qty: 1, unit: TL }
+  - { item: dill, qty: 0.5, unit: Bund, optional: true, hinweis: "für den Gurkensalat" }
+steps:
+  - Kartoffeln schälen und in dünne Scheiben schneiden, Zwiebeln in Halbringe.
+  - Öl in der Pfanne erhitzen, Kartoffeln und Zwiebeln bei mittlerer Hitze 15 Minuten weich garen, nicht braun braten.
+  - Eier verquirlen, salzen und pfeffern, die abgetropften Kartoffeln unterheben und 5 Minuten ziehen lassen.
+  - Masse zurück in die Pfanne geben und bei kleiner Hitze 10 Minuten stocken lassen.
+  - Mit einem Teller wenden und weitere 5 Minuten garen, bis die Tortilla in der Mitte gerade fest ist.
+  - Für den Gurkensalat die Gurke hobeln, mit Salz 10 Minuten ziehen lassen, abtropfen und mit Schmand, Essig, Zucker und Dill mischen.
+  - Tortilla schmeckt warm und kalt – Reste sind lunchbox-tauglich.

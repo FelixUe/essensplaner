@@ -1,0 +1,25 @@
+slug: kartoffelbrei-fischstaebchen
+name: Kartoffelbrei mit Fischstäbchen
+core: true
+slots: [FR, SA, SO]
+tags: [kids_ok, fisch, schnell]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 21
+ingredients:
+  - { item: kartoffeln_mehlig, qty: 1000, unit: g }
+  - { item: milch, qty: 200, unit: ml }
+  - { item: butter, qty: 40, unit: g }
+  - { item: muskat, qty: 1, unit: Prise }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: fischstaebchen, qty: 12, unit: Stk }
+  - { item: erbsen_tk, qty: 200, unit: g }
+  - { item: zitrone, qty: 1, unit: Stk }
+steps:
+  - Kartoffeln schälen, in Salzwasser 20 Minuten weich kochen und abgießen.
+  - Milch mit Butter erwärmen, Kartoffeln zerdrücken, Milch einarbeiten, mit Salz und Muskat abschmecken.
+  - Fischstäbchen nach Packungsanweisung im Ofen backen, bis sie knusprig sind.
+  - Erbsen in wenig Salzwasser 4 Minuten garen und mit einem Stück Butter schwenken.
+  - Mit Zitronenschnitzen servieren.
+  - Einzige Fleisch- bzw. Fischausnahme im Plan – steht höchstens einmal im Monat.

@@ -1,0 +1,42 @@
+slug: pilzpfanne-spaetzle
+name: Pilzpfanne mit Spätzle
+core: true
+slots: [MO, FR]
+tags: [lunchbox_ok, kids_ok]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 22
+ingredients:
+  - { item: champignons, qty: 500, unit: g }
+  - { item: kraeuterseitlinge, qty: 200, unit: g }
+  - { item: spaetzle_trocken, qty: 500, unit: g }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: butter, qty: 30, unit: g }
+  - { item: sahne, qty: 200, unit: ml }
+  - { item: gemuesebruehe, qty: 1, unit: EL }
+  - { item: thymian_getrocknet, qty: 1, unit: TL }
+  - { item: petersilie, qty: 0.5, unit: Bund }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Pilze putzen und in Scheiben schneiden. Nicht waschen, nur abreiben.
+  - Butter in der großen Pfanne erhitzen und die Pilze portionsweise scharf anbraten, erst am Ende salzen.
+  - Zwiebel und Knoblauch zugeben und 2 Minuten mitbraten, mit Thymian würzen.
+  - Sahne und 100 ml Wasser mit Brühe angießen und 5 Minuten einkochen lassen.
+  - Spätzle nach Packungsanweisung garen, abgießen und untermischen.
+  - Mit Salz, Pfeffer und Petersilie abschließen.
+  - "Pilze sind empfindlich: dieses Gericht steht nur in FR- und MO-Slots, nie am Mittwoch."
+variants:
+  protein:
+    hinweis: >-
+      Geräucherter Tofu in der Pfanne und Skyr in der Sauce heben das
+      Protein, ohne den Charakter zu verändern.
+    zusatz:
+      - { item: tofu_geraeuchert, qty: 200, unit: g }
+      - { item: skyr, qty: 150, unit: g }
+    protein_per_serving_g: 34
+    zusatz_steps:
+      - Tofu würfeln und zusammen mit den Pilzen anbraten.
+      - Skyr vom Herd genommen in die Sauce rühren, damit er nicht ausflockt.

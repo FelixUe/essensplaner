@@ -1,0 +1,26 @@
+slug: melone-feta-salat
+name: Melone-Feta-Salat
+core: true
+slots: [FR, SA, SO]
+tags: [kids_ok, schnell]
+seasons: [6, 7, 8]
+prep_minutes: 20
+base_servings: 4
+protein_per_serving_g: 16
+ingredients:
+  - { item: honigmelone, qty: 800, unit: g }
+  - { item: feta, qty: 200, unit: g }
+  - { item: rucola, qty: 100, unit: g }
+  - { item: walnuesse, qty: 50, unit: g }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: essig_balsamico, qty: 2, unit: EL }
+  - { item: honig, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: Prise }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: mischbrot, qty: 300, unit: g }
+steps:
+  - Melone entkernen und in mundgerechte Würfel schneiden.
+  - Rucola waschen und trocken schleudern, Walnüsse in einer trockenen Pfanne kurz rösten.
+  - Aus Olivenöl, Balsamico, Honig, Salz und Pfeffer ein Dressing rühren.
+  - Melone, Rucola und zerkrümelten Feta auf einer Platte anrichten, Dressing darüber geben, Walnüsse aufstreuen.
+  - Brot dazu reichen. Sommergericht – wird außerhalb von Juni bis August nicht eingeplant.

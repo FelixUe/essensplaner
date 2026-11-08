@@ -1,0 +1,31 @@
+slug: ofengemuese-halloumi
+name: Ofengemüse mit Halloumi und Couscous
+core: false
+slots: [MO, MI, SA, SO]
+tags: [lunchbox_ok, kids_ok]
+seasons: all
+prep_minutes: 40
+base_servings: 4
+protein_per_serving_g: 33
+ingredients:
+  - { item: halloumi, qty: 300, unit: g }
+  - { item: hartweizengriess, qty: 250, unit: g }
+  - { item: suesskartoffel, qty: 400, unit: g }
+  - { item: paprika_rot, qty: 2, unit: Stk }
+  - { item: zucchini, qty: 1, unit: Stk }
+  - { item: rote_zwiebel, qty: 2, unit: Stk }
+  - { item: kichererbsen_dose, qty: 1, unit: Dose }
+  - { item: oel_oliven, qty: 5, unit: EL }
+  - { item: paprikapulver_edelsuess, qty: 2, unit: TL }
+  - { item: oregano, qty: 1, unit: TL }
+  - { item: zitrone, qty: 1, unit: Stk }
+  - { item: naturjoghurt, qty: 200, unit: g }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Ofen auf 210 °C vorheizen. Süßkartoffel, Paprika, Zucchini und Zwiebeln in gleich große Stücke schneiden.
+  - Gemüse mit 3 EL Öl, Paprikapulver, Oregano und Salz mischen und 25 Minuten auf dem Blech rösten.
+  - Abgetropfte Kichererbsen nach 15 Minuten dazugeben, damit sie knusprig werden.
+  - Hartweizengrieß mit 300 ml kochendem Salzwasser übergießen, abgedeckt 8 Minuten ziehen lassen und mit der Gabel auflockern.
+  - Halloumi in Scheiben schneiden und in 2 EL Öl von beiden Seiten goldbraun braten.
+  - Joghurt mit Zitronensaft, Salz und Pfeffer verrühren und als Dip dazu geben.

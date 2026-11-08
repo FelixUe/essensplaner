@@ -1,0 +1,30 @@
+slug: caesar-salad-stripes
+name: Caesar Salad mit vegetarischen Chicken-Stripes
+core: true
+slots: [FR, SA, SO, MO]
+tags: [kids_ok, schnell]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 35
+ingredients:
+  - { item: romanasalat, qty: 2, unit: Stk }
+  - { item: veggie_chicken_stripes, qty: 360, unit: g }
+  - { item: parmesan, qty: 100, unit: g }
+  - { item: baguette, qty: 0.5, unit: Stk }
+  - { item: eier, qty: 2, unit: Stk }
+  - { item: mayonnaise, qty: 100, unit: ml }
+  - { item: senf, qty: 1, unit: TL }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: zitrone, qty: 1, unit: Stk }
+  - { item: oel_oliven, qty: 4, unit: EL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Baguette würfeln, mit 2 EL Olivenöl und Salz mischen und bei 200 °C 10 Minuten zu Croutons rösten.
+  - Eier 8 Minuten kochen, kalt abschrecken und halbieren.
+  - Für das Dressing Mayonnaise, Senf, gepressten Knoblauch, Zitronensaft, die Hälfte des geriebenen Parmesans, Salz und Pfeffer verrühren.
+  - Chicken-Stripes nach Packungsanweisung in der Pfanne knusprig braten.
+  - Romanasalat in breite Streifen schneiden, mit Dressing mischen.
+  - Mit Stripes, Croutons, Ei und dem restlichen Parmesan anrichten.
+  - "Blattsalat ist empfindlich: dieses Gericht steht nur in FR/SA/SO/MO, nie am Mittwoch."

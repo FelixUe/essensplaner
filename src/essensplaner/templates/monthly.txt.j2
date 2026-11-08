@@ -1,0 +1,47 @@
+{{ betreff }}
+{{ '=' * betreff | length }}
+
+Monatsplan {{ monat_label }}, {{ wochen | length }} Wochen
+{% if vorschau %}
+
+VORSCHAU ZUR DURCHSICHT
+Wer etwas tauschen will, aendert das Rezept oder die Regeln im Repo und
+laesst den Plan neu erzeugen.
+{% endif %}
+
+
+VORRATSLISTE FUER DEN MONAT ({{ vorrat.anzahl }} Posten)
+{{ '-' * 52 }}
+Haltbare Zutaten, auf ganze Packungen aufgerundet.
+Kommt einmalig mit dem Freitagseinkauf.
+{% for abteilung, items in vorrat.abteilungen %}
+
+{{ abteilung }}:
+{% for item in items %}
+  [ ] {{ item.anzeige }}
+{% endfor %}
+{% endfor %}
+{% if not vorrat.items %}
+  Nichts einzukaufen.
+{% endif %}
+
+
+ALLE GERICHTE DES MONATS
+{{ '-' * 52 }}
+{% for woche in wochen %}
+
+Woche {{ woche.start | kurz }} - {{ woche.ende | kurz }}
+{% for meal in woche.meals %}
+  {{ meal.kochtag[:2] }}, {{ meal.datum_kurz }}  {{ meal.name }}
+{% if meal.batch_hinweis %}
+                 {{ meal.batch_hinweis }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+
+Die Frischware kommt wie immer freitags in der Wochenmail - dort stehen auch
+die Rezepte mit den Mengen fuer die jeweilige Woche.
+
+--
+Automatisch erstellt vom Essensplaner.

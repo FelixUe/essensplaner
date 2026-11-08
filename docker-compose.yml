@@ -1,0 +1,61 @@
+# Essensplaner – für Coolify auf dem Hetzner-Server und unverändert
+# für die Homelab-Hardware.
+#
+# Coolify kann diese Datei direkt als "Docker Compose"-Ressource nutzen.
+# Lokal oder im Homelab reicht:
+#
+#     cp .env.example .env     # und ausfüllen
+#     docker compose up -d
+#
+# Das Image kommt aus der GitHub-Registry und wird von der Pipeline
+# gebaut. Wer selbst bauen will, kommentiert `build: .` ein.
+
+services:
+  essensplaner:
+    image: ${ESSENSPLANER_IMAGE:-ghcr.io/felixue/essensplaner:latest}
+    # build: .
+    container_name: essensplaner
+    restart: unless-stopped
+
+    environment:
+      # Zeitzone bestimmt, wann "Freitag 07:00" ist.
+      TZ: ${TZ:-Europe/Berlin}
+
+      # Mailversand. Gehört in Coolify unter Environment Variables,
+      # die Passwörter dort als Secret markieren.
+      SMTP_HOST: ${SMTP_HOST:?SMTP_HOST muss gesetzt sein}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_SSL: ${SMTP_SSL:-false}
+      MAIL_FROM: ${MAIL_FROM:?MAIL_FROM muss gesetzt sein}
+      MAIL_TO: ${MAIL_TO:?MAIL_TO muss gesetzt sein}
+
+      # Optional: Gefriertruhe vorhanden, fester Seed, Claude-API.
+      ESSENSPLANER_FREEZER: ${ESSENSPLANER_FREEZER:-false}
+      ESSENSPLANER_SEED: ${ESSENSPLANER_SEED:-}
+      ESSENSPLANER_AI: ${ESSENSPLANER_AI:-false}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+    volumes:
+      # Die erzeugten Monatspläne und der Lauf-Zustand. Ohne dieses
+      # Volume wäre nach jedem Rollout der Plan weg und die nächste
+      # Freitagsmail würde einen neuen würfeln.
+      - essensplaner-plans:/data/plans
+
+    healthcheck:
+      test: ["CMD", "essensplaner", "validate", "--no-protein"]
+      interval: 5m
+      timeout: 30s
+      start_period: 20s
+      retries: 2
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  essensplaner-plans:

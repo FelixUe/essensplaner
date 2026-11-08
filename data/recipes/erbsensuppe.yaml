@@ -1,0 +1,31 @@
+slug: erbsensuppe
+name: Erbsensuppe mit vegetarischen Würstchen
+core: true
+slots: [MO, MI, FR]
+tags: [lunchbox_ok, freezer_ok, kids_ok]
+seasons: all
+prep_minutes: 60
+base_servings: 4
+protein_per_serving_g: 38
+ingredients:
+  - { item: schaelerbsen, qty: 400, unit: g }
+  - { item: kartoffeln_fest, qty: 300, unit: g }
+  - { item: moehren, qty: 2, unit: Stk }
+  - { item: lauch, qty: 1, unit: Stk }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: oel_sonnenblume, qty: 1, unit: EL }
+  - { item: gemuesebruehe, qty: 2, unit: EL }
+  - { item: majoran, qty: 1, unit: TL }
+  - { item: lorbeer, qty: 1, unit: Blatt }
+  - { item: veggie_wuerstchen, qty: 4, unit: Stk }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: mischbrot, qty: 200, unit: g }
+steps:
+  - Schälerbsen abspülen. Je nach Sorte 1 Stunde einweichen – geschälte Erbsen brauchen das nicht.
+  - Zwiebel und Lauch in Öl andünsten, Erbsen zugeben und mit 1,5 l Wasser aufgießen.
+  - Brühe, Majoran und Lorbeer zugeben und 30 Minuten köcheln.
+  - Kartoffeln und Möhren würfeln, zugeben und weitere 20 Minuten garen, bis alles weich ist.
+  - Lorbeer entfernen, Suppe nach Geschmack teilweise pürieren, mit Salz und Pfeffer abschmecken.
+  - Würstchen in Scheiben schneiden, anbraten und auf die Suppe geben. Brot dazu.
+  - Schälerbsen sind von sich aus proteinreich – für MO/MI ist keine Extra-Variante nötig.

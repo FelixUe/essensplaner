@@ -1,0 +1,30 @@
+slug: pizza
+name: Pizza (selbstgemacht)
+core: true
+slots: [FR, SA, SO]
+tags: [kids_ok, zuenftig]
+seasons: all
+prep_minutes: 90
+base_servings: 4
+protein_per_serving_g: 35
+ingredients:
+  - { item: mehl_550, qty: 500, unit: g }
+  - { item: hefe_frisch, qty: 21, unit: g }
+  - { item: oel_oliven, qty: 4, unit: EL }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: passierte_tomaten, qty: 400, unit: g }
+  - { item: oregano, qty: 2, unit: TL }
+  - { item: mozzarella, qty: 2, unit: Stk }
+  - { item: kaese_reibe, qty: 100, unit: g }
+  - { item: paprika_rot, qty: 1, unit: Stk }
+  - { item: champignons, qty: 200, unit: g }
+  - { item: mais_dose, qty: 1, unit: Dose, optional: true }
+  - { item: basilikum, qty: 0.5, unit: Stk, optional: true }
+steps:
+  - Hefe in 300 ml lauwarmem Wasser auflösen, mit Mehl, Salz und 2 EL Öl 10 Minuten kneten.
+  - Teig abgedeckt 60 Minuten gehen lassen, bis er sich sichtbar vergrößert hat.
+  - Passierte Tomaten mit Oregano, Salz und 1 EL Öl verrühren – nicht kochen, das macht die Sauce bitter.
+  - Ofen auf 250 °C vorheizen. Teig in zwei Teile teilen und auf Backpapier dünn ausziehen.
+  - Mit Sauce bestreichen, Mozzarella in Scheiben, Reibekäse und Gemüse darauf verteilen.
+  - Je 12–14 Minuten backen, bis der Rand goldbraun ist. Mit Basilikum servieren.
+  - Eine Hälfte kann als Kinderpizza nur mit Sauce und Käse belegt werden.

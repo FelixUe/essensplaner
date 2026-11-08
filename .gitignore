@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Secrets / lokale Konfiguration
+.env
+.env.local
+config.local.yaml
+
+# Generierte Pläne (Laufzeitdaten, liegen im Volume)
+plans/*.json
+!plans/.gitkeep
+
+# Zur Freigabe vorgeschlagene Rezepte aus der Claude-API
+data/recipes/_pending/*.yaml
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+.preview/
+preview-*.html
+preview-*.txt

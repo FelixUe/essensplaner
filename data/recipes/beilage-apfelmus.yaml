@@ -1,0 +1,19 @@
+slug: beilage-apfelmus
+name: Apfelmus selbst gemacht
+core: false
+slots: []
+tags: [beilage, suess]
+seasons: all
+prep_minutes: 25
+base_servings: 4
+protein_per_serving_g: 1
+ingredients:
+  - { item: apfel, qty: 1000, unit: g }
+  - { item: zucker, qty: 50, unit: g }
+  - { item: zimt, qty: 1, unit: TL }
+  - { item: zitrone, qty: 1, unit: Stk }
+steps:
+  - Äpfel schälen, entkernen und würfeln.
+  - Mit 100 ml Wasser, Zucker und dem Saft der Zitrone 15 Minuten weich kochen.
+  - Mit dem Kartoffelstampfer zerdrücken oder pürieren, mit Zimt abschmecken.
+  - Passt zu Reibekuchen, Pfannkuchen, Köttbullar und Milchreis.

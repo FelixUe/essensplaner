@@ -1,0 +1,22 @@
+slug: spaghetti-tomatensauce
+name: Spaghetti mit Tomatensauce und Parmesan
+core: true
+slots: [FR, SA, SO]
+tags: [kids_ok, schnell]
+seasons: all
+prep_minutes: 20
+base_servings: 4
+protein_per_serving_g: 27
+ingredients:
+  - { item: spaghetti, qty: 500, unit: g }
+  - { item: kinder_tomatensauce, qty: 700, unit: g }
+  - { item: parmesan, qty: 100, unit: g }
+  - { item: oel_oliven, qty: 2, unit: EL }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: basilikum, qty: 0.5, unit: Stk, optional: true }
+steps:
+  - Reichlich Salzwasser aufsetzen und die Spaghetti nach Packungsanweisung al dente kochen.
+  - Gekaufte Tomatensauce in einem Topf erwärmen, mit Olivenöl abrunden.
+  - Nudeln abgießen, dabei eine Tasse Kochwasser auffangen, und mit der Sauce mischen – Kochwasser nach Bedarf zugeben.
+  - Mit frisch geriebenem Parmesan und etwas Basilikum servieren.
+  - Das schnelle Gericht für Tage, an denen es kurz gehen muss.

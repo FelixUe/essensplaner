@@ -1,0 +1,30 @@
+slug: bauernsalat-halloumi
+name: Bauernsalat mit Halloumi
+core: false
+slots: [FR, SA, SO]
+tags: [kids_ok, schnell]
+seasons: [5, 6, 7, 8, 9]
+prep_minutes: 25
+base_servings: 4
+protein_per_serving_g: 27
+ingredients:
+  - { item: tomaten, qty: 500, unit: g }
+  - { item: gurke, qty: 1, unit: Stk }
+  - { item: paprika_gelb, qty: 1, unit: Stk }
+  - { item: rote_zwiebel, qty: 1, unit: Stk }
+  - { item: feta, qty: 200, unit: g }
+  - { item: halloumi, qty: 225, unit: g }
+  - { item: oliven, qty: 100, unit: g }
+  - { item: oel_oliven, qty: 4, unit: EL }
+  - { item: essig_balsamico, qty: 2, unit: EL }
+  - { item: oregano, qty: 2, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: baguette, qty: 1, unit: Stk }
+steps:
+  - Tomaten in Spalten, Gurke in halbe Scheiben, Paprika in Streifen und Zwiebel in feine Ringe schneiden.
+  - Alles mit Oliven in eine Schüssel geben, mit Olivenöl, Balsamico, Oregano, Salz und Pfeffer mischen.
+  - 10 Minuten ziehen lassen, damit die Tomaten Saft abgeben.
+  - Halloumi in Scheiben schneiden und in einer trockenen Pfanne von beiden Seiten goldbraun braten.
+  - Feta in Würfeln über den Salat geben, Halloumi warm darauflegen.
+  - Baguette dazu, um den Salatsaft aufzunehmen.

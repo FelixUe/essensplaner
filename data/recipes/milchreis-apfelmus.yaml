@@ -1,0 +1,24 @@
+slug: milchreis-apfelmus
+name: Milchreis mit Apfelmus und Zimtzucker
+core: false
+slots: [SA, SO]
+tags: [suess, kids_ok]
+seasons: all
+prep_minutes: 40
+base_servings: 4
+protein_per_serving_g: 17
+ingredients:
+  - { item: milchreis, qty: 250, unit: g }
+  - { item: milch, qty: 1.5, unit: l }
+  - { item: zucker, qty: 50, unit: g }
+  - { item: vanillezucker, qty: 1, unit: Stk }
+  - { item: zimt, qty: 2, unit: TL }
+  - { item: salz, qty: 1, unit: Prise }
+  - { item: butter, qty: 20, unit: g }
+  - { item: apfelmus, qty: 360, unit: g }
+steps:
+  - Milch mit Butter, Zucker, Vanillezucker und einer Prise Salz aufkochen.
+  - Milchreis einrühren, Hitze auf die kleinste Stufe stellen und 35 Minuten quellen lassen.
+  - Alle 5 Minuten umrühren, damit nichts ansetzt – Milchreis brennt gern an.
+  - Wenn der Reis weich ist, vom Herd nehmen und 5 Minuten ruhen lassen.
+  - Mit Zimtzucker und Apfelmus servieren.

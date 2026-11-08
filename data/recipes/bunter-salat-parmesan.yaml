@@ -1,0 +1,30 @@
+slug: bunter-salat-parmesan
+name: Bunter Salat mit Parmesan, Möhren und Gurke
+core: true
+slots: [FR, SA, SO]
+tags: [kids_ok, schnell]
+seasons: all
+prep_minutes: 20
+base_servings: 4
+protein_per_serving_g: 23
+ingredients:
+  - { item: kopfsalat, qty: 1, unit: Stk }
+  - { item: moehren, qty: 3, unit: Stk }
+  - { item: gurke, qty: 1, unit: Stk }
+  - { item: kirschtomaten, qty: 250, unit: g }
+  - { item: parmesan, qty: 100, unit: g }
+  - { item: eier, qty: 4, unit: Stk }
+  - { item: baguette, qty: 1, unit: Stk }
+  - { item: oel_oliven, qty: 4, unit: EL }
+  - { item: essig_balsamico, qty: 2, unit: EL }
+  - { item: senf, qty: 1, unit: TL }
+  - { item: honig, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Eier 8 Minuten kochen, kalt abschrecken und vierteln.
+  - Salat waschen und zerkleinern, Möhren grob reiben, Gurke in Scheiben, Kirschtomaten halbieren.
+  - Aus Öl, Balsamico, Senf, Honig, Salz und Pfeffer ein Dressing schütteln.
+  - Salat anrichten, Dressing erst kurz vor dem Essen darüber geben.
+  - Parmesan in Spänen darüber hobeln, Ei auflegen, Baguette dazu.
+  - Für Parmesan-Chips: geriebenen Parmesan in kleinen Häufchen bei 200 °C 5 Minuten backen.

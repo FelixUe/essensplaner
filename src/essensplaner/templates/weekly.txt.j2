@@ -1,0 +1,73 @@
+{{ betreff }}
+{{ '=' * betreff | length }}
+
+Einkauf am {{ von }}
+Woche {{ von }} bis {{ bis }}
+
+
+EINKAUFSLISTE FRISCHWARE ({{ frisch.anzahl }} Posten)
+{{ '-' * 52 }}
+{% for abteilung, items in frisch.abteilungen %}
+
+{{ abteilung }}:
+{% for item in items %}
+  [ ] {{ item.anzeige }}{% if item.optional %} (optional){% endif %}
+
+{% endfor %}
+{% endfor %}
+{% if not frisch.items %}
+  Nichts einzukaufen.
+{% endif %}
+{% if vorrat and vorrat.items %}
+
+
+ZUSAETZLICH AUS DEM VORRAT
+{{ '-' * 52 }}
+{% for abteilung, items in vorrat.abteilungen %}
+
+{{ abteilung }}:
+{% for item in items %}
+  [ ] {{ item.anzeige }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+
+DIE WOCHE IM UEBERBLICK
+{{ '-' * 52 }}
+{% for meal in meals %}
+
+{{ meal.kochtag }}, {{ meal.datum_kurz }} – {{ meal.name }}
+  Deckt ab: {{ meal.deckt_ab }}
+  {{ meal.portionen_text }}, {{ meal.prep_minutes }} Min, {{ meal.protein_text }}
+{% if meal.batch_hinweis %}
+  ! {{ meal.batch_hinweis }}
+{% endif %}
+{% if meal.variante_hinweis %}
+  Hinweis: {{ meal.variante_hinweis }}
+{% endif %}
+{% endfor %}
+
+
+REZEPTE
+{{ '-' * 52 }}
+Mengen sind auf die Portionen dieser Woche hochgerechnet.
+{% for meal in meals %}
+
+{{ meal.name }} ({{ meal.kochtag }}, {{ meal.datum_kurz }})
+
+  Zutaten:
+{% for zeile in meal.zutaten %}
+    - {{ zeile }}
+{% endfor %}
+
+  Zubereitung:
+{% for schritt in meal.steps %}
+    {{ loop.index }}. {{ schritt }}
+{% endfor %}
+{% endfor %}
+
+
+--
+Automatisch erstellt vom Essensplaner. Rezepte und Regeln liegen im Git-Repo,
+Aenderungen dort wirken ab dem naechsten Lauf.

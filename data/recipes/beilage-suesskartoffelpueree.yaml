@@ -1,0 +1,20 @@
+slug: beilage-suesskartoffelpueree
+name: Süßkartoffelpüree
+core: false
+slots: []
+tags: [beilage]
+seasons: all
+prep_minutes: 25
+base_servings: 4
+protein_per_serving_g: 4
+ingredients:
+  - { item: suesskartoffel, qty: 800, unit: g }
+  - { item: butter, qty: 30, unit: g }
+  - { item: milch, qty: 100, unit: ml }
+  - { item: muskat, qty: 1, unit: Prise }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Süßkartoffeln schälen, würfeln und 15 Minuten in Salzwasser weich kochen.
+  - Abgießen, kurz ausdampfen lassen, mit Butter und warmer Milch zerdrücken.
+  - Mit Salz, Pfeffer und Muskat abschmecken.

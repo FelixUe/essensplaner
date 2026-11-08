@@ -1,0 +1,37 @@
+slug: kartoffelgratin
+name: Kartoffelgratin
+core: true
+slots: [SA, SO, MI]
+tags: [kids_ok, zuenftig]
+seasons: all
+prep_minutes: 70
+base_servings: 4
+protein_per_serving_g: 23
+ingredients:
+  - { item: kartoffeln_fest, qty: 1200, unit: g }
+  - { item: sahne, qty: 400, unit: ml }
+  - { item: milch, qty: 200, unit: ml }
+  - { item: kaese_reibe, qty: 200, unit: g }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: butter, qty: 20, unit: g }
+  - { item: muskat, qty: 1, unit: Prise }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: kopfsalat, qty: 1, unit: Stk, optional: true, hinweis: "Beilagensalat" }
+steps:
+  - Ofen auf 180 °C vorheizen. Auflaufform mit Butter ausstreichen und mit einer halbierten Knoblauchzehe ausreiben.
+  - Kartoffeln schälen und in 3 mm dünne Scheiben hobeln.
+  - Sahne und Milch mit gepresstem Knoblauch, Salz, Pfeffer und Muskat verrühren.
+  - Kartoffelscheiben dachziegelartig einschichten, dabei zwischendurch salzen, und die Sahnemischung darüber gießen.
+  - 45 Minuten backen, dann Käse aufstreuen und weitere 15 Minuten goldbraun überbacken.
+  - 10 Minuten ruhen lassen, damit das Gratin schnittfest wird. Beilagensalat dazu.
+variants:
+  protein:
+    hinweis: Hüttenkäse in der Sahnemischung und Linsen im Gratin tragen das Protein für MI.
+    zusatz:
+      - { item: huettenkaese, qty: 250, unit: g }
+      - { item: berglinsen, qty: 150, unit: g }
+    protein_per_serving_g: 40
+    zusatz_steps:
+      - Berglinsen 25 Minuten vorgaren und zwischen die Kartoffelschichten streuen.
+      - Hüttenkäse unter die Sahnemischung rühren.

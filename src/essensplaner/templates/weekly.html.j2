@@ -1,0 +1,34 @@
+{% extends "_layout.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{% block vorschautext %}
+Einkaufsliste für {{ von }} bis {{ bis }} – {{ frisch.anzahl }} Posten Frischware.
+{% endblock %}
+
+{% block titel %}Essensplan {{ woche.start | kurz }} – {{ woche.ende | kurz }}{% endblock %}
+
+{% block untertitel %}
+Einkauf am {{ von }} &middot; {{ meals | length }} Gerichte
+{% endblock %}
+
+{% block inhalt %}
+
+{{ m.abschnitt('Einkaufsliste Frischware', frisch.anzahl ~ ' Posten, sortiert nach Abteilung') }}
+{{ m.einkaufsliste(frisch) }}
+
+{% if vorrat and vorrat.items %}
+{{ m.abschnitt('Zusätzlich aus dem Vorrat', 'Diese haltbaren Zutaten standen nicht auf der Monatsliste.') }}
+{{ m.einkaufsliste(vorrat) }}
+{% endif %}
+
+{{ m.abschnitt('Die Woche im Überblick') }}
+{% for meal in meals %}
+{{ m.gerichtkarte(meal) }}
+{% endfor %}
+
+{{ m.abschnitt('Rezepte', 'Mengen sind schon auf die Portionen dieser Woche hochgerechnet.') }}
+{% for meal in meals %}
+{{ m.rezeptblock(meal) }}
+{% endfor %}
+
+{% endblock %}

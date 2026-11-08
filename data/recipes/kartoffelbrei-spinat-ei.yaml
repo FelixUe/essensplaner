@@ -1,0 +1,26 @@
+slug: kartoffelbrei-spinat-ei
+name: Kartoffelbrei mit Spinat und Ei
+core: true
+slots: [FR, SA, SO]
+tags: [kids_ok, schnell]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 18
+ingredients:
+  - { item: kartoffeln_mehlig, qty: 1000, unit: g }
+  - { item: milch, qty: 200, unit: ml }
+  - { item: butter, qty: 40, unit: g }
+  - { item: muskat, qty: 1, unit: Prise }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: spinat_tk, qty: 450, unit: g }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: sahne, qty: 100, unit: ml }
+  - { item: eier, qty: 4, unit: Stk }
+  - { item: essig_weissweinessig, qty: 1, unit: EL }
+steps:
+  - Kartoffeln schälen, in Salzwasser 20 Minuten weich kochen und abgießen.
+  - Milch mit Butter erwärmen, Kartoffeln zerdrücken und die Milch einarbeiten, mit Salz und Muskat abschmecken.
+  - TK-Spinat mit dem gehackten Knoblauch in einem Topf auftauen, Sahne zugeben und 5 Minuten einkochen.
+  - Wasser mit Essig zum Sieden bringen, Eier einzeln als pochierte Eier 4 Minuten garen – alternativ Spiegeleier braten.
+  - Kartoffelbrei mit Rahmspinat und Ei anrichten.

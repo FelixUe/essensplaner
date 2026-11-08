@@ -1,0 +1,22 @@
+slug: beilage-ofengemuese
+name: Ofengemüse
+core: false
+slots: []
+tags: [beilage, lunchbox_ok]
+seasons: all
+prep_minutes: 35
+base_servings: 4
+protein_per_serving_g: 3
+ingredients:
+  - { item: moehren, qty: 3, unit: Stk }
+  - { item: paprika_rot, qty: 2, unit: Stk }
+  - { item: zucchini, qty: 1, unit: Stk }
+  - { item: rote_zwiebel, qty: 2, unit: Stk }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: rosmarin_getrocknet, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Ofen auf 200 °C vorheizen, Gemüse in gleich große Stücke schneiden.
+  - Mit Öl, Rosmarin, Salz und Pfeffer mischen und auf dem Blech verteilen.
+  - 25–30 Minuten rösten, nach der Hälfte wenden.

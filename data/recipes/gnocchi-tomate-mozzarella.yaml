@@ -1,0 +1,28 @@
+slug: gnocchi-tomate-mozzarella
+name: Gnocchi-Auflauf mit Tomate und Mozzarella
+core: false
+slots: [FR, SA, SO, MO]
+tags: [kids_ok, schnell, lunchbox_ok]
+seasons: all
+prep_minutes: 35
+base_servings: 4
+protein_per_serving_g: 30
+ingredients:
+  - { item: gnocchi, qty: 1000, unit: g }
+  - { item: passierte_tomaten, qty: 500, unit: g }
+  - { item: mozzarella, qty: 2, unit: Stk }
+  - { item: kirschtomaten, qty: 250, unit: g }
+  - { item: parmesan, qty: 50, unit: g }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: oregano, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: basilikum, qty: 0.5, unit: Stk, optional: true }
+steps:
+  - Ofen auf 200 °C vorheizen.
+  - Gnocchi 2 Minuten in kochendem Salzwasser ziehen lassen, bis sie oben schwimmen, und abgießen.
+  - Passierte Tomaten mit gepresstem Knoblauch, Olivenöl, Oregano, Salz und Pfeffer verrühren.
+  - Gnocchi mit der Sauce und den halbierten Kirschtomaten in eine Auflaufform geben.
+  - Mozzarella in Scheiben darauf verteilen, Parmesan darüber reiben.
+  - 18 Minuten backen, bis der Käse goldene Flecken bekommt. Mit Basilikum servieren.

@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "essensplaner"
+version = "1.0.0"
+description = "Automatisierter Monatsessensplan mit wöchentlicher Einkaufsliste per Mail"
+requires-python = ">=3.12"
+dependencies = [
+    "PyYAML>=6.0.1",
+    "Jinja2>=3.1.4",
+    "click>=8.1.7",
+    # Die IANA-Zeitzonendatenbank fehlt auf Windows und in slim-Images.
+    # Ohne sie kennt zoneinfo nicht einmal "UTC".
+    "tzdata>=2024.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+]
+ai = [
+    "anthropic>=0.40",
+]
+
+[project.scripts]
+essensplaner = "essensplaner.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+essensplaner = ["templates/*.j2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+ignore = ["E501"]

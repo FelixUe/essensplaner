@@ -1,0 +1,31 @@
+slug: shakshuka-mild
+name: Milde Shakshuka mit Brot
+core: false
+slots: [MO, FR, SA]
+tags: [kids_ok, schnell]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 36
+ingredients:
+  - { item: eier, qty: 8, unit: Stk }
+  - { item: paprika_rot, qty: 2, unit: Stk }
+  - { item: tomaten_gehackt_dose, qty: 2, unit: Dose }
+  - { item: kichererbsen_dose, qty: 1, unit: Dose }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: knoblauch, qty: 3, unit: Stk }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: paprikapulver_edelsuess, qty: 2, unit: TL }
+  - { item: kreuzkuemmel, qty: 1, unit: TL }
+  - { item: feta, qty: 200, unit: g }
+  - { item: mischbrot, qty: 400, unit: g }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: petersilie, qty: 0.5, unit: Bund, optional: true }
+steps:
+  - Zwiebel und Paprika in Streifen schneiden und in Olivenöl 8 Minuten weich dünsten.
+  - Knoblauch, Paprikapulver und Kreuzkümmel zugeben und kurz mitrösten – mild bleiben, keine Chili.
+  - Gehackte Tomaten und abgetropfte Kichererbsen zugeben und 10 Minuten offen einkochen lassen.
+  - Mit Salz und Pfeffer abschmecken, acht Mulden eindrücken und je ein Ei hineingleiten lassen.
+  - Zugedeckt 7–9 Minuten stocken lassen, bis das Eiweiß fest und das Eigelb noch weich ist.
+  - Feta darüber krümeln, mit Petersilie bestreuen und Brot zum Auftunken reichen.

@@ -1,0 +1,17 @@
+slug: beilage-parmesan-chips
+name: Parmesan-Chips
+core: false
+slots: []
+tags: [beilage, schnell]
+seasons: all
+prep_minutes: 10
+base_servings: 4
+protein_per_serving_g: 8
+ingredients:
+  - { item: parmesan, qty: 100, unit: g }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Ofen auf 200 °C vorheizen, Blech mit Backpapier belegen.
+  - Geriebenen Parmesan in flachen Häufchen mit Abstand auf das Blech geben, pfeffern.
+  - 5–6 Minuten backen, bis sie goldgelb sind, und auf dem Blech abkühlen lassen.
+  - Protein-Topping für Salate und Suppen.

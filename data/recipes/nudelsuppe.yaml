@@ -1,0 +1,43 @@
+slug: nudelsuppe
+name: Nudelsuppe mit Gemüse
+core: true
+slots: [MO, MI, FR]
+tags: [lunchbox_ok, kids_ok, schnell]
+seasons: all
+prep_minutes: 25
+base_servings: 4
+protein_per_serving_g: 14
+ingredients:
+  - { item: suppennudeln, qty: 200, unit: g }
+  - { item: moehren, qty: 3, unit: Stk }
+  - { item: lauch, qty: 1, unit: Stk }
+  - { item: sellerie_stange, qty: 200, unit: g }
+  - { item: erbsen_tk, qty: 150, unit: g }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: butter, qty: 20, unit: g }
+  - { item: gemuesebruehe, qty: 2, unit: EL }
+  - { item: eier, qty: 2, unit: Stk }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: petersilie, qty: 0.5, unit: Bund, optional: true, hinweis: "Garnitur" }
+steps:
+  - Möhren und Staudensellerie in Scheiben schneiden, Lauch in Ringe, Zwiebel würfeln.
+  - Butter im Topf erhitzen, Zwiebel und Lauch andünsten.
+  - Mit 1,4 l Wasser aufgießen, Brühe zugeben, Möhren und Sellerie 10 Minuten garen.
+  - Nudeln zugeben und nach Packungsanweisung garen, Erbsen 3 Minuten vor Ende dazu.
+  - Eier 8 Minuten wachsweich kochen, halbieren und auf die Teller geben.
+  - Mit Salz und Pfeffer abschmecken, mit Petersilie bestreuen.
+variants:
+  protein:
+    hinweis: >-
+      Linsennudeln statt Suppennudeln, dazu geräucherter Tofu und zwei Eier
+      mehr – damit trägt die Suppe als Mittagessen.
+    zusatz:
+      - { item: tofu_geraeuchert, qty: 200, unit: g }
+      - { item: eier, qty: 2, unit: Stk }
+    ersetzt:
+      suppennudeln: { item: proteinnudeln, qty: 250, unit: g }
+    protein_per_serving_g: 36
+    zusatz_steps:
+      - Geräucherten Tofu würfeln, in der Pfanne anbraten und erst beim Servieren zugeben.
+      - Linsennudeln separat kochen, damit die Suppe nicht trüb wird.

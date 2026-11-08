@@ -1,0 +1,44 @@
+slug: kichererbsen-spinat-curry
+name: Kichererbsen-Spinat-Curry mit Reis
+core: true
+slots: [MO, MI, FR]
+tags: [lunchbox_ok, freezer_ok, kids_ok, schnell]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 21
+ingredients:
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: ingwer, qty: 20, unit: g }
+  - { item: oel_sonnenblume, qty: 2, unit: EL }
+  - { item: tomatenmark, qty: 2, unit: EL }
+  - { item: kichererbsen_dose, qty: 2, unit: Dose }
+  - { item: spinat_tk, qty: 450, unit: g }
+  - { item: kokosmilch, qty: 1, unit: Dose }
+  - { item: kurkuma, qty: 1, unit: TL }
+  - { item: koriander_gemahlen, qty: 2, unit: TL }
+  - { item: kreuzkuemmel, qty: 1, unit: TL }
+  - { item: naturjoghurt, qty: 150, unit: g }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: reis, qty: 300, unit: g }
+steps:
+  - Zwiebel, Knoblauch und Ingwer fein hacken und in Öl 3 Minuten dünsten.
+  - Tomatenmark und Gewürze zugeben, 1 Minute mitrösten.
+  - Kokosmilch und 150 ml Wasser angießen, abgetropfte Kichererbsen zugeben, 10 Minuten köcheln.
+  - TK-Spinat einrühren und weitere 5 Minuten garen, bis er aufgetaut und heiß ist.
+  - Vom Herd nehmen, Joghurt unterrühren (nicht mehr kochen), mit Salz abschmecken.
+  - Reis nach Packungsanweisung garen.
+variants:
+  protein:
+    hinweis: >-
+      Rote Linsen binden und bringen Protein, Skyr ersetzt den Joghurt –
+      damit erreicht der Teller das Minimum für MO/MI.
+    zusatz:
+      - { item: rote_linsen, qty: 150, unit: g }
+      - { item: skyr, qty: 200, unit: g }
+    entfernt: [naturjoghurt]
+    protein_per_serving_g: 34
+    zusatz_steps:
+      - Rote Linsen zusammen mit der Kokosmilch zugeben und 15 Minuten köcheln.
+      - Skyr erst nach dem Abkühlen oder auf dem Teller unterrühren.

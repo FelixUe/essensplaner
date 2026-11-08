@@ -1,0 +1,29 @@
+slug: koettbullar-preiselbeeren
+name: Vegetarische Köttbullar mit Soße und Preiselbeeren
+core: true
+slots: [SA, SO]
+tags: [zuenftig, kids_ok, freezer_ok]
+seasons: all
+prep_minutes: 40
+base_servings: 4
+protein_per_serving_g: 25
+ingredients:
+  - { item: koettbullar_veggie, qty: 400, unit: g }
+  - { item: kartoffeln_fest, qty: 1000, unit: g }
+  - { item: sahne, qty: 200, unit: ml }
+  - { item: mehl_405, qty: 20, unit: g }
+  - { item: butter, qty: 40, unit: g }
+  - { item: gemuesebruehe, qty: 1, unit: EL }
+  - { item: sojasauce, qty: 1, unit: TL }
+  - { item: preiselbeeren, qty: 200, unit: g }
+  - { item: apfelmus, qty: 360, unit: g }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: petersilie, qty: 0.5, unit: Bund, optional: true }
+steps:
+  - Kartoffeln schälen und in Salzwasser 20 Minuten garen.
+  - Köttbullar nach Packungsanweisung in der Pfanne rundum braten und warm stellen.
+  - Für die Soße 20 g Butter schmelzen, Mehl einrühren und 1 Minute anschwitzen.
+  - Mit 300 ml Wasser und Brühe ablöschen, glatt rühren, Sahne und Sojasauce zugeben und 5 Minuten einkochen.
+  - Mit Salz und Pfeffer abschmecken, Köttbullar in der Soße warm halten.
+  - Mit Kartoffeln, Preiselbeeren und Apfelmus servieren, mit Petersilie bestreuen.

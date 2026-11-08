@@ -1,0 +1,31 @@
+slug: gefuellte-paprika-reis-feta
+name: Gefüllte Paprika mit Reis und Feta
+core: false
+slots: [MI, SA, SO]
+tags: [lunchbox_ok, kids_ok, freezer_ok]
+seasons: all
+prep_minutes: 55
+base_servings: 4
+protein_per_serving_g: 32
+ingredients:
+  - { item: paprika_rot, qty: 4, unit: Stk }
+  - { item: paprika_gelb, qty: 2, unit: Stk }
+  - { item: reis, qty: 250, unit: g }
+  - { item: feta, qty: 400, unit: g }
+  - { item: berglinsen, qty: 150, unit: g }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: passierte_tomaten, qty: 500, unit: g }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: oregano, qty: 2, unit: TL }
+  - { item: paprikapulver_edelsuess, qty: 1, unit: TL }
+  - { item: gemuesebruehe, qty: 1, unit: EL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Reis und Berglinsen getrennt garen – Linsen brauchen etwa 25 Minuten.
+  - Ofen auf 190 °C vorheizen. Paprika quer köpfen und entkernen, die Deckel aufbewahren.
+  - Zwiebel und Knoblauch in Öl andünsten, mit Reis, Linsen, der Hälfte des Fetas, Oregano, Salz und Pfeffer mischen.
+  - Paprika füllen, in eine Auflaufform setzen und die passierten Tomaten mit Brühe und Paprikapulver angießen.
+  - Deckel aufsetzen und 35 Minuten backen, die letzten 10 Minuten ohne Deckel mit dem restlichen Feta überbacken.
+  - Paprika und Linsen sind lagerfähig – das Gericht passt auch in den MI-Slot.

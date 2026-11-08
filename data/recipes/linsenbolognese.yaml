@@ -1,0 +1,33 @@
+slug: linsenbolognese
+name: Linsenbolognese mit Tagliatelle
+core: false
+slots: [MO, MI, FR]
+tags: [lunchbox_ok, freezer_ok, kids_ok]
+seasons: all
+prep_minutes: 40
+base_servings: 4
+protein_per_serving_g: 39
+ingredients:
+  - { item: berglinsen, qty: 200, unit: g }
+  - { item: tagliatelle, qty: 500, unit: g }
+  - { item: moehren, qty: 2, unit: Stk }
+  - { item: sellerie_stange, qty: 150, unit: g }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: knoblauch, qty: 3, unit: Stk }
+  - { item: tomatenmark, qty: 2, unit: EL }
+  - { item: tomaten_gehackt_dose, qty: 2, unit: Dose }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: gemuesebruehe, qty: 1, unit: EL }
+  - { item: oregano, qty: 1, unit: TL }
+  - { item: thymian_getrocknet, qty: 1, unit: TL }
+  - { item: lorbeer, qty: 1, unit: Blatt }
+  - { item: parmesan, qty: 80, unit: g }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Möhren, Sellerie, Zwiebel und Knoblauch sehr fein würfeln – je feiner, desto mehr Bolognese-Charakter.
+  - Gemüse in Olivenöl 8 Minuten anschwitzen, Tomatenmark zugeben und 2 Minuten mitrösten.
+  - Linsen, gehackte Tomaten, 400 ml Wasser, Brühe, Kräuter und Lorbeer zugeben.
+  - 30 Minuten bei kleiner Hitze köcheln, bis die Linsen weich sind. Gelegentlich Wasser nachgießen.
+  - Lorbeer entfernen, kräftig mit Salz und Pfeffer abschmecken.
+  - Tagliatelle al dente kochen und mit der Sauce und Parmesan servieren.

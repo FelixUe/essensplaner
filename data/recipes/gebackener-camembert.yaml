@@ -1,0 +1,32 @@
+slug: gebackener-camembert
+name: Gebackener Camembert mit Preiselbeeren, Salat und Baguette
+core: true
+slots: [SA, SO]
+tags: [zuenftig, kids_ok]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 39
+ingredients:
+  - { item: camembert, qty: 500, unit: g }
+  - { item: mehl_405, qty: 50, unit: g }
+  - { item: eier, qty: 2, unit: Stk }
+  - { item: semmelbroesel, qty: 100, unit: g }
+  - { item: oel_sonnenblume, qty: 300, unit: ml }
+  - { item: preiselbeeren, qty: 200, unit: g }
+  - { item: baguette, qty: 1, unit: Stk }
+  - { item: kopfsalat, qty: 1, unit: Stk }
+  - { item: tomaten, qty: 200, unit: g }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: essig_balsamico, qty: 2, unit: EL }
+  - { item: senf, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Camembert in Achtel schneiden und gut gekühlt lassen – kalter Käse läuft beim Frittieren nicht aus.
+  - Stücke zuerst in Mehl, dann in verquirltem Ei, dann in Semmelbröseln wenden. Panade ein zweites Mal durch Ei und Brösel ziehen.
+  - Öl in einem kleinen Topf auf 170 °C erhitzen und die Stücke portionsweise 2 Minuten goldbraun frittieren.
+  - Auf Küchenpapier abtropfen lassen und sofort servieren.
+  - Salat waschen, Tomaten schneiden, aus Olivenöl, Balsamico, Senf, Salz und Pfeffer ein Dressing rühren.
+  - Mit Preiselbeeren und aufgebackenem Baguette anrichten.
+  - "Weißschimmel wie Camembert ist ausdrücklich erlaubt – die ausgeschlossenen Käsesorten stehen in config.yaml."

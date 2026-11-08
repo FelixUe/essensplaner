@@ -1,0 +1,40 @@
+slug: gebratener-reis-hoisin
+name: Gebratener Reis mit Hoisinsoße und Gemüse
+core: true
+slots: [MO, MI, FR]
+tags: [lunchbox_ok, kids_ok, schnell]
+seasons: all
+prep_minutes: 25
+base_servings: 4
+protein_per_serving_g: 16
+ingredients:
+  - { item: reis, qty: 350, unit: g }
+  - { item: wokgemuese_tk, qty: 400, unit: g }
+  - { item: erbsen_tk, qty: 150, unit: g }
+  - { item: moehren, qty: 2, unit: Stk }
+  - { item: fruehlingszwiebel, qty: 1, unit: Bund }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: ingwer, qty: 15, unit: g }
+  - { item: eier, qty: 3, unit: Stk }
+  - { item: oel_sonnenblume, qty: 3, unit: EL }
+  - { item: sesamoel, qty: 1, unit: EL }
+  - { item: hoisinsauce, qty: 4, unit: EL }
+  - { item: sojasauce, qty: 2, unit: EL }
+  - { item: sesam, qty: 2, unit: EL }
+steps:
+  - Reis am besten am Vortag kochen und kalt stellen – kalter Reis wird in der Pfanne körnig statt matschig.
+  - Möhren in feine Stifte schneiden, Frühlingszwiebeln in Ringe, Knoblauch und Ingwer hacken.
+  - Eier verquirlen, in 1 EL Öl stocken lassen, herausnehmen und in Streifen schneiden.
+  - Restliches Öl stark erhitzen, Knoblauch, Ingwer und Möhren 2 Minuten braten, TK-Gemüse und Erbsen zugeben.
+  - Reis zugeben und unter Rühren 4 Minuten braten, mit Hoisinsoße und Sojasauce ablöschen.
+  - Ei und Frühlingszwiebeln unterheben, mit Sesamöl und Sesam abschließen.
+variants:
+  protein:
+    hinweis: Geräucherter Tofu und Edamame bringen den Reis für MO/MI über 30 g.
+    zusatz:
+      - { item: tofu_geraeuchert, qty: 300, unit: g }
+      - { item: edamame_tk, qty: 150, unit: g }
+    protein_per_serving_g: 33
+    zusatz_steps:
+      - Tofu in Würfeln zuerst scharf anbraten, herausnehmen und am Ende unterheben.
+      - Edamame zusammen mit den Erbsen in die Pfanne geben.

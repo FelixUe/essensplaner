@@ -1,0 +1,41 @@
+slug: kaese-lauch-suppe
+name: Milde Käse-Lauch-Suppe
+core: true
+slots: [MO, MI, FR]
+tags: [lunchbox_ok, freezer_ok, kids_ok]
+seasons: all
+prep_minutes: 35
+base_servings: 4
+protein_per_serving_g: 19
+ingredients:
+  - { item: lauch, qty: 3, unit: Stk }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: kartoffeln_mehlig, qty: 500, unit: g }
+  - { item: butter, qty: 30, unit: g }
+  - { item: schmelzkaese, qty: 200, unit: g }
+  - { item: sahne, qty: 200, unit: ml }
+  - { item: gemuesebruehe, qty: 2, unit: EL }
+  - { item: muskat, qty: 1, unit: Prise }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: mischbrot, qty: 300, unit: g }
+steps:
+  - Lauch längs halbieren, gründlich waschen und in Ringe schneiden. Zwiebel würfeln, Kartoffeln klein würfeln.
+  - Butter im Topf schmelzen, Zwiebel und Lauch 5 Minuten sanft dünsten – nicht braun werden lassen.
+  - Kartoffeln zugeben, mit 1,2 l Wasser und Brühe aufgießen und 15 Minuten köcheln, bis die Kartoffeln weich sind.
+  - Schmelzkäse und Sahne einrühren und bei kleiner Hitze schmelzen lassen, nicht mehr kochen.
+  - Mit Muskat, Salz und Pfeffer abschmecken. Brot dazu reichen.
+  - "Mild, nicht deftig: kein Majoran, keine Röstaromen."
+variants:
+  protein:
+    hinweis: >-
+      Vegetarisches Hack und weiße Bohnen machen die Suppe zur
+      Vorkoch-Mahlzeit für MO/MI, rote Linsen binden sie zusätzlich.
+    zusatz:
+      - { item: veggie_hack, qty: 300, unit: g }
+      - { item: weisse_bohnen_dose, qty: 1, unit: Dose }
+      - { item: rote_linsen, qty: 80, unit: g }
+    protein_per_serving_g: 41
+    zusatz_steps:
+      - Veggie-Hack separat krümelig anbraten und erst zum Schluss unterrühren.
+      - Rote Linsen zusammen mit den Kartoffeln mitkochen, Bohnen abgetropft am Ende zugeben.

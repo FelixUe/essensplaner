@@ -1,0 +1,53 @@
+slug: chili-sin-carne
+name: Chili sin carne
+core: true
+slots: [MO, MI, SA]
+tags: [lunchbox_ok, freezer_ok, kids_ok]
+seasons: all
+prep_minutes: 35
+base_servings: 4
+protein_per_serving_g: 26
+ingredients:
+  - { item: zwiebel, qty: 2, unit: Stk }
+  - { item: knoblauch, qty: 3, unit: Stk }
+  - { item: paprika_rot, qty: 2, unit: Stk }
+  - { item: oel_sonnenblume, qty: 2, unit: EL }
+  - { item: tomatenmark, qty: 2, unit: EL }
+  - { item: tomaten_gehackt_dose, qty: 2, unit: Dose }
+  - { item: kidneybohnen_dose, qty: 2, unit: Dose }
+  - { item: mais_dose, qty: 1, unit: Dose }
+  - { item: rote_linsen, qty: 100, unit: g }
+  - { item: gemuesebruehe, qty: 1, unit: EL }
+  - { item: paprikapulver_edelsuess, qty: 2, unit: TL }
+  - { item: kreuzkuemmel, qty: 1, unit: TL }
+  - { item: oregano, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: reis, qty: 250, unit: g }
+steps:
+  - Zwiebeln und Knoblauch fein würfeln, Paprika in Streifen schneiden.
+  - Öl im großen Topf erhitzen, Zwiebeln 3 Minuten glasig dünsten, Knoblauch und Paprika zugeben.
+  - Tomatenmark einrühren und 1 Minute mitrösten, dann mit Paprikapulver, Kreuzkümmel und Oregano würzen.
+  - Gehackte Tomaten, 300 ml Wasser, Brühe und rote Linsen zugeben, aufkochen und 15 Minuten köcheln.
+  - Abgetropfte Kidneybohnen und Mais unterrühren, weitere 5 Minuten ziehen lassen, mit Salz und Pfeffer abschmecken.
+  - Reis nach Packungsanweisung garen und dazu servieren.
+  - "Nicht scharf würzen: Chiliflocken bei Bedarf erst am Tisch dazugeben."
+variants:
+  protein:
+    hinweis: >-
+      Für die Vorkoch-Slots MO/MI: mehr rote Linsen binden die Sauce und
+      Skyr ersetzt die Sour Cream. Kommt kalt wie aufgewärmt gut.
+    zusatz:
+      - { item: rote_linsen, qty: 50, unit: g }
+      - { item: skyr, qty: 200, unit: g }
+    protein_per_serving_g: 35
+    zusatz_steps:
+      - Skyr erst auf dem Teller als Topping dazugeben, nicht mitkochen.
+  family:
+    hinweis: Für die Familie mit Sour Cream und Reibekäse zum Überstreuen.
+    zusatz:
+      - { item: sour_cream, qty: 200, unit: g }
+      - { item: kaese_reibe, qty: 100, unit: g }
+    protein_per_serving_g: 34
+    zusatz_steps:
+      - Sour Cream und Reibekäse separat auf den Tisch stellen.

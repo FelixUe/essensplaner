@@ -1,0 +1,30 @@
+slug: nudelauflauf-brokkoli
+name: Nudelauflauf mit Brokkoli und Käse
+core: false
+slots: [MI, SA, SO]
+tags: [lunchbox_ok, kids_ok, freezer_ok]
+seasons: all
+prep_minutes: 50
+base_servings: 4
+protein_per_serving_g: 43
+ingredients:
+  - { item: penne, qty: 400, unit: g }
+  - { item: brokkoli_tk, qty: 450, unit: g }
+  - { item: kaese_reibe, qty: 150, unit: g }
+  - { item: huettenkaese, qty: 250, unit: g }
+  - { item: milch, qty: 300, unit: ml }
+  - { item: eier, qty: 3, unit: Stk }
+  - { item: butter, qty: 20, unit: g }
+  - { item: mehl_405, qty: 30, unit: g }
+  - { item: muskat, qty: 1, unit: Prise }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: semmelbroesel, qty: 30, unit: g }
+steps:
+  - Ofen auf 190 °C vorheizen, Auflaufform buttern.
+  - Penne 2 Minuten kürzer als angegeben kochen, sie garen im Ofen weiter.
+  - Butter schmelzen, Mehl einschwitzen, mit Milch ablöschen und zu einer glatten Sauce aufkochen.
+  - Sauce vom Herd nehmen, Hüttenkäse, verquirlte Eier, die Hälfte des Reibekäses, Muskat, Salz und Pfeffer unterrühren.
+  - Nudeln und noch gefrorenen Brokkoli mit der Sauce mischen, in die Form geben.
+  - Mit restlichem Käse und Semmelbröseln bestreuen und 25 Minuten goldbraun backen.
+  - TK-Brokkoli statt frischem – deshalb auch am Mittwoch unproblematisch.

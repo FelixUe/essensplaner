@@ -1,0 +1,17 @@
+# Im Repo gilt LF, egal auf welchem Betriebssystem entwickelt wird.
+# Das Image läuft unter Linux; CRLF in Konfigurationen oder Skripten
+# führt dort zu schwer auffindbaren Fehlern.
+* text=auto eol=lf
+
+# Binärdateien nicht anfassen.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# Pläne sind generierte Laufzeitdaten – im Diff uninteressant.
+plans/*.json linguist-generated=true

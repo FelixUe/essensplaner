@@ -1,0 +1,30 @@
+slug: wraps
+name: Wraps mit Kartoffeln und Frischkäse
+core: true
+slots: [FR, SA, SO]
+tags: [kids_ok, lunchbox_ok]
+seasons: all
+prep_minutes: 35
+base_servings: 4
+protein_per_serving_g: 18
+ingredients:
+  - { item: tortillas, qty: 8, unit: Stk }
+  - { item: kartoffeln_fest, qty: 500, unit: g }
+  - { item: frischkaese, qty: 200, unit: g }
+  - { item: sour_cream, qty: 150, unit: g }
+  - { item: kopfsalat, qty: 1, unit: Stk }
+  - { item: mais_dose, qty: 1, unit: Dose }
+  - { item: paprika_rot, qty: 2, unit: Stk }
+  - { item: gurke, qty: 0.5, unit: Stk }
+  - { item: oel_oliven, qty: 2, unit: EL }
+  - { item: paprikapulver_edelsuess, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: schnittlauch, qty: 0.5, unit: Bund, optional: true }
+steps:
+  - Kartoffeln würfeln, mit Öl, Paprikapulver und Salz mischen und bei 200 °C 25 Minuten im Ofen rösten.
+  - Paprika und Gurke in Streifen schneiden, Salat in Streifen, Mais abtropfen lassen.
+  - Frischkäse mit Sour Cream, Schnittlauch, Salz und Pfeffer glatt rühren.
+  - Tortillas kurz in einer trockenen Pfanne erwärmen, damit sie sich rollen lassen ohne zu brechen.
+  - Mit Creme bestreichen, belegen, die Seiten einklappen und fest aufrollen.
+  - Halbiert servieren – kalt am nächsten Tag genauso gut.

@@ -1,0 +1,104 @@
+# Essensplaner – Konfiguration
+# Alle Werte hier sind fachliche Vorgaben. Zugangsdaten kommen aus Umgebungsvariablen (.env / Coolify Secrets).
+
+haushalt:
+  erwachsene: 2
+  kinder: 1
+  # Ein Kind zählt als dieser Anteil einer Erwachsenenportion.
+  kind_portionsfaktor: 0.5
+  # Daraus ergibt sich der Familienfaktor: 2 + 1*0.5 = 2.5 Erwachsenenportionen.
+
+slots:
+  FR:
+    kochtag: Freitag
+    deckt_ab: "Freitag Abend"
+    esser: familie
+    anspruch: "Familie, kindertauglich"
+  SA:
+    kochtag: Samstag
+    deckt_ab: "Samstag"
+    esser: familie
+    anspruch: "darf aufwendiger, süß oder zünftig sein"
+  SO:
+    kochtag: Sonntag
+    deckt_ab: "Sonntag"
+    esser: familie
+    anspruch: "darf aufwendiger, süß oder zünftig sein"
+  MO:
+    kochtag: Montag
+    deckt_ab: "Montag + Dienstag Mittag"
+    esser: erwachsene
+    portionen: 4
+    anspruch: "schnell, proteinreich, aufwärmbar"
+  MI:
+    kochtag: Mittwoch
+    deckt_ab: "Mittwoch + Donnerstag Mittag"
+    esser: erwachsene
+    portionen: 4
+    anspruch: "schnell, proteinreich, aufwärmbar"
+
+ernaehrung:
+  # Harte Regel: Mindestprotein je Erwachsenenportion in den Vorkoch-Slots.
+  protein_min_g: 30
+  protein_slots: [MO, MI]
+  # Slots, in denen empfindliche Frischware noch zulässig ist (Einkauf ist Freitag).
+  frischware_slots: [FR, SA, SO, MO]
+  fischstaebchen_max_pro_monat: 1
+
+planung:
+  max_pro_monat: 3
+  min_abstand_tage: 7
+  core_anteil: 0.6
+  # Doppelt kochen und einfrieren, wenn eine Gefriertruhe vorhanden ist.
+  freezer: false
+  # Pro Wochenende mindestens ein Gericht mit einem dieser Tags.
+  wochenende_pflicht_tags: [suess, zuenftig]
+  # Seed für reproduzierbare Pläne; null = zufällig.
+  seed: null
+
+# Harte Ausschlüsse. Jede Zutat und jede generierte Variante wird gegen diese
+# Begriffe geprüft (Name, Slug und Aliase, ohne Rücksicht auf Groß-/Kleinschreibung).
+ausschluesse:
+  blauschimmel:
+    begriffe:
+      - blauschimmel
+      - gorgonzola
+      - roquefort
+      - stilton
+      - cambozola
+      - danablu
+      - bavaria blu
+      - bergader
+      - blue cheese
+      - blauschimmelkaese
+      - blauschimmelkäse
+    # Weißschimmel ist ausdrücklich erlaubt (gebackener Camembert).
+    ausnahmen: [camembert, brie, weissschimmel, weißschimmel]
+  salbei:
+    begriffe: [salbei, sage]
+    ausnahmen: []
+  fenchel:
+    begriffe: [fenchel, fennel, finocchio]
+    # "fenchelfrei" auf einer Gewürzmischung ist eine Zusicherung, kein Verstoß.
+    ausnahmen: [fenchelfrei, fenchelfreie, "ohne fenchel", "fennel-free"]
+
+# Gewürzmischungen sind nur erlaubt, wenn sie ausdrücklich als fenchelfrei
+# markiert sind (Feld `fenchelfrei: true` in ingredients.yaml).
+gewuerzmischungen_pruefen: true
+
+mail:
+  von: "essensplaner@example.com"
+  empfaenger:
+    - "erste.person@example.com"
+    - "zweite.person@example.com"
+  zeitzone: "Europe/Berlin"
+  wochenmail_uhrzeit: "07:00"
+  betreff_woche: "Essensplan & Einkaufsliste {von}–{bis}"
+  betreff_monat: "Monatsplan {monat} + Vorratsliste"
+
+ai:
+  # Neue Rezeptvorschläge über die Claude API. Vorschläge landen in
+  # data/recipes/_pending/ und werden erst nach Freigabe eingeplant.
+  aktiv: false
+  modell: "claude-opus-5"
+  vorschlaege_pro_monat: 3

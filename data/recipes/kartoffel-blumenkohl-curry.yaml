@@ -1,0 +1,33 @@
+slug: kartoffel-blumenkohl-curry
+name: Kartoffel-Blumenkohl-Curry
+core: false
+slots: [MO, MI]
+tags: [lunchbox_ok, kids_ok]
+seasons: all
+prep_minutes: 35
+base_servings: 4
+protein_per_serving_g: 35
+ingredients:
+  - { item: kartoffeln_fest, qty: 600, unit: g }
+  - { item: blumenkohl, qty: 600, unit: g }
+  - { item: kichererbsen_dose, qty: 2, unit: Dose }
+  - { item: rote_linsen, qty: 120, unit: g }
+  - { item: kokosmilch, qty: 1, unit: Dose }
+  - { item: tomaten_gehackt_dose, qty: 1, unit: Dose }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: ingwer, qty: 20, unit: g }
+  - { item: oel_sonnenblume, qty: 2, unit: EL }
+  - { item: kurkuma, qty: 1, unit: TL }
+  - { item: kreuzkuemmel, qty: 2, unit: TL }
+  - { item: koriander_gemahlen, qty: 2, unit: TL }
+  - { item: skyr, qty: 150, unit: g }
+  - { item: reis, qty: 250, unit: g }
+  - { item: salz, qty: 1, unit: TL }
+steps:
+  - Kartoffeln würfeln, Blumenkohl in Röschen teilen.
+  - Zwiebel, Knoblauch und Ingwer in Öl andünsten, Gewürze 1 Minute mitrösten.
+  - Kartoffeln, rote Linsen, gehackte Tomaten, Kokosmilch und 300 ml Wasser zugeben, 12 Minuten köcheln.
+  - Blumenkohl und abgetropfte Kichererbsen zugeben und weitere 10 Minuten garen, bis alles bissfest weich ist.
+  - Vom Herd nehmen, Skyr unterrühren und mit Salz abschmecken.
+  - Mit Reis servieren. Blumenkohl und Kartoffeln sind lagerfähig – auch für den MI-Slot geeignet.

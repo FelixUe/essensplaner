@@ -1,0 +1,35 @@
+slug: gemuese-lasagne-linsen
+name: Gemüselasagne mit Linsen
+core: false
+slots: [SA, SO, MI]
+tags: [kids_ok, freezer_ok, lunchbox_ok]
+seasons: all
+prep_minutes: 75
+base_servings: 4
+protein_per_serving_g: 41
+ingredients:
+  - { item: lasagneplatten, qty: 250, unit: g }
+  - { item: berglinsen, qty: 180, unit: g }
+  - { item: tomaten_gehackt_dose, qty: 2, unit: Dose }
+  - { item: moehren, qty: 2, unit: Stk }
+  - { item: zucchini, qty: 1, unit: Stk }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: knoblauch, qty: 3, unit: Stk }
+  - { item: tomatenmark, qty: 2, unit: EL }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: milch, qty: 500, unit: ml }
+  - { item: butter, qty: 40, unit: g }
+  - { item: mehl_405, qty: 40, unit: g }
+  - { item: kaese_reibe, qty: 150, unit: g }
+  - { item: parmesan, qty: 40, unit: g }
+  - { item: oregano, qty: 2, unit: TL }
+  - { item: muskat, qty: 1, unit: Prise }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Berglinsen in Wasser 25 Minuten garen und abgießen.
+  - Zwiebel, Knoblauch, Möhren und Zucchini fein würfeln und in Olivenöl 8 Minuten anbraten.
+  - Tomatenmark mitrösten, gehackte Tomaten und Oregano zugeben, Linsen unterrühren und 10 Minuten köcheln. Kräftig abschmecken.
+  - Für die Béchamel Butter schmelzen, Mehl einschwitzen, Milch nach und nach einrühren und 5 Minuten köcheln. Mit Muskat, Salz und Pfeffer abschmecken.
+  - Abwechselnd Linsensauce, Nudelplatten und Béchamel schichten, mit Béchamel abschließen.
+  - Reibekäse und Parmesan darüber geben und bei 190 °C 40 Minuten backen. 10 Minuten ruhen lassen.

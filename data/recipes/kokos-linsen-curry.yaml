@@ -1,0 +1,41 @@
+slug: kokos-linsen-curry
+name: Mildes Kokos-Linsen-Curry mit Reis
+core: true
+slots: [MO, MI, FR]
+tags: [lunchbox_ok, freezer_ok, kids_ok, schnell]
+seasons: all
+prep_minutes: 30
+base_servings: 4
+protein_per_serving_g: 29
+ingredients:
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: knoblauch, qty: 2, unit: Stk }
+  - { item: ingwer, qty: 20, unit: g }
+  - { item: moehren, qty: 3, unit: Stk }
+  - { item: oel_sonnenblume, qty: 2, unit: EL }
+  - { item: rote_linsen, qty: 300, unit: g }
+  - { item: kokosmilch, qty: 1, unit: Dose }
+  - { item: tomaten_gehackt_dose, qty: 1, unit: Dose }
+  - { item: spinat_tk, qty: 200, unit: g }
+  - { item: kurkuma, qty: 1, unit: TL }
+  - { item: kreuzkuemmel, qty: 1, unit: TL }
+  - { item: koriander_gemahlen, qty: 2, unit: TL }
+  - { item: gemuesebruehe, qty: 1, unit: EL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: reis, qty: 300, unit: g }
+steps:
+  - Zwiebel, Knoblauch und Ingwer fein hacken, Möhren in dünne Scheiben schneiden.
+  - Öl erhitzen, Zwiebel glasig dünsten, Knoblauch, Ingwer und Gewürze 1 Minute mitbraten.
+  - Rote Linsen, Möhren, gehackte Tomaten, Kokosmilch und 400 ml Wasser mit Brühe zugeben.
+  - Aufkochen und 18 Minuten bei kleiner Hitze köcheln, dabei gelegentlich umrühren.
+  - TK-Spinat unterrühren und 3 Minuten mitziehen lassen, mit Salz abschmecken.
+  - Reis nach Packungsanweisung garen.
+  - "Mild halten: keine Chili, die Wärme kommt aus Kurkuma und Koriander."
+variants:
+  protein:
+    hinweis: Kichererbsen heben das Protein über das Pflichtminimum für MO/MI.
+    zusatz:
+      - { item: kichererbsen_dose, qty: 1, unit: Dose }
+    protein_per_serving_g: 33
+    zusatz_steps:
+      - Abgetropfte Kichererbsen in den letzten 5 Minuten unterrühren.

@@ -1,0 +1,27 @@
+slug: bauernfruehstueck
+name: Bauernfrühstück
+core: true
+slots: [SA, SO]
+tags: [zuenftig, kids_ok]
+seasons: all
+prep_minutes: 35
+base_servings: 4
+protein_per_serving_g: 27
+ingredients:
+  - { item: kartoffeln_fest, qty: 1000, unit: g }
+  - { item: eier, qty: 8, unit: Stk }
+  - { item: zwiebel, qty: 2, unit: Stk }
+  - { item: veggie_wuerstchen, qty: 3, unit: Stk }
+  - { item: milch, qty: 100, unit: ml }
+  - { item: butter, qty: 40, unit: g }
+  - { item: oel_sonnenblume, qty: 2, unit: EL }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: gurke, qty: 1, unit: Stk }
+  - { item: schnittlauch, qty: 1, unit: Bund, optional: true }
+steps:
+  - Kartoffeln am Vortag als Pellkartoffeln kochen, schälen und in Scheiben schneiden – kalte Kartoffeln zerfallen nicht.
+  - Butter und Öl in der großen Pfanne erhitzen, Kartoffelscheiben goldbraun braten.
+  - Zwiebeln und die in Scheiben geschnittenen Würstchen zugeben und mitbraten.
+  - Eier mit Milch, Salz und Pfeffer verquirlen, über die Pfanne geben und bei kleiner Hitze stocken lassen.
+  - Mit Schnittlauch bestreuen, Gurkenscheiben dazu reichen.

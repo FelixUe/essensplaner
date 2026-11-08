@@ -1,0 +1,30 @@
+slug: ofenkartoffeln-huettenkaese
+name: Ofenkartoffeln mit Hüttenkäse und Ofengemüse
+core: false
+slots: [MO, MI, FR]
+tags: [lunchbox_ok, kids_ok, schnell]
+seasons: all
+prep_minutes: 45
+base_servings: 4
+protein_per_serving_g: 32
+ingredients:
+  - { item: kartoffeln_fest, qty: 1200, unit: g }
+  - { item: huettenkaese, qty: 500, unit: g }
+  - { item: moehren, qty: 3, unit: Stk }
+  - { item: paprika_rot, qty: 2, unit: Stk }
+  - { item: rote_zwiebel, qty: 2, unit: Stk }
+  - { item: kichererbsen_dose, qty: 2, unit: Dose }
+  - { item: oel_oliven, qty: 4, unit: EL }
+  - { item: paprikapulver_edelsuess, qty: 2, unit: TL }
+  - { item: rosmarin_getrocknet, qty: 1, unit: TL }
+  - { item: knoblauchpulver, qty: 1, unit: TL }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: schnittlauch, qty: 1, unit: Bund, optional: true }
+steps:
+  - Ofen auf 200 °C vorheizen. Kartoffeln waschen, halbieren und mit 2 EL Öl, Paprikapulver, Rosmarin und Salz mischen.
+  - Möhren, Paprika und Zwiebeln grob schneiden, mit dem restlichen Öl und Knoblauchpulver mischen.
+  - Kartoffeln mit der Schnittfläche nach unten auf ein Blech legen, Gemüse auf ein zweites Blech geben.
+  - 35 Minuten backen, die abgetropften Kichererbsen in den letzten 15 Minuten zum Gemüse geben.
+  - Hüttenkäse mit Schnittlauch, Salz und Pfeffer verrühren und über die heißen Kartoffeln geben.
+  - Hält sich gut als Lunchbox – Hüttenkäse separat mitnehmen.

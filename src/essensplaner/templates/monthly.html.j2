@@ -1,0 +1,66 @@
+{% extends "_layout.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{% block vorschautext %}
+Monatsplan {{ monat_label }} und Vorratsliste mit {{ vorrat.anzahl }} Posten.
+{% endblock %}
+
+{% block titel %}Monatsplan {{ monat_label }}{% endblock %}
+
+{% block untertitel %}
+{{ wochen | length }} Wochen &middot; Vorratsliste mit {{ vorrat.anzahl }} Posten
+{% endblock %}
+
+{% block inhalt %}
+
+{% if vorschau %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="margin:14px 0 0; background:#fdf6e3; border-left:4px solid #b8860b; border-radius:5px;">
+  <tr>
+    <td style="padding:12px 14px; font-size:15px;">
+      <strong>Vorschau zur Durchsicht.</strong> Wer etwas tauschen will, ändert das
+      Rezept oder die Regeln im Repo und lässt den Plan neu erzeugen.
+    </td>
+  </tr>
+</table>
+{% endif %}
+
+{{ m.abschnitt('Vorratsliste für den Monat', 'Haltbare Zutaten, auf ganze Packungen aufgerundet. Kommt einmalig mit dem Freitagseinkauf.') }}
+{{ m.einkaufsliste(vorrat) }}
+
+{{ m.abschnitt('Alle Gerichte des Monats') }}
+{% for woche in wochen %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="margin:0 0 16px; border:1px solid #e7e4dd; border-radius:6px;">
+  <tr>
+    <td style="padding:12px 14px;">
+      <div style="font-size:13px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+                  color:#3d5a40; margin-bottom:7px;">
+        Woche {{ woche.start | kurz }} – {{ woche.ende | kurz }}
+      </div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        {% for meal in woche.meals %}
+        <tr>
+          <td width="86" valign="top" style="padding:3px 6px 3px 0; font-size:14px; color:#7d786e;">
+            {{ meal.kochtag[:2] }}, {{ meal.datum_kurz }}
+          </td>
+          <td valign="top" style="padding:3px 0; font-size:15px;">
+            {{ meal.name }}
+            {% if meal.batch_hinweis %}
+            <div style="font-size:13px; color:#8a5a1b;">{{ meal.batch_hinweis }}</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </td>
+  </tr>
+</table>
+{% endfor %}
+
+<p style="margin:18px 0 0; font-size:14px; color:#6c675d;">
+  Die Frischware kommt wie immer freitags in der Wochenmail – dort stehen auch
+  die Rezepte mit den Mengen für die jeweilige Woche.
+</p>
+
+{% endblock %}

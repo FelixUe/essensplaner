@@ -1,0 +1,22 @@
+slug: beilage-salat
+name: Beilagensalat
+core: false
+slots: []
+tags: [beilage, schnell]
+seasons: all
+prep_minutes: 10
+base_servings: 4
+protein_per_serving_g: 2
+ingredients:
+  - { item: kopfsalat, qty: 1, unit: Stk }
+  - { item: kirschtomaten, qty: 250, unit: g }
+  - { item: gurke, qty: 0.5, unit: Stk }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: essig_balsamico, qty: 2, unit: EL }
+  - { item: senf, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+steps:
+  - Salat waschen und trocken schleudern, Tomaten halbieren, Gurke in Scheiben.
+  - Aus Öl, Essig, Senf, Salz und Pfeffer ein Dressing schütteln.
+  - Erst kurz vor dem Servieren mischen, sonst wird der Salat welk.

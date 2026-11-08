@@ -1,0 +1,28 @@
+slug: reibekuchen
+name: Reibekuchen mit Apfelmus und Gurkensalat
+core: true
+slots: [SA, SO]
+tags: [kids_ok]
+seasons: all
+prep_minutes: 50
+base_servings: 4
+protein_per_serving_g: 13
+ingredients:
+  - { item: kartoffeln_mehlig, qty: 1200, unit: g }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: eier, qty: 2, unit: Stk }
+  - { item: mehl_405, qty: 60, unit: g }
+  - { item: oel_sonnenblume, qty: 200, unit: ml }
+  - { item: salz, qty: 2, unit: TL }
+  - { item: apfelmus, qty: 360, unit: g }
+  - { item: gurke, qty: 1, unit: Stk }
+  - { item: schmand, qty: 100, unit: g }
+  - { item: essig_apfel, qty: 2, unit: EL }
+  - { item: dill, qty: 0.5, unit: Bund, optional: true, hinweis: "für den Gurkensalat" }
+steps:
+  - Kartoffeln und Zwiebel fein reiben, in ein Küchentuch geben und kräftig ausdrücken – je trockener, desto knuspriger.
+  - Masse mit Eiern, Mehl und Salz verrühren und sofort verarbeiten, sonst wird sie grau.
+  - Öl in der Pfanne erhitzen, flache Häufchen hineingeben und von beiden Seiten 3–4 Minuten goldbraun braten.
+  - Auf Küchenpapier abtropfen lassen und im Ofen bei 80 °C warm halten.
+  - Für den Gurkensalat die Gurke hobeln, salzen, abtropfen und mit Schmand, Essig und Dill anmachen.
+  - Apfelmus und Gurkensalat dazu servieren.

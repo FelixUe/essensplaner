@@ -1,0 +1,26 @@
+# Prüft jeden Branch und jeden Pull Request.
+# Auf main übernimmt deploy.yml – dort laufen dieselben Prüfungen,
+# gefolgt vom Image-Build und dem Rollout.
+
+name: CI
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pruefungen:
+    name: Prüfungen
+    uses: ./.github/workflows/_tests.yml

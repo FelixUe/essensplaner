@@ -1,0 +1,1449 @@
+# Zutaten-Stammdaten
+#
+# type:            pantry = Vorrat (Monatsliste) | fresh = Frisch (Wochenliste)
+# department:      Sortierung der Einkaufsliste, Reihenfolge siehe shopping.py
+# pack:            handelsübliche Packungsgröße, Grundlage der Aufrundung
+# shelf_days:      ungefähre Haltbarkeit ab Einkauf
+# protein_per_100: g Protein je 100 g bzw. 100 ml – Grundlage der Nachrechnung
+# stk_gewicht_g:   Gewicht einer Stückeinheit, bei Dosen das Abtropfgewicht
+# empfindlich:     true = nur in Slots nahe am Einkaufstag (FR/SA/SO/MO)
+
+# ----------------------------------------------------------- Obst & Gemüse
+
+zwiebel:
+  name: Zwiebeln
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: kg }
+  shelf_days: 30
+  protein_per_100: 1.2
+  stk_gewicht_g: 110
+
+rote_zwiebel:
+  name: Rote Zwiebeln
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 500, unit: g }
+  shelf_days: 30
+  protein_per_100: 1.2
+  stk_gewicht_g: 110
+
+knoblauch:
+  name: Knoblauchzehen
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 60
+  protein_per_100: 6.0
+  stk_gewicht_g: 4
+  aliases: [Knoblauchzehe, Knoblauchzehen]
+
+lauch:
+  name: Lauch (Porree)
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 10
+  protein_per_100: 2.0
+  stk_gewicht_g: 300
+  aliases: [Porree]
+
+moehren:
+  name: Möhren
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: kg }
+  shelf_days: 21
+  protein_per_100: 0.9
+  stk_gewicht_g: 80
+  aliases: [Karotten]
+
+sellerie_stange:
+  name: Staudensellerie
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 12
+  protein_per_100: 1.2
+  stk_gewicht_g: 400
+
+kartoffeln_fest:
+  name: Kartoffeln festkochend
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 2.5, unit: kg }
+  shelf_days: 40
+  protein_per_100: 2.0
+  grundzutat: true
+
+kartoffeln_mehlig:
+  name: Kartoffeln mehligkochend
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 2.5, unit: kg }
+  shelf_days: 40
+  protein_per_100: 2.0
+  grundzutat: true
+
+suesskartoffel:
+  name: Süßkartoffeln
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: kg }
+  shelf_days: 21
+  protein_per_100: 1.6
+  grundzutat: true
+
+paprika_rot:
+  name: Paprika rot
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 10
+  protein_per_100: 1.0
+  stk_gewicht_g: 180
+
+paprika_gelb:
+  name: Paprika gelb
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 10
+  protein_per_100: 1.0
+  stk_gewicht_g: 180
+
+gurke:
+  name: Salatgurke
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 8
+  protein_per_100: 0.6
+  stk_gewicht_g: 400
+
+tomaten:
+  name: Tomaten
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 500, unit: g }
+  shelf_days: 7
+  protein_per_100: 1.0
+  stk_gewicht_g: 110
+
+kirschtomaten:
+  name: Kirschtomaten
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 250, unit: g }
+  shelf_days: 7
+  protein_per_100: 1.0
+
+zucchini:
+  name: Zucchini
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 8
+  protein_per_100: 1.6
+  stk_gewicht_g: 300
+
+hokkaido:
+  name: Hokkaido-Kürbis
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 40
+  protein_per_100: 1.4
+  stk_gewicht_g: 1200
+  aliases: [Kürbis]
+
+wirsing:
+  name: Wirsing
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 14
+  protein_per_100: 3.0
+  stk_gewicht_g: 1000
+
+weisskohl:
+  name: Weißkohl
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 25
+  protein_per_100: 1.4
+  stk_gewicht_g: 1200
+
+spitzkohl:
+  name: Spitzkohl
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 12
+  protein_per_100: 1.4
+  stk_gewicht_g: 800
+
+blumenkohl:
+  name: Blumenkohl
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 10
+  protein_per_100: 2.5
+  stk_gewicht_g: 800
+
+rote_bete_gekocht:
+  name: Rote Bete (gekocht, vakuumiert)
+  type: pantry
+  department: Konserven
+  pack: { qty: 500, unit: g }
+  shelf_days: 120
+  protein_per_100: 1.5
+
+kopfsalat:
+  name: Kopfsalat
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 4
+  protein_per_100: 1.2
+  stk_gewicht_g: 300
+  empfindlich: true
+
+romanasalat:
+  name: Romanasalat
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 5
+  protein_per_100: 1.2
+  stk_gewicht_g: 350
+  empfindlich: true
+
+rucola:
+  name: Rucola
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 100, unit: g }
+  shelf_days: 3
+  protein_per_100: 2.6
+  empfindlich: true
+
+champignons:
+  name: Champignons
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 250, unit: g }
+  shelf_days: 4
+  protein_per_100: 2.7
+  empfindlich: true
+
+kraeuterseitlinge:
+  name: Kräuterseitlinge
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 200, unit: g }
+  shelf_days: 4
+  protein_per_100: 3.0
+  empfindlich: true
+
+spinat_frisch:
+  name: Blattspinat frisch
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 250, unit: g }
+  shelf_days: 3
+  protein_per_100: 2.9
+  empfindlich: true
+
+fruehlingszwiebel:
+  name: Frühlingszwiebeln
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Bund }
+  shelf_days: 7
+  protein_per_100: 1.8
+  stk_gewicht_g: 120
+
+petersilie:
+  name: Petersilie
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Bund }
+  shelf_days: 4
+  protein_per_100: 3.0
+  stk_gewicht_g: 30
+  empfindlich: true
+
+schnittlauch:
+  name: Schnittlauch
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Bund }
+  shelf_days: 4
+  protein_per_100: 3.0
+  stk_gewicht_g: 25
+  empfindlich: true
+
+dill:
+  name: Dill
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Bund }
+  shelf_days: 4
+  protein_per_100: 3.5
+  stk_gewicht_g: 25
+  empfindlich: true
+
+koriander_frisch:
+  name: Koriandergrün
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Bund }
+  shelf_days: 3
+  protein_per_100: 2.1
+  stk_gewicht_g: 25
+  empfindlich: true
+
+basilikum:
+  name: Basilikum
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 5
+  protein_per_100: 3.0
+  stk_gewicht_g: 30
+  empfindlich: true
+
+ingwer:
+  name: Ingwer
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 100, unit: g }
+  shelf_days: 20
+  protein_per_100: 1.8
+
+zitrone:
+  name: Zitronen
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 20
+  protein_per_100: 1.1
+  stk_gewicht_g: 100
+
+limette:
+  name: Limetten
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 14
+  protein_per_100: 0.7
+  stk_gewicht_g: 70
+
+apfel:
+  name: Äpfel
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: kg }
+  shelf_days: 20
+  protein_per_100: 0.3
+  stk_gewicht_g: 150
+
+honigmelone:
+  name: Honigmelone
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 6
+  protein_per_100: 0.6
+  stk_gewicht_g: 1500
+  empfindlich: true
+
+avocado:
+  name: Avocado
+  type: fresh
+  department: Obst & Gemüse
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 3
+  protein_per_100: 2.0
+  stk_gewicht_g: 150
+  empfindlich: true
+
+# --------------------------------------------------------------- Kühlregal
+
+milch:
+  name: Milch
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 1, unit: l }
+  shelf_days: 8
+  protein_per_100: 3.4
+
+sahne:
+  name: Schlagsahne
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 200, unit: ml }
+  shelf_days: 14
+  protein_per_100: 2.4
+
+schmand:
+  name: Schmand
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 200, unit: g }
+  shelf_days: 14
+  protein_per_100: 2.8
+
+sour_cream:
+  name: Sour Cream
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 200, unit: g }
+  shelf_days: 14
+  protein_per_100: 2.8
+  aliases: [Schmand, Saure Sahne]
+
+creme_fraiche:
+  name: Crème fraîche
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 150, unit: g }
+  shelf_days: 14
+  protein_per_100: 2.3
+
+frischkaese:
+  name: Frischkäse
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 200, unit: g }
+  shelf_days: 14
+  protein_per_100: 7.0
+
+skyr:
+  name: Skyr natur
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 450, unit: g }
+  shelf_days: 14
+  protein_per_100: 11.0
+
+magerquark:
+  name: Magerquark
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 500, unit: g }
+  shelf_days: 12
+  protein_per_100: 12.0
+
+huettenkaese:
+  name: Hüttenkäse
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 200, unit: g }
+  shelf_days: 12
+  protein_per_100: 12.5
+
+naturjoghurt:
+  name: Naturjoghurt
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 500, unit: g }
+  shelf_days: 14
+  protein_per_100: 3.8
+
+butter:
+  name: Butter
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 250, unit: g }
+  shelf_days: 30
+  protein_per_100: 0.7
+
+eier:
+  name: Eier (Größe M)
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 10, unit: Stk }
+  shelf_days: 18
+  protein_per_100: 12.6
+  stk_gewicht_g: 55
+
+tofu_natur:
+  name: Tofu natur
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 400, unit: g }
+  shelf_days: 20
+  protein_per_100: 15.0
+
+tofu_geraeuchert:
+  name: Tofu geräuchert
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 200, unit: g }
+  shelf_days: 25
+  protein_per_100: 17.0
+
+tempeh:
+  name: Tempeh
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 200, unit: g }
+  shelf_days: 18
+  protein_per_100: 19.0
+
+seitan:
+  name: Seitan (Scheiben)
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 200, unit: g }
+  shelf_days: 18
+  protein_per_100: 25.0
+
+veggie_hack:
+  name: Vegetarisches Hack
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 200, unit: g }
+  shelf_days: 14
+  protein_per_100: 17.0
+  aliases: [Veggie-Hack, Hackalternative]
+
+hefe_frisch:
+  name: Frische Hefe
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 42, unit: g }
+  shelf_days: 12
+  protein_per_100: 10.0
+
+# -------------------------------------------------------------------- Käse
+
+gouda_gerieben:
+  name: Gouda gerieben
+  type: fresh
+  department: Käse
+  pack: { qty: 200, unit: g }
+  shelf_days: 20
+  protein_per_100: 25.0
+
+kaese_reibe:
+  name: Reibekäse (Gouda/Emmentaler)
+  type: fresh
+  department: Käse
+  pack: { qty: 200, unit: g }
+  shelf_days: 20
+  protein_per_100: 25.0
+
+bergkaese:
+  name: Bergkäse
+  type: fresh
+  department: Käse
+  pack: { qty: 200, unit: g }
+  shelf_days: 25
+  protein_per_100: 28.0
+
+parmesan:
+  name: Parmesan am Stück
+  type: fresh
+  department: Käse
+  pack: { qty: 150, unit: g }
+  shelf_days: 40
+  protein_per_100: 32.0
+
+feta:
+  name: Feta
+  type: fresh
+  department: Käse
+  pack: { qty: 200, unit: g }
+  shelf_days: 25
+  protein_per_100: 14.0
+
+mozzarella:
+  name: Mozzarella
+  type: fresh
+  department: Käse
+  pack: { qty: 125, unit: g }
+  shelf_days: 18
+  protein_per_100: 18.0
+  stk_gewicht_g: 125
+
+halloumi:
+  name: Halloumi
+  type: fresh
+  department: Käse
+  pack: { qty: 225, unit: g }
+  shelf_days: 25
+  protein_per_100: 22.0
+
+camembert:
+  name: Camembert zum Backen
+  type: fresh
+  department: Käse
+  pack: { qty: 250, unit: g }
+  shelf_days: 18
+  protein_per_100: 20.0
+  aliases: [Weißschimmelkäse]
+
+schmelzkaese:
+  name: Schmelzkäse (mild)
+  type: pantry
+  department: Käse
+  pack: { qty: 200, unit: g }
+  shelf_days: 60
+  protein_per_100: 10.0
+  aliases: [Kochkäse, Schmelzkäsezubereitung]
+
+cheddar:
+  name: Cheddar
+  type: fresh
+  department: Käse
+  pack: { qty: 200, unit: g }
+  shelf_days: 25
+  protein_per_100: 25.0
+
+# ---------------------------------------------------------------------- TK
+
+spinat_tk:
+  name: Blattspinat TK
+  type: pantry
+  department: TK
+  pack: { qty: 450, unit: g }
+  shelf_days: 300
+  protein_per_100: 3.0
+
+erbsen_tk:
+  name: Erbsen TK
+  type: pantry
+  department: TK
+  pack: { qty: 450, unit: g }
+  shelf_days: 300
+  protein_per_100: 5.4
+
+brokkoli_tk:
+  name: Brokkoli TK
+  type: pantry
+  department: TK
+  pack: { qty: 450, unit: g }
+  shelf_days: 300
+  protein_per_100: 3.0
+
+edamame_tk:
+  name: Edamame TK
+  type: pantry
+  department: TK
+  pack: { qty: 500, unit: g }
+  shelf_days: 300
+  protein_per_100: 11.0
+
+wokgemuese_tk:
+  name: Wokgemüse TK
+  type: pantry
+  department: TK
+  pack: { qty: 500, unit: g }
+  shelf_days: 300
+  protein_per_100: 2.0
+
+beeren_tk:
+  name: Beerenmischung TK
+  type: pantry
+  department: TK
+  pack: { qty: 300, unit: g }
+  shelf_days: 300
+  protein_per_100: 1.0
+
+fischstaebchen:
+  name: Fischstäbchen
+  type: pantry
+  department: TK
+  pack: { qty: 15, unit: Stk }
+  shelf_days: 300
+  protein_per_100: 12.0
+  stk_gewicht_g: 30
+
+koettbullar_veggie:
+  name: Vegetarische Köttbullar (Greenforce)
+  type: pantry
+  department: TK
+  pack: { qty: 400, unit: g }
+  shelf_days: 300
+  protein_per_100: 18.0
+
+veggie_wuerstchen:
+  name: Vegetarische Würstchen
+  type: pantry
+  department: TK
+  pack: { qty: 6, unit: Stk }
+  shelf_days: 200
+  protein_per_100: 15.0
+  stk_gewicht_g: 50
+
+veggie_chicken_stripes:
+  name: Vegetarische Chicken-Stripes
+  type: pantry
+  department: TK
+  pack: { qty: 180, unit: g }
+  shelf_days: 300
+  protein_per_100: 20.0
+
+veggie_burger_patty:
+  name: Vegetarische Burger-Patties
+  type: pantry
+  department: TK
+  pack: { qty: 2, unit: Stk }
+  shelf_days: 300
+  protein_per_100: 18.0
+  stk_gewicht_g: 90
+
+pommes_tk:
+  name: Ofenpommes TK
+  type: pantry
+  department: TK
+  pack: { qty: 750, unit: g }
+  shelf_days: 300
+  protein_per_100: 2.8
+  grundzutat: true
+
+# -------------------------------------------------------------- Trockenware
+
+spaghetti:
+  name: Spaghetti
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 700
+  protein_per_100: 13.0
+  grundzutat: true
+
+tagliatelle:
+  name: Tagliatelle
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 700
+  protein_per_100: 13.0
+  grundzutat: true
+
+penne:
+  name: Penne
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 700
+  protein_per_100: 13.0
+  grundzutat: true
+
+lasagneplatten:
+  name: Lasagneplatten
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: g }
+  shelf_days: 700
+  protein_per_100: 12.0
+  grundzutat: true
+
+proteinnudeln:
+  name: Linsennudeln
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: g }
+  shelf_days: 500
+  protein_per_100: 25.0
+  aliases: [Proteinnudeln, Kichererbsennudeln]
+  grundzutat: true
+
+suppennudeln:
+  name: Suppennudeln
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: g }
+  shelf_days: 700
+  protein_per_100: 12.0
+  grundzutat: true
+
+reisnudeln:
+  name: Reisnudeln
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: g }
+  shelf_days: 700
+  protein_per_100: 6.0
+  grundzutat: true
+
+spaetzle_trocken:
+  name: Spätzle (trocken)
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 500
+  protein_per_100: 12.0
+  grundzutat: true
+
+tortellini:
+  name: Tortellini mit Käsefüllung
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 250, unit: g }
+  shelf_days: 20
+  protein_per_100: 11.0
+  grundzutat: true
+
+reis:
+  name: Basmatireis
+  type: pantry
+  department: Trockenware
+  pack: { qty: 1, unit: kg }
+  shelf_days: 700
+  protein_per_100: 7.0
+  grundzutat: true
+
+milchreis:
+  name: Milchreis
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 700
+  protein_per_100: 7.0
+  grundzutat: true
+
+rote_linsen:
+  name: Rote Linsen
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 700
+  protein_per_100: 24.0
+
+berglinsen:
+  name: Berglinsen
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 700
+  protein_per_100: 24.0
+
+schaelerbsen:
+  name: Schälerbsen
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 700
+  protein_per_100: 23.0
+
+mehl_405:
+  name: Weizenmehl Type 405
+  type: pantry
+  department: Trockenware
+  pack: { qty: 1, unit: kg }
+  shelf_days: 500
+  protein_per_100: 10.0
+  grundzutat: true
+
+mehl_550:
+  name: Weizenmehl Type 550
+  type: pantry
+  department: Trockenware
+  pack: { qty: 1, unit: kg }
+  shelf_days: 500
+  protein_per_100: 11.0
+  grundzutat: true
+
+hartweizengriess:
+  name: Hartweizengrieß
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 500
+  protein_per_100: 10.0
+  grundzutat: true
+
+haferflocken:
+  name: Haferflocken
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 400
+  protein_per_100: 13.0
+  grundzutat: true
+
+semmelbroesel:
+  name: Semmelbrösel
+  type: pantry
+  department: Trockenware
+  pack: { qty: 400, unit: g }
+  shelf_days: 400
+  protein_per_100: 11.0
+
+speisestaerke:
+  name: Speisestärke
+  type: pantry
+  department: Trockenware
+  pack: { qty: 400, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.3
+
+zucker:
+  name: Zucker
+  type: pantry
+  department: Trockenware
+  pack: { qty: 1, unit: kg }
+  shelf_days: 900
+  protein_per_100: 0.0
+
+puderzucker:
+  name: Puderzucker
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+vanillezucker:
+  name: Vanillezucker
+  type: pantry
+  department: Trockenware
+  pack: { qty: 10, unit: Stk }
+  shelf_days: 700
+  protein_per_100: 0.0
+  stk_gewicht_g: 8
+
+backpulver:
+  name: Backpulver
+  type: pantry
+  department: Trockenware
+  pack: { qty: 10, unit: Stk }
+  shelf_days: 700
+  protein_per_100: 0.0
+  stk_gewicht_g: 16
+
+trockenhefe:
+  name: Trockenhefe
+  type: pantry
+  department: Trockenware
+  pack: { qty: 4, unit: Stk }
+  shelf_days: 500
+  protein_per_100: 40.0
+  stk_gewicht_g: 7
+
+kakao:
+  name: Backkakao
+  type: pantry
+  department: Trockenware
+  pack: { qty: 125, unit: g }
+  shelf_days: 700
+  protein_per_100: 20.0
+
+cashewkerne:
+  name: Cashewkerne
+  type: pantry
+  department: Trockenware
+  pack: { qty: 200, unit: g }
+  shelf_days: 300
+  protein_per_100: 18.0
+
+walnuesse:
+  name: Walnusskerne
+  type: pantry
+  department: Trockenware
+  pack: { qty: 200, unit: g }
+  shelf_days: 300
+  protein_per_100: 15.0
+
+pinienkerne:
+  name: Pinienkerne
+  type: pantry
+  department: Trockenware
+  pack: { qty: 100, unit: g }
+  shelf_days: 300
+  protein_per_100: 14.0
+
+sesam:
+  name: Sesam
+  type: pantry
+  department: Trockenware
+  pack: { qty: 200, unit: g }
+  shelf_days: 400
+  protein_per_100: 18.0
+
+rosinen:
+  name: Rosinen
+  type: pantry
+  department: Trockenware
+  pack: { qty: 200, unit: g }
+  shelf_days: 400
+  protein_per_100: 2.5
+
+erdnussbutter:
+  name: Erdnussbutter
+  type: pantry
+  department: Trockenware
+  pack: { qty: 350, unit: g }
+  shelf_days: 400
+  protein_per_100: 25.0
+
+tortillas:
+  name: Weizentortillas
+  type: pantry
+  department: Trockenware
+  pack: { qty: 8, unit: Stk }
+  shelf_days: 120
+  protein_per_100: 8.0
+  stk_gewicht_g: 45
+  grundzutat: true
+
+gemuesebruehe:
+  name: Gemüsebrühe (Pulver)
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+oel_sonnenblume:
+  name: Sonnenblumenöl
+  type: pantry
+  department: Trockenware
+  pack: { qty: 1, unit: l }
+  shelf_days: 400
+  protein_per_100: 0.0
+
+oel_oliven:
+  name: Olivenöl
+  type: pantry
+  department: Trockenware
+  pack: { qty: 750, unit: ml }
+  shelf_days: 500
+  protein_per_100: 0.0
+
+sesamoel:
+  name: Sesamöl
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: ml }
+  shelf_days: 400
+  protein_per_100: 0.0
+
+essig_weissweinessig:
+  name: Weißweinessig
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: ml }
+  shelf_days: 900
+  protein_per_100: 0.0
+
+essig_balsamico:
+  name: Balsamico
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: ml }
+  shelf_days: 900
+  protein_per_100: 0.0
+
+essig_apfel:
+  name: Apfelessig
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: ml }
+  shelf_days: 900
+  protein_per_100: 0.0
+
+sojasauce:
+  name: Sojasauce
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: ml }
+  shelf_days: 700
+  protein_per_100: 8.0
+
+hoisinsauce:
+  name: Hoisinsauce
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: ml }
+  shelf_days: 400
+  protein_per_100: 2.0
+
+senf:
+  name: Senf mittelscharf
+  type: pantry
+  department: Trockenware
+  pack: { qty: 200, unit: ml }
+  shelf_days: 400
+  protein_per_100: 7.0
+
+ketchup:
+  name: Ketchup
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: ml }
+  shelf_days: 400
+  protein_per_100: 1.2
+
+mayonnaise:
+  name: Mayonnaise
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: ml }
+  shelf_days: 300
+  protein_per_100: 1.0
+
+honig:
+  name: Honig
+  type: pantry
+  department: Trockenware
+  pack: { qty: 500, unit: g }
+  shelf_days: 900
+  protein_per_100: 0.4
+
+ahornsirup:
+  name: Ahornsirup
+  type: pantry
+  department: Trockenware
+  pack: { qty: 250, unit: ml }
+  shelf_days: 500
+  protein_per_100: 0.0
+
+kinder_tomatensauce:
+  name: Tomatensauce für Kinder (gekauft)
+  type: pantry
+  department: Konserven
+  pack: { qty: 350, unit: g }
+  shelf_days: 400
+  protein_per_100: 1.5
+
+# ---------------------------------------------------------------- Konserven
+
+tomaten_gehackt_dose:
+  name: Gehackte Tomaten (Dose, 400 g)
+  type: pantry
+  department: Konserven
+  pack: { qty: 1, unit: Dose }
+  shelf_days: 730
+  protein_per_100: 1.3
+  stk_gewicht_g: 400
+
+passierte_tomaten:
+  name: Passierte Tomaten
+  type: pantry
+  department: Konserven
+  pack: { qty: 500, unit: g }
+  shelf_days: 730
+  protein_per_100: 1.5
+
+tomatenmark:
+  name: Tomatenmark
+  type: pantry
+  department: Konserven
+  pack: { qty: 200, unit: g }
+  shelf_days: 730
+  protein_per_100: 4.5
+
+kokosmilch:
+  name: Kokosmilch (Dose, 400 ml)
+  type: pantry
+  department: Konserven
+  pack: { qty: 1, unit: Dose }
+  shelf_days: 730
+  protein_per_100: 2.0
+  stk_gewicht_g: 400
+
+kidneybohnen_dose:
+  name: Kidneybohnen (Dose, 400 g)
+  type: pantry
+  department: Konserven
+  pack: { qty: 1, unit: Dose }
+  shelf_days: 730
+  protein_per_100: 8.0
+  stk_gewicht_g: 240
+
+schwarze_bohnen_dose:
+  name: Schwarze Bohnen (Dose, 400 g)
+  type: pantry
+  department: Konserven
+  pack: { qty: 1, unit: Dose }
+  shelf_days: 730
+  protein_per_100: 8.0
+  stk_gewicht_g: 240
+
+weisse_bohnen_dose:
+  name: Weiße Bohnen (Dose, 400 g)
+  type: pantry
+  department: Konserven
+  pack: { qty: 1, unit: Dose }
+  shelf_days: 730
+  protein_per_100: 7.0
+  stk_gewicht_g: 240
+
+kichererbsen_dose:
+  name: Kichererbsen (Dose, 400 g)
+  type: pantry
+  department: Konserven
+  pack: { qty: 1, unit: Dose }
+  shelf_days: 730
+  protein_per_100: 7.0
+  stk_gewicht_g: 240
+
+mais_dose:
+  name: Mais (Dose, 340 g)
+  type: pantry
+  department: Konserven
+  pack: { qty: 1, unit: Dose }
+  shelf_days: 730
+  protein_per_100: 3.0
+  stk_gewicht_g: 285
+
+preiselbeeren:
+  name: Preiselbeeren (Glas)
+  type: pantry
+  department: Konserven
+  pack: { qty: 200, unit: g }
+  shelf_days: 500
+  protein_per_100: 0.4
+
+apfelmus:
+  name: Apfelmus (Glas)
+  type: pantry
+  department: Konserven
+  pack: { qty: 360, unit: g }
+  shelf_days: 500
+  protein_per_100: 0.3
+
+oliven:
+  name: Oliven (entsteint)
+  type: pantry
+  department: Konserven
+  pack: { qty: 200, unit: g }
+  shelf_days: 500
+  protein_per_100: 1.0
+
+# ----------------------------------------------------------------- Gewürze
+# Einzelgewürze, bewusst keine Fertigmischungen: Mischungen sind nach Spec
+# nur erlaubt, wenn sie ausdrücklich als fenchelfrei markiert sind.
+
+salz:
+  name: Salz
+  type: pantry
+  department: Gewürze
+  pack: { qty: 500, unit: g }
+  shelf_days: 900
+  protein_per_100: 0.0
+
+pfeffer:
+  name: Pfeffer schwarz
+  type: pantry
+  department: Gewürze
+  pack: { qty: 50, unit: g }
+  shelf_days: 900
+  protein_per_100: 0.0
+
+paprikapulver_edelsuess:
+  name: Paprikapulver edelsüß
+  type: pantry
+  department: Gewürze
+  pack: { qty: 50, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+paprikapulver_geraeuchert:
+  name: Paprikapulver geräuchert
+  type: pantry
+  department: Gewürze
+  pack: { qty: 50, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+kreuzkuemmel:
+  name: Kreuzkümmel gemahlen
+  type: pantry
+  department: Gewürze
+  pack: { qty: 40, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+  aliases: [Cumin]
+
+koriander_gemahlen:
+  name: Koriander gemahlen
+  type: pantry
+  department: Gewürze
+  pack: { qty: 40, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+kurkuma:
+  name: Kurkuma
+  type: pantry
+  department: Gewürze
+  pack: { qty: 40, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+ingwerpulver:
+  name: Ingwerpulver
+  type: pantry
+  department: Gewürze
+  pack: { qty: 40, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+zimt:
+  name: Zimt
+  type: pantry
+  department: Gewürze
+  pack: { qty: 40, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+muskat:
+  name: Muskatnuss
+  type: pantry
+  department: Gewürze
+  pack: { qty: 3, unit: Stk }
+  shelf_days: 900
+  protein_per_100: 0.0
+  stk_gewicht_g: 6
+
+lorbeer:
+  name: Lorbeerblätter
+  type: pantry
+  department: Gewürze
+  pack: { qty: 30, unit: Blatt }
+  shelf_days: 900
+  protein_per_100: 0.0
+
+oregano:
+  name: Oregano getrocknet
+  type: pantry
+  department: Gewürze
+  pack: { qty: 20, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+majoran:
+  name: Majoran getrocknet
+  type: pantry
+  department: Gewürze
+  pack: { qty: 20, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+thymian_getrocknet:
+  name: Thymian getrocknet
+  type: pantry
+  department: Gewürze
+  pack: { qty: 20, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+rosmarin_getrocknet:
+  name: Rosmarin getrocknet
+  type: pantry
+  department: Gewürze
+  pack: { qty: 20, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+kuemmel_ganz:
+  name: Kümmel ganz
+  type: pantry
+  department: Gewürze
+  pack: { qty: 40, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+  aliases: [Echter Kümmel, Wiesenkümmel]
+
+chiliflocken:
+  name: Chiliflocken
+  type: pantry
+  department: Gewürze
+  pack: { qty: 30, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+knoblauchpulver:
+  name: Knoblauchpulver
+  type: pantry
+  department: Gewürze
+  pack: { qty: 40, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+zwiebelpulver:
+  name: Zwiebelpulver
+  type: pantry
+  department: Gewürze
+  pack: { qty: 40, unit: g }
+  shelf_days: 700
+  protein_per_100: 0.0
+
+# ---------------------------------------------------------------- Backwaren
+
+mischbrot:
+  name: Mischbrot
+  type: fresh
+  department: Backwaren
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 5
+  protein_per_100: 7.0
+  stk_gewicht_g: 750
+  grundzutat: true
+
+baguette:
+  name: Baguette
+  type: fresh
+  department: Backwaren
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 2
+  protein_per_100: 8.0
+  stk_gewicht_g: 250
+  grundzutat: true
+
+broetchen:
+  name: Brötchen
+  type: fresh
+  department: Backwaren
+  pack: { qty: 6, unit: Stk }
+  shelf_days: 2
+  protein_per_100: 8.0
+  stk_gewicht_g: 60
+  grundzutat: true
+
+burger_buns:
+  name: Burger-Buns
+  type: fresh
+  department: Backwaren
+  pack: { qty: 4, unit: Stk }
+  shelf_days: 6
+  protein_per_100: 9.0
+  stk_gewicht_g: 70
+  grundzutat: true
+
+toastbrot:
+  name: Toastbrot
+  type: fresh
+  department: Backwaren
+  pack: { qty: 1, unit: Stk }
+  shelf_days: 8
+  protein_per_100: 8.0
+  stk_gewicht_g: 500
+  grundzutat: true
+
+schupfnudeln:
+  name: Schupfnudeln (Kühlregal)
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 500, unit: g }
+  shelf_days: 20
+  protein_per_100: 5.0
+  grundzutat: true
+
+gnocchi:
+  name: Gnocchi (Kühlregal)
+  type: fresh
+  department: Kühlregal
+  pack: { qty: 500, unit: g }
+  shelf_days: 20
+  protein_per_100: 5.0
+  grundzutat: true

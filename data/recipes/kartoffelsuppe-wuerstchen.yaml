@@ -1,0 +1,41 @@
+slug: kartoffelsuppe-wuerstchen
+name: Kartoffelsuppe mit vegetarischen Würstchen
+core: true
+slots: [MO, MI, FR]
+tags: [lunchbox_ok, freezer_ok, kids_ok]
+seasons: all
+prep_minutes: 40
+base_servings: 4
+protein_per_serving_g: 18
+ingredients:
+  - { item: kartoffeln_mehlig, qty: 800, unit: g }
+  - { item: moehren, qty: 2, unit: Stk }
+  - { item: lauch, qty: 1, unit: Stk }
+  - { item: zwiebel, qty: 1, unit: Stk }
+  - { item: butter, qty: 20, unit: g }
+  - { item: gemuesebruehe, qty: 2, unit: EL }
+  - { item: sahne, qty: 100, unit: ml }
+  - { item: veggie_wuerstchen, qty: 4, unit: Stk }
+  - { item: majoran, qty: 1, unit: TL }
+  - { item: lorbeer, qty: 1, unit: Blatt }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: petersilie, qty: 0.5, unit: Bund, optional: true, hinweis: "Garnitur" }
+  - { item: mischbrot, qty: 200, unit: g }
+steps:
+  - Kartoffeln, Möhren und Zwiebel würfeln, Lauch in Ringe schneiden und waschen.
+  - Butter erhitzen, Zwiebel und Lauch andünsten, Kartoffeln und Möhren zugeben.
+  - Mit 1,2 l Wasser aufgießen, Brühe, Majoran und Lorbeer zugeben, 20 Minuten köcheln.
+  - Lorbeer entfernen, etwa ein Drittel der Suppe pürieren und zurückgeben – so wird sie sämig, bleibt aber stückig.
+  - Sahne einrühren, mit Salz und Pfeffer abschmecken.
+  - Würstchen in Scheiben schneiden, kurz in der Pfanne anbraten und auf die Suppe geben. Mit Petersilie bestreuen, Brot dazu.
+variants:
+  protein:
+    hinweis: Weiße Bohnen und rote Linsen bringen die Suppe für MO/MI über 30 g.
+    zusatz:
+      - { item: weisse_bohnen_dose, qty: 2, unit: Dose }
+      - { item: rote_linsen, qty: 80, unit: g }
+    protein_per_serving_g: 31
+    zusatz_steps:
+      - Rote Linsen von Anfang an mitkochen.
+      - Weiße Bohnen abgetropft in den letzten 5 Minuten zugeben.

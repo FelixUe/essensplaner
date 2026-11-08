@@ -1,0 +1,38 @@
+slug: rote-bete-salat-feta
+name: Rote-Bete-Salat mit Feta
+core: true
+slots: [FR, SA, SO, MO, MI]
+tags: [kids_ok, lunchbox_ok, schnell]
+seasons: all
+prep_minutes: 20
+base_servings: 4
+protein_per_serving_g: 18
+ingredients:
+  - { item: rote_bete_gekocht, qty: 500, unit: g }
+  - { item: feta, qty: 200, unit: g }
+  - { item: walnuesse, qty: 50, unit: g }
+  - { item: rote_zwiebel, qty: 1, unit: Stk }
+  - { item: naturjoghurt, qty: 150, unit: g }
+  - { item: essig_apfel, qty: 2, unit: EL }
+  - { item: oel_oliven, qty: 3, unit: EL }
+  - { item: honig, qty: 1, unit: TL }
+  - { item: salz, qty: 1, unit: TL }
+  - { item: pfeffer, qty: 1, unit: Prise }
+  - { item: mischbrot, qty: 300, unit: g }
+steps:
+  - Gekochte Rote Bete abtropfen lassen und würfeln. Handschuhe nehmen, das färbt.
+  - Zwiebel in feine Ringe schneiden und 5 Minuten in Essig ziehen lassen, das nimmt die Schärfe.
+  - Joghurt mit Olivenöl, Honig, Salz und Pfeffer zu einem Dressing verrühren.
+  - Rote Bete mit Zwiebeln und Dressing mischen, Feta darüber krümeln.
+  - Walnüsse rösten, aufstreuen und mit Brot servieren.
+  - Vakuumierte Rote Bete ist lange haltbar – der Salat passt auch in den MI-Slot.
+variants:
+  protein:
+    hinweis: Hüttenkäse und Linsen machen aus dem Salat eine vollwertige Mittagsmahlzeit.
+    zusatz:
+      - { item: huettenkaese, qty: 250, unit: g }
+      - { item: berglinsen, qty: 150, unit: g }
+    protein_per_serving_g: 35
+    zusatz_steps:
+      - Berglinsen 25 Minuten garen, abkühlen lassen und unter den Salat mischen.
+      - Hüttenkäse zum Dressing geben, das macht es cremiger und proteinreicher.
