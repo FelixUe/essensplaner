@@ -14,8 +14,11 @@ services:
   essensplaner:
     image: ${ESSENSPLANER_IMAGE:-ghcr.io/felixue/essensplaner:latest}
     # build: .
-    container_name: essensplaner
     restart: unless-stopped
+
+    # Bewusst kein container_name: Coolify vergibt eigene Namen. Ein fester
+    # Name blockiert dort den Rollout, weil der neue Container startet,
+    # solange der alte den Namen noch hält.
 
     environment:
       # Zeitzone bestimmt, wann "Freitag 07:00" ist.
