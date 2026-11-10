@@ -1,0 +1,8 @@
+{% extends "basis.html.j2" %}
+{% block titel %}{{ code }} – Essensplaner{% endblock %}
+
+{% block inhalt %}
+<h1>{{ code }}</h1>
+<p class="leise">{{ text }}</p>
+<p><a class="knopf" href="{{ url_for('start') }}">Zum aktuellen Monat</a></p>
+{% endblock %}

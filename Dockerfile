@@ -57,6 +57,10 @@ RUN useradd --create-home --uid 10001 essensplaner \
 
 VOLUME ["/data/plans"]
 
+# Die Weboberfläche. Sie startet nur, wenn ESSENSPLANER_WEB_PASSWORT gesetzt
+# ist; ohne Passwort läuft allein der Scheduler weiter.
+EXPOSE 8080
+
 USER essensplaner
 
 # Der Healthcheck prüft die Stammdaten. Schlägt er an, stimmt etwas mit

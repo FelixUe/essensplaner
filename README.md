@@ -78,6 +78,38 @@ ohne Zoom lesbar.
 
 ---
 
+## Die Weboberfläche
+
+Der Planer würfelt einen regelkonformen Monat. Was er nicht wissen kann: dass
+am Samstag Besuch kommt. Dafür gibt es eine kleine Oberfläche im Container –
+Monatsübersicht, und je Tag ein Knopf *Tauschen*.
+
+Angeboten werden dort nur Gerichte, die in diesem Slot erlaubt sind: richtiger
+Slot, in der Saison, diese Woche noch nicht auf dem Tisch, Mindestabstand
+eingehalten, Monatsgrenze nicht erreicht. Nach dem Tausch läuft die
+vollständige Planprüfung noch einmal; scheitert sie, bleibt der alte Plan
+stehen. Ein von Hand geänderter Plan ist damit genauso regelkonform wie ein
+gewürfelter.
+
+Die Änderung wirkt sofort auf Einkaufsliste und Mails – beide lesen dieselbe
+Datei im Volume.
+
+Die Oberfläche startet nur, wenn `ESSENSPLANER_WEB_PASSWORT` gesetzt ist.
+Ohne Passwort läuft allein der Scheduler. Das ist Absicht: hinter einer
+Domain stünde sonst eine offene Seite, auf der jeder den Essensplan umbauen
+kann. Dazu kommen ein signiertes Sitzungs-Cookie, eine Pause nach mehreren
+Fehlversuchen und ein Token in jedem Formular.
+
+```bash
+ESSENSPLANER_WEB_PASSWORT=... essensplaner serve
+```
+
+Scheduler und Oberfläche laufen im selben Prozess, weil beide dieselben
+Plandateien anfassen. Eine Sperre im Prozess reicht; zwei Container müssten
+sich über das Volume abstimmen.
+
+---
+
 ## Schnellstart
 
 ```bash
@@ -228,6 +260,7 @@ src/essensplaner/
   rules.py               harte Regeln: Ausschlüsse, Protein, Haltbarkeit, Wiederholung
   nutrition.py           Protein aus den Zutaten nachrechnen
   planner.py             regelbasierter Scheduler
+  editing.py             ein Gericht im fertigen Plan tauschen
   shopping.py            Frischeliste und Vorratsliste
   units.py               Einheiten zusammenfassen und ausgeben
   mail.py                Mails rendern und verschicken
@@ -235,6 +268,8 @@ src/essensplaner/
   runner.py              die beiden geplanten Läufe
   scheduler.py           eingebauter Scheduler
   cli.py                 Kommandozeile
+  web.py                 Weboberfläche (Flask, nur mit Passwort)
+  templates/web/         Vorlagen der Oberfläche
 tools/protein_sync.py    Proteinangaben mit der Nachrechnung abgleichen
 tools/uebersicht.py      alle Rezepte als JSON und als Seite zum Durchsehen
 tests/                   die sechs Akzeptanzkriterien und alles darum
@@ -270,6 +305,8 @@ Kurzfassung:
 4. In Coolify ein API-Token mit der Berechtigung **Deploy** erzeugen und die
    Deploy-URL der Ressource kopieren.
 5. Im GitHub-Repo die Secrets `COOLIFY_WEBHOOK` und `COOLIFY_TOKEN` setzen.
+6. Für die Oberfläche eine Domain auf Port 8080 legen und
+   `ESSENSPLANER_WEB_PASSWORT` setzen – ohne Passwort startet sie nicht.
 
 Ohne diese beiden Secrets läuft die Pipeline trotzdem durch: Das Image landet
 in der Registry, nur der Rollout wird mit einem Hinweis übersprungen.

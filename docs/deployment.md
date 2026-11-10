@@ -116,6 +116,9 @@ ist, als **Secret** markieren.
 | `MAIL_TO` | `erste.person@example.com,zweite.person@example.com` | ja |
 | `ESSENSPLANER_FREEZER` | `false` | – |
 | `ESSENSPLANER_SEED` | leer | – |
+| `ESSENSPLANER_WEB_PASSWORT` | – | für die Oberfläche, **Secret** |
+| `ESSENSPLANER_WEB_SECRET` | – | empfohlen, **Secret** |
+| `ESSENSPLANER_WEB_PORT` | `8080` | – |
 
 `MAIL_TO` nimmt mehrere Adressen, mit Komma getrennt. Die Werte überschreiben,
 was in `config.yaml` steht – dort stehen nur Platzhalter, damit nie eine echte
@@ -124,11 +127,39 @@ Adresse im Repo landet.
 Port 587 mit STARTTLS ist der Normalfall. Nutzt der Anbieter Port 465, dann
 `SMTP_PORT=465`, `SMTP_SSL=true` und `SMTP_STARTTLS=false`.
 
-### 2.5 Keine Ports freigeben
+### 2.5 Weboberfläche und Domain
 
-Der Essensplaner hat keine Weboberfläche und lauscht auf keinem Port. In
-Coolify bleibt die Portkonfiguration leer; ein Reverse Proxy oder eine Domain
-ist nicht nötig.
+Die Oberfläche zeigt den Monatsplan und erlaubt, einzelne Gerichte zu
+tauschen. Sie lauscht im Container auf Port **8080**.
+
+Sie startet nur, wenn `ESSENSPLANER_WEB_PASSWORT` gesetzt ist. Ohne Passwort
+läuft allein der Scheduler weiter – eine offene Seite, auf der Fremde den
+Essensplan umbauen, wäre schlimmer als keine Seite.
+
+Zwei Werte gehören dazu, beide als **Secret**:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+- `ESSENSPLANER_WEB_PASSWORT` – was man beim Anmelden eintippt.
+- `ESSENSPLANER_WEB_SECRET` – signiert das Sitzungs-Cookie. Ohne festen Wert
+  erzeugt der Container bei jedem Start einen neuen, und alle müssen sich
+  nach jedem Rollout neu anmelden.
+
+In Coolify bei der Ressource unter **Domains** eine Domain eintragen und als
+Port `8080` angeben. Coolify kümmert sich um Proxy und Zertifikat. Die
+mitgelieferte `docker-compose.yml` enthält dafür bereits
+`SERVICE_FQDN_ESSENSPLANER_8080`; trägt Coolify die Domain nicht von allein
+ein, geht es über das Feld in der Oberfläche.
+
+Ohne Domain bleibt die Oberfläche unerreichbar, und das ist ein gültiger
+Zustand: Mails kommen trotzdem.
+
+**Nicht ohne HTTPS betreiben.** Das Sitzungs-Cookie wird nur über
+verschlüsselte Verbindungen gesendet. Wer die Oberfläche zum Ausprobieren
+ohne TLS aufruft, setzt `ESSENSPLANER_WEB_UNSICHER=true` – aber nur lokal,
+nie mit einer öffentlichen Domain.
 
 ---
 
@@ -263,6 +294,17 @@ Dann unter *Actions* den Workflow **Deploy** beobachten. Nach dem Durchlauf:
 ---
 
 ## 6. Betrieb
+
+### Gericht im laufenden Monat tauschen
+
+Über die Weboberfläche: Monat aufrufen, beim betreffenden Tag auf *Tauschen*,
+ein Gericht aus der Liste wählen. Angeboten werden nur Gerichte, die dort
+erlaubt sind; anschließend wird der ganze Monatsplan noch einmal geprüft.
+Scheitert er, bleibt der alte stehen.
+
+Die Änderung wirkt sofort: Einkaufsliste und Mails lesen dieselbe Datei im
+Volume. Eine Woche, deren Mail schon verschickt ist, lässt sich nachträglich
+ändern – die Mail von Freitag stimmt dann allerdings nicht mehr.
 
 ### Rezept ändern
 

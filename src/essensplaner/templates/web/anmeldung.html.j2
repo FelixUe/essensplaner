@@ -1,0 +1,17 @@
+{% extends "basis.html.j2" %}
+{% block titel %}Anmelden – Essensplaner{% endblock %}
+
+{% block inhalt %}
+<h1>Anmelden</h1>
+<p class="leise">Der Essensplan ist nicht öffentlich.</p>
+
+<form method="post" style="max-width: 24rem; display: grid; gap: 10px;">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <input type="hidden" name="weiter" value="{{ weiter }}">
+  <label for="passwort">Passwort</label>
+  <input type="password" id="passwort" name="passwort" autocomplete="current-password" autofocus required>
+  <button class="knopf haupt" type="submit">Anmelden</button>
+</form>
+{% endblock %}
+
+{% block fuss %}Nach mehreren Fehlversuchen ist für fünf Minuten Pause.{% endblock %}

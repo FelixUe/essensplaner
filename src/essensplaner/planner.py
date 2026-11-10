@@ -394,6 +394,70 @@ class Planner:
             details,
         )
 
+    # ------------------------------------------ Plan nachträglich ändern
+
+    def _zustand_aus_plan(self, plan: MonthPlan, ohne: PlannedMeal | None = None) -> _Zustand:
+        """Den Planungszustand aus einem fertigen Plan nachbilden.
+
+        Gebraucht wird das beim Tauschen eines einzelnen Gerichts: dann soll
+        der Zustand der des Monats sein, als stünde der betroffene Slot noch
+        leer. Die Gefriertruhe bleibt aus – ein von Hand gewähltes Gericht
+        wird gekocht, nicht aufgetaut.
+        """
+        zustand = _Zustand()
+        for meal in plan.alle_meals:
+            if ohne is not None and meal.slot == ohne.slot and meal.datum == ohne.datum:
+                continue
+            rezept = self.rezepte.get(meal.recipe_slug)
+            zustand.monatszaehler[meal.recipe_slug] += 1
+            zustand.termine[meal.recipe_slug].append(meal.datum)
+            if rezept is not None and self._ist_fisch(rezept):
+                zustand.fisch_zaehler += 1
+            if not meal.aus_gefriertruhe:
+                zustand.gekocht_gesamt += 1
+                if rezept is not None and rezept.core:
+                    zustand.core_gesamt += 1
+        return zustand
+
+    def alternativen(self, plan: MonthPlan, datum: date, slot: str) -> list[Recipe]:
+        """Welche Gerichte in diesem Slot ebenfalls zulässig wären.
+
+        Geprüft werden dieselben harten Regeln wie beim Planen, nur mit dem
+        betroffenen Slot als leer gedacht: Slot-Zulassung, Saison, kein
+        Gericht zweimal in einer Woche, Monatsobergrenze, Mindestabstand und
+        die Fischstäbchen-Grenze. Was hier nicht auftaucht, darf dort nicht
+        stehen – deshalb bekommt die Oberfläche genau diese Liste und keine
+        längere mit Warnhinweisen.
+        """
+        woche = plan.woche_fuer(datum)
+        if woche is None:
+            return []
+        aktuell = woche.meal(slot)
+        zustand = self._zustand_aus_plan(plan, ohne=aktuell)
+        wochen_slugs = {
+            m.recipe_slug for m in woche.meals if not (m.slot == slot and m.datum == datum)
+        }
+        treffer = [
+            rezept
+            for rezept in self.rezepte.values()
+            if (aktuell is None or rezept.slug != aktuell.recipe_slug)
+            and self._regeln_erlauben(rezept, slot, datum, zustand, wochen_slugs)
+        ]
+        return sorted(treffer, key=lambda r: r.name.lower())
+
+    def mahlzeit_bauen(self, rezept: Recipe, slot: str, datum: date) -> PlannedMeal:
+        """Eine Mahlzeit für einen Slot zusammensetzen, ohne zu würfeln."""
+        return PlannedMeal(
+            slot=slot,
+            datum=datum,
+            recipe_slug=rezept.slug,
+            recipe_name=rezept.name,
+            variant=rezept.variant_fuer(slot, self.config.protein_slots),
+            portionen=self.config.slot_portionen(slot),
+            deckt_ab=self.config.slot_deckt_ab(slot),
+            tage=self.config.slot_tage(slot),
+        )
+
     def statistik(self, plan: MonthPlan) -> dict[str, object]:
         """Kennzahlen eines Plans für die Vorschau-Mail und die CLI."""
         meals = plan.alle_meals

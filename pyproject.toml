@@ -14,6 +14,10 @@ dependencies = [
     # Die IANA-Zeitzonendatenbank fehlt auf Windows und in slim-Images.
     # Ohne sie kennt zoneinfo nicht einmal "UTC".
     "tzdata>=2024.1",
+    # Weboberflaeche. Flask bringt Jinja2 ohnehin mit, waitress ist reines
+    # Python und laeuft deshalb auch auf ARM ohne Uebersetzen.
+    "Flask>=3.0.3",
+    "waitress>=3.0.0",
 ]
 
 [project.optional-dependencies]
@@ -33,7 +37,7 @@ essensplaner = "essensplaner.cli:cli"
 where = ["src"]
 
 [tool.setuptools.package-data]
-essensplaner = ["templates/*.j2"]
+essensplaner = ["templates/*.j2", "templates/web/*.j2"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,57 @@
+{% extends "basis.html.j2" %}
+{% block titel %}{{ meal.slot }} tauschen – Essensplaner{% endblock %}
+
+{% block inhalt %}
+<h1>{{ meal.datum | datum_lang }}</h1>
+<p class="leise">
+  Deckt ab: {{ meal.deckt_ab }}{% if meal.tage > 1 %} ({{ meal.tage }} Tage){% endif %} &middot;
+  geplant ist <strong>{{ meal.recipe_name }}</strong>
+</p>
+
+{% if not alternativen %}
+  <div class="karte">
+    <div class="zeile" style="display: block;">
+      <p style="margin: 0;">Für diesen Slot gibt es gerade keine Alternative.</p>
+      <p class="leise" style="font-size: 13px; margin-bottom: 0;">
+        Jedes andere Gericht scheitert an einer harten Regel: falscher Slot,
+        nicht in der Saison, diese Woche schon auf dem Tisch, zu nah am letzten
+        Mal oder über der Monatsgrenze.
+      </p>
+    </div>
+  </div>
+{% else %}
+  <p class="leise">
+    {{ alternativen | length }} Gerichte sind hier erlaubt. Was nicht in der Liste
+    steht, verstößt gegen eine Regel – Slot, Saison, Abstand oder Monatsgrenze.
+  </p>
+
+  <form method="post" action="{{ url_for('tauschen', monat=monat, datum=meal.datum, slot=meal.slot) }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="karte">
+      {% for r in alternativen %}
+        <div class="zeile">
+          <div class="gericht">
+            <div class="name">{{ r.name }}</div>
+            <div class="unten">
+              {% if r.core %}<span class="marke">Kern</span>{% endif %}
+              {{ r.prep_minutes }} min &middot;
+              {{ "%.0f" | format(r.protein_fuer(r.variant_fuer(meal.slot, config.protein_slots))) }} g Protein
+              {% if r.tags %}&middot; {{ r.tags | join(", ") }}{% endif %}
+            </div>
+          </div>
+          <div>
+            <button class="knopf" type="submit" name="rezept" value="{{ r.slug }}">Wählen</button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </form>
+{% endif %}
+
+<p><a class="knopf" href="{{ url_for('monat_ansehen', monat=monat) }}">Zurück zum Monat</a></p>
+{% endblock %}
+
+{% block fuss %}
+  Nach dem Tausch wird der ganze Monatsplan noch einmal geprüft. Scheitert er,
+  bleibt der alte Plan stehen.
+{% endblock %}

@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>{% block titel %}Essensplaner{% endblock %}</title>
+<style>
+  /* Eine Spalte, am Telefon lesbar: der Plan wird meist unterwegs
+     angesehen, nicht am Schreibtisch. */
+  :root {
+    --papier: #f2f5f1;
+    --flaeche: #ffffff;
+    --flaeche-2: #e9eee8;
+    --rand: #d9e1d8;
+    --rand-stark: #bfcabd;
+    --ink: #1a221d;
+    --ink-leise: #58645d;
+    --akzent: #2c6347;
+    --akzent-weich: #e1ebe3;
+    --akzent-ink: #ffffff;
+    --warn: #845511;
+    --warn-weich: #f7ebd3;
+    --fehler: #972d25;
+    --fehler-weich: #f7e1de;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --papier: #131613;
+      --flaeche: #1b201b;
+      --flaeche-2: #232923;
+      --rand: #2e352e;
+      --rand-stark: #414941;
+      --ink: #e7ebe6;
+      --ink-leise: #9ba59c;
+      --akzent: #7cc099;
+      --akzent-weich: #1e2b23;
+      --akzent-ink: #0f1510;
+      --warn: #dcae5e;
+      --warn-weich: #2b2517;
+      --fehler: #e28a80;
+      --fehler-weich: #2e1d1b;
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--papier);
+    color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .innen {
+    max-width: 780px;
+    margin-inline: auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  header { border-bottom: 1px solid var(--rand); background: var(--flaeche); }
+  header .innen {
+    padding-block: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  header .marke {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-right: auto;
+  }
+  header a { color: var(--ink-leise); text-decoration: none; font-size: 13.5px; }
+  header a:hover { color: var(--akzent); }
+
+  main .innen { padding-block: 20px 48px; }
+
+  h1 {
+    font-size: clamp(22px, 5vw, 30px);
+    line-height: 1.2;
+    margin: 0 0 4px;
+    text-wrap: balance;
+  }
+  h2 { font-size: 16px; margin: 0; }
+  p.leise { color: var(--ink-leise); margin: 0 0 18px; }
+
+  .meldung {
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    font-size: 14px;
+  }
+  .meldung.erfolg { background: var(--akzent-weich); color: var(--akzent); }
+  .meldung.fehler { background: var(--fehler-weich); color: var(--fehler); }
+  .meldung.hinweis { background: var(--flaeche-2); color: var(--ink-leise); }
+
+  .knopf {
+    display: inline-block;
+    padding: 8px 14px;
+    border: 1px solid var(--rand-stark);
+    border-radius: var(--radius);
+    background: var(--flaeche);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .knopf:hover { border-color: var(--akzent); }
+  .knopf.haupt {
+    background: var(--akzent);
+    border-color: var(--akzent);
+    color: var(--akzent-ink);
+  }
+
+  input[type="password"], input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--rand-stark);
+    border-radius: var(--radius);
+    background: var(--flaeche);
+    color: var(--ink);
+    font: inherit;
+  }
+
+  :where(a, button, input):focus-visible {
+    outline: 2px solid var(--akzent);
+    outline-offset: 2px;
+  }
+
+  .karte {
+    background: var(--flaeche);
+    border: 1px solid var(--rand);
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .karte > .kopf {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rand);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .karte > .kopf .spanne { color: var(--ink-leise); font-size: 13px; }
+
+  .zeile {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 10px 14px;
+    border-top: 1px solid var(--rand);
+    flex-wrap: wrap;
+  }
+  .zeile:first-of-type { border-top: 0; }
+  .zeile:target { background: var(--akzent-weich); }
+  .tag {
+    flex: 0 0 5.5em;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-leise);
+    font-size: 13px;
+  }
+  .gericht { flex: 1 1 12ch; min-width: 0; }
+  .gericht .name { font-weight: 500; }
+  .gericht .unten {
+    color: var(--ink-leise);
+    font-size: 12.5px;
+    margin-top: 2px;
+  }
+  .marke {
+    display: inline-block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--flaeche-2);
+    color: var(--ink-leise);
+  }
+  .marke.zwei { background: var(--akzent-weich); color: var(--akzent); }
+
+  footer .innen {
+    padding-block: 16px 32px;
+    color: var(--ink-leise);
+    font-size: 12.5px;
+    border-top: 1px solid var(--rand);
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="innen">
+    <span class="marke">Essensplaner</span>
+    {% if session.get("angemeldet") %}
+      <form method="post" action="{{ url_for('abmelden') }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="knopf" type="submit">Abmelden</button>
+      </form>
+    {% endif %}
+  </div>
+</header>
+
+<main>
+  <div class="innen">
+    {% with meldungen = get_flashed_messages(with_categories=true) %}
+      {% for art, text in meldungen %}
+        <p class="meldung {{ art }}">{{ text }}</p>
+      {% endfor %}
+    {% endwith %}
+    {% block inhalt %}{% endblock %}
+  </div>
+</main>
+
+<footer>
+  <div class="innen">
+    {% block fuss %}
+      Änderungen wirken sofort auf Einkaufsliste und Mails.
+    {% endblock %}
+  </div>
+</footer>
+</body>
+</html>

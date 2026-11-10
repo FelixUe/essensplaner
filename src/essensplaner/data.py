@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -204,12 +207,37 @@ def plan_pfad(plans_dir: Path, monat: str) -> Path:
     return plans_dir / f"{monat}.json"
 
 
+#: Schuetzt das Lesen und Schreiben der Plaene. Scheduler und Weboberflaeche
+#: laufen im selben Prozess in verschiedenen Threads; ohne diese Sperre
+#: koennte die Freitagsmail einen Plan lesen, waehrend die Oberflaeche gerade
+#: ein Gericht tauscht. Reentrant, damit Lesen innerhalb einer Aenderung geht.
+PLAN_SPERRE = threading.RLock()
+
+
 def save_plan(plan: MonthPlan, plans_dir: Path) -> Path:
+    """Einen Plan speichern - erst vollstaendig schreiben, dann umbenennen.
+
+    Direkt in die Zieldatei zu schreiben hiesse: bricht der Container mitten
+    im Schreiben ab, liegt dort ein halber Plan, und der naechste Start
+    scheitert am kaputten JSON. ``os.replace`` ist innerhalb eines
+    Dateisystems atomar - es gibt also entweder den alten oder den neuen Plan.
+    """
     plans_dir.mkdir(parents=True, exist_ok=True)
     pfad = plan_pfad(plans_dir, plan.monat)
-    with pfad.open("w", encoding="utf-8") as fh:
-        json.dump(plan.to_dict(), fh, ensure_ascii=False, indent=2)
-        fh.write("\n")
+    with PLAN_SPERRE:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=plans_dir,
+            prefix=f".{plan.monat}-",
+            suffix=".tmp",
+            delete=False,
+            newline=chr(10),
+        ) as fh:
+            json.dump(plan.to_dict(), fh, ensure_ascii=False, indent=2)
+            fh.write(chr(10))
+            temp = Path(fh.name)
+        os.replace(temp, pfad)
     return pfad
 
 

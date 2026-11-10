@@ -35,11 +35,32 @@ services:
       MAIL_FROM: ${MAIL_FROM:?MAIL_FROM muss gesetzt sein}
       MAIL_TO: ${MAIL_TO:?MAIL_TO muss gesetzt sein}
 
+      # Weboberfläche: Monatsplan ansehen und Gerichte tauschen.
+      # Ohne Passwort startet sie nicht – eine offene Seite, auf der Fremde
+      # den Essensplan umbauen, wäre schlimmer als keine Seite.
+      ESSENSPLANER_WEB_PASSWORT: ${ESSENSPLANER_WEB_PASSWORT:-}
+      # Fester Wert, damit eine Anmeldung einen Rollout überlebt.
+      ESSENSPLANER_WEB_SECRET: ${ESSENSPLANER_WEB_SECRET:-}
+      ESSENSPLANER_WEB_PORT: ${ESSENSPLANER_WEB_PORT:-8080}
+      # Nur für den Betrieb ohne HTTPS, etwa lokal. In Coolify bleibt das aus.
+      ESSENSPLANER_WEB_UNSICHER: ${ESSENSPLANER_WEB_UNSICHER:-false}
+      # Coolify trägt hier die vergebene Domain ein und leitet auf Port 8080.
+      SERVICE_FQDN_ESSENSPLANER_8080: ${SERVICE_FQDN_ESSENSPLANER_8080:-}
+
       # Optional: Gefriertruhe vorhanden, fester Seed, Claude-API.
       ESSENSPLANER_FREEZER: ${ESSENSPLANER_FREEZER:-false}
       ESSENSPLANER_SEED: ${ESSENSPLANER_SEED:-}
       ESSENSPLANER_AI: ${ESSENSPLANER_AI:-false}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+    expose:
+      - "8080"
+
+    # Lokal ohne Coolify: diese zwei Zeilen einkommentieren, dann liegt die
+    # Oberfläche auf http://localhost:8080. In Coolify bleiben sie weg, dort
+    # macht der eingebaute Proxy die Zuordnung über die Domain.
+    # ports:
+    #   - "8080:8080"
 
     volumes:
       # Die erzeugten Monatspläne und der Lauf-Zustand. Ohne dieses

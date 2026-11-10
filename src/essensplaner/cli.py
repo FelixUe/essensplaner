@@ -15,6 +15,7 @@ Coolify als Scheduled Task laufen.
 from __future__ import annotations
 
 import sys
+import threading
 from datetime import date, datetime
 from pathlib import Path
 
@@ -349,17 +350,52 @@ def preview_cmd(
 
 @cli.command("serve")
 @click.option("--once", is_flag=True, help="Nur einmal prüfen und beenden (für Tests).")
+@click.option(
+    "--web/--kein-web",
+    default=None,
+    help="Weboberfläche mitstarten. Ohne Angabe: an, sobald ESSENSPLANER_WEB_PASSWORT gesetzt ist.",
+)
 @click.pass_context
-def serve_cmd(ctx: click.Context, once: bool) -> None:
-    """Scheduler: wartet auf die Termine und führt die Aufgaben aus.
+def serve_cmd(ctx: click.Context, once: bool, web: bool | None) -> None:
+    """Scheduler und Weboberfläche: der Dauerbetrieb im Container.
 
-    Alternative zu zwei Scheduled Tasks in Coolify – nützlich auf einem Host
-    ohne eigenen Scheduler, etwa später im Homelab.
+    Der Scheduler wartet auf die Termine und verschickt die Mails. Ist ein
+    Passwort gesetzt, läuft daneben die Weboberfläche, über die sich der
+    Monatsplan ansehen und ändern lässt.
+
+    Beides im selben Prozess, weil beides dieselben Plandateien anfasst –
+    getrennte Container müssten sich das Volume teilen und sich beim
+    Schreiben abstimmen. Im Prozess reicht eine Sperre.
     """
     from .scheduler import Scheduler
+    from .web import WebFehler, starte, web_aktiv
 
     config: Config = ctx.obj["config"]
-    Scheduler(config).run(einmal=once)
+    scheduler = Scheduler(config)
+
+    if once:
+        # Einmaldurchlauf ist für Tests und den Rauchtest im Image gedacht;
+        # eine Weboberfläche, die sofort wieder zugeht, hilft dort nicht.
+        scheduler.run(einmal=True)
+        return
+
+    mit_web = web_aktiv() if web is None else web
+    if not mit_web:
+        if web is None:
+            click.echo(
+                "Weboberfläche aus: ESSENSPLANER_WEB_PASSWORT ist nicht gesetzt.",
+                err=True,
+            )
+        scheduler.run()
+        return
+
+    kontext = _kontext(config)
+    thread = threading.Thread(target=scheduler.run, name="scheduler", daemon=True)
+    thread.start()
+    try:
+        starte(kontext)
+    except WebFehler as exc:
+        _fehler(str(exc))
 
 
 if __name__ == "__main__":
