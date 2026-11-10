@@ -66,7 +66,10 @@ class MealView:
     datum_lang: str
     datum_kurz: str
     name: str
+    #: Welche Mahlzeiten dieses Gericht abdeckt, mit der Zahl der Tage,
+    #: sobald es mehr als einer ist.
     deckt_ab: str
+    tage: int
     portionen_text: str
     prep_minutes: int
     protein_text: str
@@ -75,6 +78,18 @@ class MealView:
     zutaten: tuple[str, ...]
     steps: tuple[str, ...]
     batch_hinweis: str
+
+
+def _deckt_ab_text(deckt_ab: str, tage: int) -> str:
+    """Die Abdeckung mit Tageszahl, wenn sie über einen Tag hinausgeht.
+
+    "Montag + Dienstag Mittag" liest sich sonst leicht als ein Tag mit
+    zwei Mahlzeiten. Bei Ein-Tages-Slots bleibt der Zusatz weg, dort
+    wäre er nur Rauschen.
+    """
+    if tage > 1:
+        return f"{deckt_ab} ({tage} Tage)"
+    return deckt_ab
 
 
 def _portionen_text(portionen: float, config: Config) -> str:
@@ -124,7 +139,11 @@ def _meal_views(
                 datum_lang=kalender.formatiere_datum(meal.datum),
                 datum_kurz=kalender.formatiere_kurz(meal.datum),
                 name=rezept.name,
-                deckt_ab=meal.deckt_ab or config.slot_deckt_ab(meal.slot),
+                deckt_ab=_deckt_ab_text(
+                    meal.deckt_ab or config.slot_deckt_ab(meal.slot),
+                    meal.tage or config.slot_tage(meal.slot),
+                ),
+                tage=meal.tage or config.slot_tage(meal.slot),
                 portionen_text=_portionen_text(meal.portionen, config),
                 prep_minutes=rezept.prep_minutes,
                 protein_text=f"{rezept.protein_fuer(variante):.0f} g Protein je Portion",

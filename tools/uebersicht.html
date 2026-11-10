@@ -735,7 +735,8 @@
         var info = R.slots[s];
         if (info) {
           sp.title = s + ": gekocht " + info.kochtag + ", deckt " + info.deckt_ab
-            + " (" + nf.format(info.portionen) + " Portionen)"
+            + " (" + (info.tage || 1) + (info.tage > 1 ? " Tage, " : " Tag, ")
+            + nf.format(info.portionen) + " Portionen)"
             + (an ? "" : " – für dieses Gericht nicht vorgesehen");
         }
         box.appendChild(sp);

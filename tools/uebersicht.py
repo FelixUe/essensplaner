@@ -263,6 +263,7 @@ def main() -> int:
                 name: {
                     "kochtag": config.slot_kochtag(name),
                     "deckt_ab": config.slot_deckt_ab(name),
+                    "tage": config.slot_tage(name),
                     "portionen": config.slot_portionen(name),
                 }
                 for name in config.slot_namen

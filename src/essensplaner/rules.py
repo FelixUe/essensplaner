@@ -16,7 +16,7 @@ import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass
 
-from .config import Config, Exclusion
+from .config import MAX_TAGE_JE_SLOT, Config, Exclusion
 from .models import Ingredient, MonthPlan, Recipe
 
 SEVERITY_FEHLER = "fehler"
@@ -281,11 +281,43 @@ def pruefe_rezept(rezept: Recipe, zutaten: dict[str, Ingredient], config: Config
     ]
 
 
+def pruefe_slots(config: Config) -> list[Issue]:
+    """Die Tagesabdeckung der Slots prüfen.
+
+    Ein Slot über zwei Tagen hieße, dasselbe Gericht drei Tage hintereinander
+    zu essen. Die Grenze steht in der Konfiguration und wird hier geprüft,
+    damit ein Tippfehler in config.yaml nicht still zu längeren Resten führt.
+    """
+    issues: list[Issue] = []
+    for slot in config.slot_namen:
+        tage = config.slot_tage(slot)
+        if tage < 1:
+            issues.append(
+                Issue(
+                    code="slot_tage_ungueltig",
+                    nachricht=f"Slot {slot} deckt {tage} Tage ab – mindestens einer muss es sein",
+                    slot=slot,
+                )
+            )
+        elif tage > MAX_TAGE_JE_SLOT:
+            issues.append(
+                Issue(
+                    code="slot_zu_viele_tage",
+                    nachricht=(
+                        f"Slot {slot} deckt {tage} Tage ab, erlaubt sind höchstens "
+                        f"{MAX_TAGE_JE_SLOT} – so lange soll niemand dasselbe essen"
+                    ),
+                    slot=slot,
+                )
+            )
+    return issues
+
+
 def pruefe_stammdaten(
     rezepte: dict[str, Recipe], zutaten: dict[str, Ingredient], config: Config
 ) -> list[Issue]:
     """Alle Zutaten und Rezepte des Repos prüfen."""
-    issues: list[Issue] = []
+    issues: list[Issue] = pruefe_slots(config)
     for zutat in zutaten.values():
         issues.extend(pruefe_zutat(zutat, config))
     for rezept in rezepte.values():

@@ -263,6 +263,7 @@ class Planner:
     ) -> PlannedMeal | None:
         portionen = self.config.slot_portionen(slot)
         deckt_ab = self.config.slot_deckt_ab(slot)
+        tage = self.config.slot_tage(slot)
 
         # Gefriertruhe: einen Vorkoch-Slot aus dem Vorrat bedienen, statt neu zu kochen.
         if (
@@ -289,6 +290,7 @@ class Planner:
                     variant=quelle.variant,
                     portionen=portionen,
                     deckt_ab=deckt_ab,
+                    tage=tage,
                     aus_gefriertruhe=True,
                 )
 
@@ -332,6 +334,7 @@ class Planner:
             variant=variante,
             portionen=portionen,
             deckt_ab=deckt_ab,
+            tage=tage,
         )
 
         # Für die Truhe vormerken, wenn das Gericht sich dafür eignet.

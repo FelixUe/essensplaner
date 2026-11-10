@@ -39,13 +39,20 @@ Die fachlichen Vorgaben stehen in [SPEC.md](SPEC.md).
 Einkaufstag ist Freitag, eine Planungswoche läuft deshalb **Freitag bis
 Donnerstag**.
 
-| Slot | Kochtag  | Deckt ab            | Portionen              |
-|------|----------|---------------------|------------------------|
-| FR   | Freitag  | Freitagabend        | Familie (2,5)          |
-| SA   | Samstag  | Samstag             | Familie (2,5)          |
-| SO   | Sonntag  | Sonntag             | Familie (2,5)          |
-| MO   | Montag   | Montag + Dienstag   | 4 Erwachsenenportionen |
-| MI   | Mittwoch | Mittwoch + Donnerstag | 4 Erwachsenenportionen |
+| Slot | Kochtag  | Deckt ab              | Tage | Portionen              |
+|------|----------|-----------------------|-----:|------------------------|
+| FR   | Freitag  | Freitagabend          |    1 | Familie (2,5)          |
+| SA   | Samstag  | Samstag               |    1 | Familie (2,5)          |
+| SO   | Sonntag  | Sonntag               |    1 | Familie (2,5)          |
+| MO   | Montag   | Montag + Dienstag     |    2 | 4 Erwachsenenportionen |
+| MI   | Mittwoch | Mittwoch + Donnerstag |    2 | 4 Erwachsenenportionen |
+
+**Kein Gericht deckt mehr als zwei Tage ab.** Montag und Mittwoch reichen bis
+in den Folgetag – gekocht wird abends, die Reste sind am nächsten Tag das
+Mittagessen der Erwachsenen. Freitag, Samstag und Sonntag sind je ein Tag.
+Die Zahl steht als `tage` in `config.yaml` und nicht nur im Text von
+`deckt_ab`; `essensplaner validate` lehnt einen Slot über zwei Tagen ab, und
+in der Wochenmail steht sie bei den Zwei-Tages-Slots ausdrücklich dabei.
 
 Die Kinder essen Mo–Fr mittags in der Kita, unter der Woche wird nichts für sie
 geplant. Ein Kind zählt als halbe Erwachsenenportion, eine Familienmahlzeit

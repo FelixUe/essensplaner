@@ -13,6 +13,11 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+#: Mehr Esstage als das deckt kein Slot ab. Montag und Mittwoch reichen
+#: bis in den Folgetag, weiter nicht – länger soll niemand dasselbe essen.
+MAX_TAGE_JE_SLOT = 2
+
+
 def _env_bool(name: str, default: bool) -> bool:
     raw = os.environ.get(name)
     if raw is None or raw == "":
@@ -133,6 +138,16 @@ class Config:
 
     def slot_deckt_ab(self, slot: str) -> str:
         return str(self.slots.get(slot, {}).get("deckt_ab", ""))
+
+    def slot_tage(self, slot: str) -> int:
+        """Esstage, die ein Gericht in diesem Slot abdeckt.
+
+        Der Wert steht als Zahl in config.yaml, statt aus "deckt_ab"
+        gelesen werden zu müssen: "Montag + Dienstag Mittag" sind zwei
+        Tage, "Freitag Abend" ist einer. Fehlt die Angabe, gilt ein Tag –
+        der Normalfall und nie zu viel.
+        """
+        return int(self.slots.get(slot, {}).get("tage", 1))
 
     def slot_kochtag(self, slot: str) -> str:
         return str(self.slots.get(slot, {}).get("kochtag", slot))

@@ -8,31 +8,44 @@ haushalt:
   kind_portionsfaktor: 0.5
   # Daraus ergibt sich der Familienfaktor: 2 + 1*0.5 = 2.5 Erwachsenenportionen.
 
+# Die fünf Kochtage einer Woche.
+#
+# "tage" ist die Zahl der Esstage, die ein Gericht in diesem Slot abdeckt.
+# Sie steht ausdrücklich als Zahl da und nicht nur als Text in "deckt_ab",
+# damit sie weder vom Planer noch beim Lesen abgeleitet werden muss:
+# Freitag, Samstag und Sonntag sind je ein Tag, Montag und Mittwoch decken
+# zwei (der Folgetag ist die Mittagsportion). Mehr als zwei Tage deckt
+# kein Gericht ab.
 slots:
   FR:
     kochtag: Freitag
     deckt_ab: "Freitag Abend"
+    tage: 1
     esser: familie
     anspruch: "Familie, kindertauglich"
   SA:
     kochtag: Samstag
     deckt_ab: "Samstag"
+    tage: 1
     esser: familie
     anspruch: "darf aufwendiger, süß oder zünftig sein"
   SO:
     kochtag: Sonntag
     deckt_ab: "Sonntag"
+    tage: 1
     esser: familie
     anspruch: "darf aufwendiger, süß oder zünftig sein"
   MO:
     kochtag: Montag
     deckt_ab: "Montag + Dienstag Mittag"
+    tage: 2
     esser: erwachsene
     portionen: 4
     anspruch: "schnell, proteinreich, aufwärmbar"
   MI:
     kochtag: Mittwoch
     deckt_ab: "Mittwoch + Donnerstag Mittag"
+    tage: 2
     esser: erwachsene
     portionen: 4
     anspruch: "schnell, proteinreich, aufwärmbar"

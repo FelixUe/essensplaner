@@ -160,6 +160,9 @@ class PlannedMeal:
     #: Erwachsenenportionen, die gekocht werden.
     portionen: float
     deckt_ab: str
+    #: Esstage, die dieser Slot abdeckt – 1 für Freitag bis Sonntag,
+    #: 2 für Montag und Mittwoch, deren Folgetag mitgegessen wird.
+    tage: int = 1
     #: True, wenn doppelt gekocht und eine Portion eingefroren wird.
     batch_cook: bool = False
     #: True, wenn dieser Slot aus der Gefriertruhe bedient wird (nicht gekocht).
@@ -174,6 +177,7 @@ class PlannedMeal:
             "variant": self.variant,
             "portionen": self.portionen,
             "deckt_ab": self.deckt_ab,
+            "tage": self.tage,
             "batch_cook": self.batch_cook,
             "aus_gefriertruhe": self.aus_gefriertruhe,
         }
@@ -188,6 +192,7 @@ class PlannedMeal:
             variant=d.get("variant"),
             portionen=d["portionen"],
             deckt_ab=d.get("deckt_ab", ""),
+            tage=int(d.get("tage", 1)),
             batch_cook=d.get("batch_cook", False),
             aus_gefriertruhe=d.get("aus_gefriertruhe", False),
         )
