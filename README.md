@@ -246,6 +246,10 @@ Die Pipeline baut bei jedem Push auf `main` ein Image, veröffentlicht es in der
 GitHub-Registry und löst den Rollout in Coolify aus. Der Rollout läuft nur,
 wenn vorher alle Prüfungen grün waren.
 
+Das Image entsteht für `linux/amd64` und `linux/arm64`. Derselbe Tag läuft
+damit auf einem x86-Server, auf Hetzners ARM-Reihe und auf einem Raspberry Pi
+mit 64-Bit-System; Docker wählt beim Ziehen die passende Fassung.
+
 Die vollständige Anleitung samt Coolify-Einrichtung, Secrets und Mailversand
 steht in [docs/deployment.md](docs/deployment.md).
 

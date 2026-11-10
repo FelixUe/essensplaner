@@ -24,6 +24,27 @@ Der Rollout hängt an `needs: image`, und das Image hängt an den Prüfungen. Ei
 Rezept mit Fenchel oder ein Montagsgericht unter 30 g Protein lässt die
 Pipeline rot werden, bevor irgendetwas den Server erreicht.
 
+### Architekturen
+
+Die Pipeline baut jedes Image für `linux/amd64` **und** `linux/arm64`. Unter
+einem Tag wie `latest` liegt deshalb keine einzelne Datei, sondern eine Liste,
+aus der Docker beim Ziehen die passende Fassung nimmt. Derselbe Tag läuft
+damit auf einem x86-Server, auf Hetzners ARM-Reihe (CAX) und auf einem
+Raspberry Pi mit 64-Bit-System – ohne dass irgendwo etwas umzustellen wäre.
+
+Prüfen lässt sich das ohne Docker:
+
+```bash
+TOKEN=$(curl -s "https://ghcr.io/token?service=ghcr.io&scope=repository:<owner>/essensplaner:pull" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+```
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.oci.image.index.v1+json" "https://ghcr.io/v2/<owner>/essensplaner/manifests/latest"
+```
+
+In der Antwort steht je ein Eintrag mit `"architecture":"amd64"` und
+`"architecture":"arm64"`.
+
 ---
 
 ## 2. Coolify einrichten
@@ -310,6 +331,18 @@ Das Image ist an nichts gebunden, was es nur bei Hetzner gibt.
 
 Läuft dort wieder Coolify, bleibt es bei der Anleitung aus Abschnitt 2 – nur
 die Deploy-URL im Secret `COOLIFY_WEBHOOK` ändert sich.
+
+### Wechsel auf einen ARM-Server
+
+Bei Hetzner lässt sich ein x86-Server nicht in einen ARM-Server umwandeln; die
+CAX-Reihe ist eine eigene Maschine. Der Wechsel ist deshalb derselbe Weg wie
+oben: Volume sichern, neuen Server aufsetzen, Coolify installieren, Ressource
+nach Abschnitt 2 neu anlegen, Volume zurückspielen, neue Deploy-URL als Secret
+setzen.
+
+Am Image ändert sich nichts – es liegt ohnehin für beide Architekturen bereit.
+Was sich ändert, ist die Serveradresse in `COOLIFY_WEBHOOK` und der API-Token,
+denn der gehört zur Coolify-Installation, nicht zum Konto.
 
 ---
 
