@@ -184,6 +184,7 @@
     color: var(--ink-leise);
   }
   .marke.zwei { background: var(--akzent-weich); color: var(--akzent); }
+  .marke.warnung { background: var(--warn-weich); color: var(--warn); }
 
   footer .innen {
     padding-block: 16px 32px;
@@ -198,6 +199,8 @@
   <div class="innen">
     <span class="marke">Essensplaner</span>
     {% if session.get("angemeldet") %}
+      <a href="{{ url_for('start') }}">Monatsplan</a>
+      <a href="{{ url_for('rezepte_liste') }}">Rezepte</a>
       <form method="post" action="{{ url_for('abmelden') }}">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <button class="knopf" type="submit">Abmelden</button>

@@ -41,7 +41,12 @@
             {{ config.slot_kochtag(meal.slot)[:2] }} {{ meal.datum | datum_kurz }}
           </div>
           <div class="gericht">
-            <div class="name">{{ meal.recipe_name }}</div>
+            <div class="name">
+              {% if rezept %}
+                <a href="{{ url_for('rezept_ansehen', slug=meal.recipe_slug) }}"
+                   style="color: inherit;">{{ meal.recipe_name }}</a>
+              {% else %}{{ meal.recipe_name }}{% endif %}
+            </div>
             <div class="unten">
               {% if meal.tage > 1 %}
                 <span class="marke zwei">{{ meal.tage }} Tage</span>

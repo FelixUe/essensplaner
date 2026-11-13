@@ -287,3 +287,158 @@ def test_einkauf_fuer_unbekannte_woche_ist_nicht_gefunden(angemeldet):
 
 def test_einkauf_fuer_monat_ohne_plan_ist_nicht_gefunden(angemeldet):
     assert angemeldet.get("/monat/2030-05/woche/2030-04-26/einkauf").status_code == 404
+
+
+# ---------------------------------------------------------- Rezeptkatalog
+
+
+def test_rezeptliste_zeigt_alle_gerichte(angemeldet, rezepte):
+    text = angemeldet.get("/rezepte").get_data(as_text=True)
+    assert f"{len(rezepte)} Gerichte" in text
+    assert "Pizza (selbstgemacht)" in text
+
+
+def test_rezeptseite_zeigt_zutaten_und_schritte(angemeldet, rezepte, zutaten):
+    antwort = angemeldet.get("/rezepte/pizza")
+    text = antwort.get_data(as_text=True)
+    assert antwort.status_code == 200
+    rezept = rezepte["pizza"]
+    for zeile in rezept.ingredients:
+        assert zutaten[zeile.item].name in text, f"{zeile.item} fehlt"
+    assert rezept.steps[0][:30] in text
+
+
+def test_monatsseite_verlinkt_die_rezepte(angemeldet, plan):
+    text = angemeldet.get(f"/monat/{MONAT}").get_data(as_text=True)
+    for meal in plan.alle_meals:
+        assert f"/rezepte/{meal.recipe_slug}" in text
+
+
+def test_unbekanntes_rezept_ist_nicht_gefunden(angemeldet):
+    assert angemeldet.get("/rezepte/gibt-es-nicht").status_code == 404
+
+
+def test_streichen_nimmt_das_gericht_aus_der_planung(angemeldet, config, plans_dir):
+    from essensplaner import katalog
+
+    seite = angemeldet.get("/rezepte/pizza")
+    antwort = angemeldet.post(
+        "/rezepte/pizza/streichen", data={"csrf": _token(seite.data)}, follow_redirects=True
+    )
+    assert antwort.status_code == 200
+    assert "pizza" in katalog.lade_gestrichen(config)
+    assert "gestrichen" in angemeldet.get("/rezepte/pizza").get_data(as_text=True)
+
+
+def test_gestrichenes_gericht_laesst_sich_wieder_aufnehmen(angemeldet, config):
+    from essensplaner import katalog
+
+    seite = angemeldet.get("/rezepte/pizza")
+    angemeldet.post("/rezepte/pizza/streichen", data={"csrf": _token(seite.data)})
+    seite = angemeldet.get("/rezepte/pizza")
+    angemeldet.post("/rezepte/pizza/aufnehmen", data={"csrf": _token(seite.data)})
+    assert katalog.lade_gestrichen(config) == set()
+
+
+def test_streichen_ohne_token_passiert_nichts(angemeldet, config):
+    from essensplaner import katalog
+
+    assert angemeldet.post("/rezepte/pizza/streichen").status_code == 400
+    assert katalog.lade_gestrichen(config) == set()
+
+
+def _formular(**abweichend):
+    daten = {
+        "name": "Testauflauf mit Zucchini",
+        "slots": "SA",
+        "prep_minutes": "35",
+        "base_servings": "4",
+        "tags": "kids_ok",
+        "zutaten": "800 g Zucchini\n200 g Feta\n1 Stk Baguette",
+        "schritte": "Gemüse schneiden.\nBacken.",
+    }
+    daten.update(abweichend)
+    return daten
+
+
+def test_rezept_anlegen_schreibt_es_ins_volume(angemeldet, config, plans_dir):
+    from essensplaner import katalog
+
+    seite = angemeldet.get("/rezepte/neu")
+    antwort = angemeldet.post(
+        "/rezepte/neu", data=_formular(csrf=_token(seite.data)), follow_redirects=True
+    )
+    assert antwort.status_code == 200
+    assert (plans_dir / "rezepte" / "testauflauf-mit-zucchini.yaml").is_file()
+    assert "testauflauf-mit-zucchini" in katalog.lade_eigene(config)
+    assert "Testauflauf mit Zucchini" in angemeldet.get("/rezepte").get_data(as_text=True)
+
+
+def test_angelegtes_rezept_wird_sofort_eingeplant(angemeldet, plans_dir):
+    """Ohne Neuladen des Katalogs bliebe es bis zum Neustart unsichtbar."""
+    seite = angemeldet.get("/rezepte/neu")
+    angemeldet.post("/rezepte/neu", data=_formular(csrf=_token(seite.data), slots="SA"))
+    text = angemeldet.get("/rezepte/testauflauf-mit-zucchini").get_data(as_text=True)
+    assert "eigenes Rezept" in text
+    assert "Zucchini" in text
+
+
+def test_fehlerhaftes_rezept_wird_nicht_gespeichert(angemeldet, plans_dir):
+    seite = angemeldet.get("/rezepte/neu")
+    antwort = angemeldet.post(
+        "/rezepte/neu",
+        data=_formular(csrf=_token(seite.data), zutaten="100 g Drachenfrucht"),
+        follow_redirects=True,
+    )
+    assert "nicht bekannt" in antwort.get_data(as_text=True)
+    assert not (plans_dir / "rezepte").exists() or not list((plans_dir / "rezepte").glob("*.yaml"))
+
+
+def test_rezept_gegen_eine_harte_regel_wird_abgelehnt(angemeldet, plans_dir):
+    """Ein Montagsgericht unter 30 g Protein darf gar nicht erst entstehen."""
+    seite = angemeldet.get("/rezepte/neu")
+    antwort = angemeldet.post(
+        "/rezepte/neu",
+        data=_formular(csrf=_token(seite.data), slots="MO", zutaten="800 g Zucchini"),
+        follow_redirects=True,
+    )
+    text = antwort.get_data(as_text=True)
+    assert "Protein" in text
+    assert (
+        not list((plans_dir / "rezepte").glob("*.yaml"))
+        if (plans_dir / "rezepte").exists()
+        else True
+    )
+
+
+def test_doppelter_kurzname_wird_abgelehnt(angemeldet):
+    seite = angemeldet.get("/rezepte/neu")
+    antwort = angemeldet.post(
+        "/rezepte/neu",
+        # "Pizza" ergibt den Kurznamen "pizza" - den gibt es schon im Repo.
+        data=_formular(csrf=_token(seite.data), name="Pizza"),
+        follow_redirects=True,
+    )
+    assert "schon ein Rezept" in antwort.get_data(as_text=True)
+
+
+def test_eigenes_rezept_laesst_sich_loeschen(angemeldet, plans_dir):
+    seite = angemeldet.get("/rezepte/neu")
+    angemeldet.post("/rezepte/neu", data=_formular(csrf=_token(seite.data)))
+    seite = angemeldet.get("/rezepte/testauflauf-mit-zucchini")
+    antwort = angemeldet.post(
+        "/rezepte/testauflauf-mit-zucchini/loeschen",
+        data={"csrf": _token(seite.data)},
+        follow_redirects=True,
+    )
+    assert antwort.status_code == 200
+    assert not (plans_dir / "rezepte" / "testauflauf-mit-zucchini.yaml").exists()
+
+
+def test_repo_rezept_laesst_sich_nicht_loeschen(angemeldet):
+    """Die liegen schreibgeschützt im Image – dafür gibt es das Streichen."""
+    seite = angemeldet.get("/rezepte/pizza")
+    assert (
+        angemeldet.post("/rezepte/pizza/loeschen", data={"csrf": _token(seite.data)}).status_code
+        == 404
+    )

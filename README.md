@@ -104,6 +104,30 @@ weiterhin die Monatspläne und verschickt nur nichts – alles steht in der
 Oberfläche. Wer die Mails will, trägt die SMTP-Werte nach; dann laufen beide
 Wege nebeneinander.
 
+### Rezepte pflegen
+
+Die Oberfläche zeigt zu jedem Gericht die Zutaten und die Zubereitung – auch
+die Protein-Variante, die in den Vorkoch-Slots gilt. Dazu lässt sich der
+Katalog ändern:
+
+- **Nicht mehr einplanen.** Das Gericht verschwindet aus der Auswahl des
+  Planers, bleibt aber ladbar. Ein Plan, der schon steht, nennt es weiter
+  beim Namen, und sein Einkaufszettel stimmt. Jederzeit umkehrbar.
+- **Rezept anlegen.** Name, Slots, Zeiten, Zutaten und Schritte im Formular;
+  die Zutaten als eine Zeile je Posten (`800 g Zucchini`), erkannt werden
+  Name, Kurzname und Alias. Der Proteinwert wird aus den Zutaten gerechnet,
+  nicht abgefragt – eine geschätzte Zahl wäre genau die Angabe, die später
+  von den Zutaten abweicht.
+
+Ein neues Rezept muss dieselbe Prüfung bestehen wie die aus dem Repo:
+ausgeschlossene Zutaten, Protein in MO/MI, Haltbarkeit. Was durchfällt, wird
+gar nicht erst gespeichert.
+
+Beides landet im Volume neben den Plänen (`rezepte/*.yaml` und
+`gestrichen.json`) und überlebt damit jeden Rollout. Die 52 Rezepte aus dem
+Repo liegen schreibgeschützt im Image – für sie ist Streichen der einzige
+Weg, und Änderungen an ihnen gehören weiter in git.
+
 Die Oberfläche startet nur, wenn `ESSENSPLANER_WEB_PASSWORT` gesetzt ist.
 Ohne Passwort läuft allein der Scheduler. Das ist Absicht: hinter einer
 Domain stünde sonst eine offene Seite, auf der jeder den Essensplan umbauen
@@ -271,6 +295,7 @@ src/essensplaner/
   nutrition.py           Protein aus den Zutaten nachrechnen
   planner.py             regelbasierter Scheduler
   editing.py             ein Gericht im fertigen Plan tauschen
+  katalog.py             eigene Rezepte und gestrichene Gerichte
   shopping.py            Frischeliste und Vorratsliste
   units.py               Einheiten zusammenfassen und ausgeben
   mail.py                Mails rendern und verschicken

@@ -1,0 +1,130 @@
+{% extends "basis.html.j2" %}
+{% block titel %}Rezept anlegen – Essensplaner{% endblock %}
+
+{% block inhalt %}
+<h1>Rezept anlegen</h1>
+<p class="leise">
+  Das Rezept landet im Volume und überlebt damit jeden Rollout. Geprüft wird
+  es wie die anderen: ausgeschlossene Zutaten, Protein in den Vorkoch-Slots,
+  Haltbarkeit. Was durchfällt, wird nicht gespeichert.
+</p>
+
+<style>
+  .feld { display: grid; gap: 6px; margin-bottom: 14px; }
+  .feld label { font-weight: 500; font-size: 14px; }
+  .feld .hilfe { color: var(--ink-leise); font-size: 12.5px; }
+  .feld textarea, .feld input[type="text"], .feld input[type="number"] {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--rand-stark);
+    border-radius: var(--radius);
+    background: var(--flaeche);
+    color: var(--ink);
+    font: inherit;
+  }
+  .feld textarea { min-height: 7em; font-family: ui-monospace, monospace; font-size: 13px; }
+  .reihe { display: flex; gap: 12px; flex-wrap: wrap; }
+  .reihe > * { flex: 1 1 8rem; }
+  .kaestchen { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .kaestchen label { display: flex; gap: 5px; align-items: center; font-weight: 400; }
+</style>
+
+<form method="post">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+  <div class="feld">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" value="{{ formular.name }}" required
+           placeholder="Ofengemüse mit Feta und Brot">
+  </div>
+
+  <div class="feld">
+    <label>Slots</label>
+    <span class="hilfe">An welchen Kochtagen darf es vorkommen?</span>
+    <div class="kaestchen">
+      {% for s in slots %}
+        <label>
+          <input type="checkbox" name="slots" value="{{ s }}"
+                 {% if s in formular.slots %}checked{% endif %}>
+          {{ s }} – {{ config.slot_kochtag(s) }}
+          {%- if config.slot_tage(s) > 1 %} (2 Tage){% endif %}
+        </label>
+      {% endfor %}
+    </div>
+    <span class="hilfe">
+      Montag und Mittwoch werden vorgekocht: dort sind
+      {{ "%.0f" | format(config.protein_min_g) }} g Protein je Erwachsenenportion Pflicht.
+    </span>
+  </div>
+
+  <div class="reihe">
+    <div class="feld">
+      <label for="prep_minutes">Zubereitung (Minuten)</label>
+      <input type="number" id="prep_minutes" name="prep_minutes" min="1" max="600"
+             value="{{ formular.prep_minutes }}">
+    </div>
+    <div class="feld">
+      <label for="base_servings">Grundmenge (Erwachsenenportionen)</label>
+      <input type="number" id="base_servings" name="base_servings" min="1" max="20"
+             value="{{ formular.base_servings }}">
+    </div>
+  </div>
+
+  <div class="feld">
+    <label for="zutaten">Zutaten</label>
+    <span class="hilfe">
+      Eine je Zeile: <code>Menge Einheit Zutat</code>, etwa
+      <code>800 g Zucchini</code> oder <code>2 Stk Paprika rot</code>.
+      Hinten darf <code>(optional)</code> stehen.
+      Der Proteinwert wird daraus gerechnet, den musst du nicht angeben.
+    </span>
+    <textarea id="zutaten" name="zutaten" required
+              placeholder="800 g Zucchini&#10;2 Stk Paprika rot&#10;200 g Feta">{{ formular.zutaten }}</textarea>
+  </div>
+
+  <div class="feld">
+    <label for="schritte">Zubereitung</label>
+    <span class="hilfe">Ein Schritt je Zeile.</span>
+    <textarea id="schritte" name="schritte" required
+              placeholder="Gemüse in Stücke schneiden.&#10;Bei 200 Grad 30 Minuten backen.">{{ formular.schritte }}</textarea>
+  </div>
+
+  <div class="feld">
+    <label for="tags">Tags</label>
+    <span class="hilfe">
+      Mit Komma getrennt. Gebräuchlich: kids_ok, schnell, lunchbox_ok,
+      freezer_ok, suess, zuenftig. Ein Wochenende braucht immer ein Gericht
+      mit <code>suess</code> oder <code>zuenftig</code>.
+    </span>
+    <input type="text" id="tags" name="tags" value="{{ formular.tags }}" placeholder="kids_ok, schnell">
+  </div>
+
+  <div class="feld">
+    <div class="kaestchen">
+      <label>
+        <input type="checkbox" name="core" {% if formular.core %}checked{% endif %}>
+        Kernrezept – soll häufiger vorkommen
+      </label>
+    </div>
+  </div>
+
+  <button class="knopf haupt" type="submit">Anlegen</button>
+  <a class="knopf" href="{{ url_for('rezepte_liste') }}">Abbrechen</a>
+</form>
+
+<details style="margin-top: 22px;">
+  <summary style="cursor: pointer; color: var(--ink-leise); font-size: 13.5px;">
+    Bekannte Zutaten ({{ zutaten | length }})
+  </summary>
+  <p class="leise" style="font-size: 12.5px;">
+    Nur diese lassen sich verwenden – für alles andere fehlen Abteilung,
+    Haltbarkeit und Proteingehalt. Neue Zutaten kommen über
+    <code>data/ingredients.yaml</code> ins Repo.
+  </p>
+  <div style="columns: 2 180px; column-gap: 24px; font-size: 13px;">
+    {% for z in zutaten %}
+      <div style="break-inside: avoid;">{{ z.name }}</div>
+    {% endfor %}
+  </div>
+</details>
+{% endblock %}

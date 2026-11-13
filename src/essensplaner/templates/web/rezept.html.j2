@@ -1,0 +1,107 @@
+{% extends "basis.html.j2" %}
+{% block titel %}{{ rezept.name }} – Essensplaner{% endblock %}
+
+{% block inhalt %}
+<h1>{{ rezept.name }}</h1>
+<p class="leise">
+  {% if ist_gestrichen %}<span class="marke warnung">gestrichen</span>{% endif %}
+  {% if ist_eigenes %}<span class="marke">eigenes Rezept</span>{% endif %}
+  {% if rezept.core %}<span class="marke">Kernrezept</span>{% endif %}
+  {{ rezept.prep_minutes }} min &middot;
+  Grundmenge {{ rezept.base_servings }} Erwachsenenportionen &middot;
+  {{ rezept.slots | join(", ") if rezept.slots else "kein Slot – nur Beilage" }}
+  {% if rezept.seasons | length == 12 %}&middot; ganzjährig{% else %}&middot; Saison: {{ rezept.seasons | join(", ") }}{% endif %}
+  {% if rezept.tags %}&middot; {{ rezept.tags | join(", ") }}{% endif %}
+</p>
+
+{% if probleme %}
+  <p class="meldung fehler">
+    Wird nicht eingeplant: {{ probleme | join("; ") }}
+  </p>
+{% endif %}
+
+<style>
+  .zutatenliste { margin: 0; padding: 0; list-style: none; }
+  .zutatenliste li {
+    display: grid;
+    grid-template-columns: 7em 1fr;
+    gap: 10px;
+    padding: 2px 0;
+    font-size: 14px;
+  }
+  .zutatenliste .menge {
+    text-align: right;
+    color: var(--ink-leise);
+    font-variant-numeric: tabular-nums;
+  }
+  ol.schritte { margin: 10px 0 0; padding-left: 1.3em; max-width: 68ch; }
+  ol.schritte li { padding: 3px 0; font-size: 14px; }
+</style>
+
+{% for v in varianten %}
+  <section class="karte">
+    <div class="kopf">
+      <h2>{{ "Zutaten" if v.name == "basis" else "Variante „" ~ v.name ~ "“" }}</h2>
+      <span class="spanne">
+        {{ "%.0f" | format(v.protein) }} g Protein je Erwachsenenportion
+      </span>
+    </div>
+    <div class="zeile" style="display: block;">
+      {% if v.hinweis %}<p class="leise" style="margin-top: 0;">{{ v.hinweis }}</p>{% endif %}
+      <ul class="zutatenliste">
+        {% for z in v.zutaten %}
+          <li>
+            <span class="menge">{{ z.menge }}</span>
+            <span>
+              {{ z.name }}{% if z.optional %} (optional){% endif %}{% if z.hinweis %} – {{ z.hinweis }}{% endif %}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+      <ol class="schritte">
+        {% for s in v.steps %}<li>{{ s }}</li>{% endfor %}
+      </ol>
+    </div>
+  </section>
+{% endfor %}
+
+<section class="karte">
+  <div class="kopf"><h2>Katalog</h2></div>
+  <div class="zeile" style="display: block;">
+    {% if ist_gestrichen %}
+      <p style="margin-top: 0;">Dieses Gericht wird nicht mehr eingeplant.</p>
+      <form method="post" action="{{ url_for('rezept_aufnehmen', slug=rezept.slug) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="knopf haupt" type="submit">Wieder einplanen</button>
+      </form>
+    {% else %}
+      <p style="margin-top: 0;">
+        Streichen heißt: der Planer wählt es nicht mehr aus. Bestehende Pläne
+        und ihre Einkaufszettel bleiben unverändert.
+      </p>
+      <form method="post" action="{{ url_for('rezept_streichen', slug=rezept.slug) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="knopf" type="submit">Nicht mehr einplanen</button>
+      </form>
+    {% endif %}
+
+    {% if ist_eigenes %}
+      <hr style="border: 0; border-top: 1px solid var(--rand); margin: 14px 0;">
+      <p class="leise" style="font-size: 13px;">
+        Selbst angelegt. Löschen entfernt die Datei endgültig – das lässt sich
+        nicht rückgängig machen.
+      </p>
+      <form method="post" action="{{ url_for('rezept_loeschen', slug=rezept.slug) }}"
+            onsubmit="return confirm('{{ rezept.name }} endgültig löschen?');">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="knopf" type="submit">Endgültig löschen</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+
+<p>
+  <a class="knopf" href="{{ url_for('rezepte_liste') }}">Alle Rezepte</a>
+  <a class="knopf" href="{{ url_for('start') }}">Monatsplan</a>
+</p>
+{% endblock %}

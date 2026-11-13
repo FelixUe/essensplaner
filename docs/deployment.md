@@ -93,6 +93,10 @@ Bleibt das Paket privat, ist der zweite Weg nötig – sonst scheitert der Pull.
 | Name | `essensplaner-plans` |
 | Destination Path | `/data/plans` |
 
+Im Volume liegen außerdem die selbst angelegten Rezepte (`rezepte/*.yaml`)
+und die Liste der gestrichenen Gerichte (`gestrichen.json`). Ein Backup des
+Volumes sichert damit alles, was zur Laufzeit entstanden ist.
+
 Ohne dieses Volume wäre nach jedem Rollout der Monatsplan verschwunden. Die
 nächste Freitagsmail würde dann einen neuen Plan würfeln – mit anderen
 Gerichten als die, für die schon eingekauft wurde. Hier liegt auch

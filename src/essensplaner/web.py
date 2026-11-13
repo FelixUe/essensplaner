@@ -39,10 +39,12 @@ from flask import (
     url_for,
 )
 
-from . import data, kalender, shopping
+from . import data, kalender, katalog, shopping, units
 from .editing import AenderungsFehler, gericht_tauschen
+from .katalog import KatalogFehler
 from .models import MonthPlan
 from .planner import Planner, PlanungsFehler
+from .rules import nur_fehler, pruefe_rezept
 from .runner import Kontext
 
 log = logging.getLogger(__name__)
@@ -182,7 +184,33 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
         MAX_CONTENT_LENGTH=64 * 1024,
     )
 
-    planner = Planner(ctx.rezepte, ctx.zutaten, ctx.config)
+    # Rezepte aus dem Image bilden die Grundlage; eigene kommen aus dem
+    # Volume dazu und koennen sie ueberschreiben. Der Katalog laedt neu,
+    # sobald sich etwas aendert - sonst zeigte die Oberflaeche den Stand
+    # vom Containerstart.
+    basis_rezepte = {
+        slug: rezept
+        for slug, rezept in ctx.rezepte.items()
+        if not katalog.ist_eigenes(ctx.config, rezept)
+    }
+
+    class _Katalog:
+        def __init__(self) -> None:
+            self.neu_laden()
+
+        def neu_laden(self) -> None:
+            self.rezepte = katalog.alle_rezepte(ctx.config, basis_rezepte)
+            self.gestrichen = katalog.lade_gestrichen(ctx.config)
+            self.eigene = {
+                slug
+                for slug, rezept in self.rezepte.items()
+                if katalog.ist_eigenes(ctx.config, rezept)
+            }
+            self.planner = Planner(
+                self.rezepte, ctx.zutaten, ctx.config, gestrichen=self.gestrichen
+            )
+
+    kat = _Katalog()
     versuche = _Anmeldeversuche()
 
     # ---------------------------------------------------------- Hilfsmittel
@@ -276,13 +304,13 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
         except ValueError:
             abort(404)
         plan = plan_holen(monat)
-        statistik = planner.statistik(plan) if plan else None
+        statistik = kat.planner.statistik(plan) if plan else None
         return render_template(
             "monat.html.j2",
             monat=monat,
             plan=plan,
             statistik=statistik,
-            rezepte=ctx.rezepte,
+            rezepte=kat.rezepte,
             config=ctx.config,
             voriger=_nachbarmonat(monat, -1),
             naechster=_nachbarmonat(monat, 1),
@@ -301,7 +329,7 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
                 flash("Für diesen Monat gibt es bereits einen Plan.", "fehler")
                 return redirect(url_for("monat_ansehen", monat=monat))
             try:
-                plan = planner.plan_monat(monat)
+                plan = kat.planner.plan_monat(monat)
             except PlanungsFehler as exc:
                 flash(f"Kein Plan möglich: {exc}", "fehler")
                 return redirect(url_for("monat_ansehen", monat=monat))
@@ -332,9 +360,9 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             "einkauf.html.j2",
             monat=monat,
             woche=woche,
-            frisch=shopping.frischeliste(woche, ctx.rezepte, ctx.zutaten, ctx.config, ctx.bestand),
+            frisch=shopping.frischeliste(woche, kat.rezepte, ctx.zutaten, ctx.config, ctx.bestand),
             vorrat=shopping.wochen_pantry_liste(
-                woche, ctx.rezepte, ctx.zutaten, ctx.config, ctx.bestand
+                woche, kat.rezepte, ctx.zutaten, ctx.config, ctx.bestand
             ),
             config=ctx.config,
         )
@@ -352,12 +380,12 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
         aktuell = woche.meal(slot) if woche else None
         if aktuell is None:
             abort(404)
-        alternativen = planner.alternativen(plan, tag, slot)
+        alternativen = kat.planner.alternativen(plan, tag, slot)
         return render_template(
             "tauschen.html.j2",
             monat=monat,
             meal=aktuell,
-            rezept=ctx.rezepte.get(aktuell.recipe_slug),
+            rezept=kat.rezepte.get(aktuell.recipe_slug),
             alternativen=alternativen,
             config=ctx.config,
         )
@@ -376,16 +404,186 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             if plan is None:
                 abort(404)
             try:
-                geaendert = gericht_tauschen(plan, tag, slot, neuer_slug, planner)
+                geaendert = gericht_tauschen(plan, tag, slot, neuer_slug, kat.planner)
             except AenderungsFehler as exc:
                 flash(str(exc), "fehler")
                 return redirect(url_for("tauschen_zeigen", monat=monat, datum=datum, slot=slot))
             data.save_plan(geaendert, ctx.config.plans_dir)
 
-        name = ctx.rezepte[neuer_slug].name
+        name = kat.rezepte[neuer_slug].name
         log.info("Gericht getauscht: %s %s -> %s", datum, slot, neuer_slug)
         flash(f"{slot} am {kalender.formatiere_kurz(tag)}: jetzt {name}.", "erfolg")
         return redirect(url_for("monat_ansehen", monat=monat) + f"#slot-{datum}-{slot}")
+
+    # ---------------------------------------------------------- Rezepte
+
+    def _zutaten_ansicht(rezept, variante: str | None):
+        """Zutatenzeilen einer Variante, fertig formatiert."""
+        zeilen = []
+        for zeile in rezept.zutaten_fuer(variante):
+            zutat = ctx.zutaten.get(zeile.item)
+            zeilen.append(
+                {
+                    "menge": units.formatiere_rezept(zeile.qty, zeile.unit),
+                    "name": zutat.name if zutat else zeile.item,
+                    "abteilung": zutat.department if zutat else "?",
+                    "optional": zeile.optional,
+                    "hinweis": zeile.hinweis,
+                }
+            )
+        return zeilen
+
+    @app.get("/rezepte")
+    def rezepte_liste():
+        suche = (request.args.get("q") or "").strip().casefold()
+        alle = sorted(kat.rezepte.values(), key=lambda r: r.name.lower())
+        if suche:
+            alle = [r for r in alle if suche in r.name.casefold() or suche in r.slug]
+        return render_template(
+            "rezepte.html.j2",
+            rezepte=alle,
+            gesamt=len(kat.rezepte),
+            gestrichen=kat.gestrichen,
+            eigene=kat.eigene,
+            abgelehnt=kat.planner.abgelehnt,
+            suche=request.args.get("q") or "",
+            config=ctx.config,
+        )
+
+    @app.route("/rezepte/neu", methods=["GET", "POST"])
+    def rezept_neu():
+        formular = {
+            "name": "",
+            "slots": [],
+            "prep_minutes": "30",
+            "base_servings": "4",
+            "tags": "",
+            "core": False,
+            "zutaten": "",
+            "schritte": "",
+        }
+        if request.method == "POST":
+            csrf_pruefen()
+            formular = {
+                "name": request.form.get("name", ""),
+                "slots": request.form.getlist("slots"),
+                "prep_minutes": request.form.get("prep_minutes", "30"),
+                "base_servings": request.form.get("base_servings", "4"),
+                "tags": request.form.get("tags", ""),
+                "core": request.form.get("core") == "on",
+                "zutaten": request.form.get("zutaten", ""),
+                "schritte": request.form.get("schritte", ""),
+            }
+            try:
+                rezept = katalog.rezept_bauen(
+                    name=formular["name"],
+                    slots=formular["slots"],
+                    zutaten_text=formular["zutaten"],
+                    schritte_text=formular["schritte"],
+                    zutaten=ctx.zutaten,
+                    prep_minutes=int(formular["prep_minutes"] or 0),
+                    base_servings=int(formular["base_servings"] or 0),
+                    core=formular["core"],
+                    tags=formular["tags"],
+                )
+                if rezept.slug in kat.rezepte:
+                    raise KatalogFehler(
+                        f"Es gibt schon ein Rezept mit dem Kurznamen {rezept.slug!r}."
+                    )
+                # Dieselbe Prüfung wie beim Laden der Stammdaten: ein Rezept,
+                # das eine harte Regel bricht, kommt gar nicht erst ins Volume.
+                fehler = nur_fehler(pruefe_rezept(rezept, ctx.zutaten, ctx.config))
+                if fehler:
+                    raise KatalogFehler("; ".join(f.nachricht for f in fehler))
+                katalog.speichere_eigenes(ctx.config, rezept)
+                kat.neu_laden()
+            except (KatalogFehler, ValueError) as exc:
+                flash(str(exc), "fehler")
+            else:
+                flash(f"{rezept.name} angelegt.", "erfolg")
+                return redirect(url_for("rezept_ansehen", slug=rezept.slug))
+
+        return render_template(
+            "rezept_neu.html.j2",
+            formular=formular,
+            slots=list(ctx.config.slot_namen),
+            zutaten=sorted(ctx.zutaten.values(), key=lambda z: z.name.lower()),
+            config=ctx.config,
+        )
+
+    @app.get("/rezepte/<slug>")
+    def rezept_ansehen(slug: str):
+        rezept = kat.rezepte.get(slug)
+        if rezept is None:
+            abort(404)
+        varianten = [
+            {
+                "name": "basis",
+                "hinweis": "",
+                "zutaten": _zutaten_ansicht(rezept, None),
+                "steps": list(rezept.steps),
+                "protein": rezept.protein_fuer(None),
+            }
+        ]
+        for name in sorted(rezept.variants):
+            varianten.append(
+                {
+                    "name": name,
+                    "hinweis": rezept.variants[name].hinweis,
+                    "zutaten": _zutaten_ansicht(rezept, name),
+                    "steps": list(rezept.steps_fuer(name)),
+                    "protein": rezept.protein_fuer(name),
+                }
+            )
+        return render_template(
+            "rezept.html.j2",
+            rezept=rezept,
+            varianten=varianten,
+            ist_gestrichen=slug in kat.gestrichen,
+            ist_eigenes=slug in kat.eigene,
+            probleme=[i.nachricht for i in kat.planner.abgelehnt.get(slug, [])],
+            config=ctx.config,
+        )
+
+    @app.post("/rezepte/<slug>/streichen")
+    def rezept_streichen(slug: str):
+        csrf_pruefen()
+        if slug not in kat.rezepte:
+            abort(404)
+        katalog.streichen(ctx.config, slug)
+        kat.neu_laden()
+        log.info("Rezept gestrichen: %s", slug)
+        flash(
+            f"{kat.rezepte[slug].name} wird nicht mehr eingeplant. "
+            "Bestehende Pläne bleiben, wie sie sind.",
+            "erfolg",
+        )
+        return redirect(url_for("rezept_ansehen", slug=slug))
+
+    @app.post("/rezepte/<slug>/aufnehmen")
+    def rezept_aufnehmen(slug: str):
+        csrf_pruefen()
+        if slug not in kat.rezepte:
+            abort(404)
+        katalog.aufnehmen(ctx.config, slug)
+        kat.neu_laden()
+        flash(f"{kat.rezepte[slug].name} wird wieder eingeplant.", "erfolg")
+        return redirect(url_for("rezept_ansehen", slug=slug))
+
+    @app.post("/rezepte/<slug>/loeschen")
+    def rezept_loeschen(slug: str):
+        csrf_pruefen()
+        if slug not in kat.eigene:
+            # Rezepte aus dem Repo liegen schreibgeschützt im Image; für sie
+            # ist Streichen der einzige Weg.
+            abort(404)
+        name = kat.rezepte[slug].name
+        katalog.loesche_eigenes(ctx.config, slug)
+        katalog.aufnehmen(ctx.config, slug)
+        kat.neu_laden()
+        log.info("Eigenes Rezept gelöscht: %s", slug)
+        flash(f"{name} wurde gelöscht.", "erfolg")
+        return redirect(url_for("rezepte_liste"))
 
     @app.errorhandler(404)
     def nicht_gefunden(_):

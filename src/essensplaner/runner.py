@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-from . import data, kalender, mail, rules, shopping
+from . import data, kalender, katalog, mail, rules, shopping
 from .config import Config
 from .models import Ingredient, MonthPlan, Recipe
 from .planner import Planner, PlanungsFehler
@@ -62,11 +62,15 @@ class Kontext:
     zutaten: dict[str, Ingredient]
     rezepte: dict[str, Recipe]
     bestand: dict[str, tuple[float, str]]
+    #: Slugs, die nicht mehr eingeplant werden sollen. Sie bleiben in
+    #: ``rezepte`` stehen, damit bestehende Plaene und deren Einkaufszettel
+    #: weiter stimmen - nur der Planer waehlt sie nicht mehr aus.
+    gestrichen: set[str] = field(default_factory=set)
 
     @classmethod
     def laden(cls, config: Config, streng: bool = True) -> Kontext:
         zutaten = data.load_ingredients(config.ingredients_file)
-        rezepte = data.load_recipes(config.recipes_dir)
+        rezepte = katalog.alle_rezepte(config, data.load_recipes(config.recipes_dir))
         if streng:
             fehler = rules.nur_fehler(rules.pruefe_stammdaten(rezepte, zutaten, config))
             if fehler:
@@ -75,10 +79,16 @@ class Kontext:
                     f"Stammdaten verletzen {len(fehler)} harte Regel(n):\n{meldungen}"
                 )
         bestand = shopping.lade_bestand(config.data_dir / "bestand.yaml")
-        return cls(config=config, zutaten=zutaten, rezepte=rezepte, bestand=bestand)
+        return cls(
+            config=config,
+            zutaten=zutaten,
+            rezepte=rezepte,
+            bestand=bestand,
+            gestrichen=katalog.lade_gestrichen(config),
+        )
 
     def planner(self) -> Planner:
-        return Planner(self.rezepte, self.zutaten, self.config)
+        return Planner(self.rezepte, self.zutaten, self.config, gestrichen=self.gestrichen)
 
     def renderer(self) -> mail.MailRenderer:
         return mail.MailRenderer(self.config, self.rezepte, self.zutaten, self.bestand)

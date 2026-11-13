@@ -68,15 +68,21 @@ class Planner:
         rezepte: dict[str, Recipe],
         zutaten: dict[str, Ingredient],
         config: Config,
+        gestrichen: set[str] | None = None,
     ) -> None:
         self.config = config
         self.zutaten = zutaten
+        #: Von Hand gestrichene Gerichte. Sie bleiben ausserhalb des Planers
+        #: ladbar, damit bestehende Plaene weiter stimmen.
+        self.gestrichen: set[str] = set(gestrichen or ())
         # Nur Rezepte planen, die selbst regelkonform sind. Ein Rezept mit
         # ausgeschlossener Zutat oder zu wenig Protein im Protein-Slot kommt
         # gar nicht in den Kandidatenpool.
         self.rezepte: dict[str, Recipe] = {}
         self.abgelehnt: dict[str, list[Issue]] = {}
         for slug, rezept in rezepte.items():
+            if slug in self.gestrichen:
+                continue
             fehler = nur_fehler(pruefe_rezept(rezept, zutaten, config))
             if fehler:
                 self.abgelehnt[slug] = fehler
