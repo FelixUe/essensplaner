@@ -342,3 +342,20 @@ def test_mit_smtp_wird_verschickt(sched_mit_mail, monkeypatch):
     assert aufrufe
     for kwargs in aufrufe:
         assert kwargs.get("mail_senden") is True
+
+
+def test_hinweistext_als_smtp_host_gilt_nicht_als_konfiguriert():
+    """Coolify setzt bei einer Pflichtvariablen deren Hinweistext als Wert ein.
+
+    Aus "${SMTP_HOST:?SMTP_HOST muss gesetzt sein}" wird dann wirklich
+    SMTP_HOST="SMTP_HOST muss gesetzt sein". Ohne diese Pruefung haelt der
+    Planer das fuer einen Mailserver und scheitert jeden Freitag an der
+    Namensaufloesung.
+    """
+    from essensplaner.config import SmtpConfig
+
+    assert not SmtpConfig(host="SMTP_HOST muss gesetzt sein").konfiguriert
+    assert not SmtpConfig(host="   ").konfiguriert
+    assert not SmtpConfig(host="").konfiguriert
+    assert SmtpConfig(host="smtp.example.com").konfiguriert
+    assert SmtpConfig(host="localhost").konfiguriert

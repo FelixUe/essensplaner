@@ -57,7 +57,18 @@ class SmtpConfig:
 
     @property
     def konfiguriert(self) -> bool:
-        return bool(self.host)
+        """Ob ein brauchbarer Mailserver eingetragen ist.
+
+        Geprueft wird nicht nur, ob etwas dasteht, sondern ob es ein
+        Hostname sein kann. Grund: manche Oberflaechen setzen bei einer
+        nicht ausgefuellten Pflichtvariablen deren Hinweistext als Wert ein
+        ("SMTP_HOST muss gesetzt sein"). Mit der blossen Pruefung auf
+        "nicht leer" haelt der Planer das fuer einen Mailserver und
+        scheitert dann jeden Freitag an der Namensaufloesung, statt den
+        Versand einfach zu lassen.
+        """
+        host = self.host.strip()
+        return bool(host) and not any(z.isspace() for z in host)
 
     @classmethod
     def from_env(cls) -> SmtpConfig:
