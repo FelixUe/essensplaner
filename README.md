@@ -23,8 +23,9 @@ Die fachlichen Vorgaben stehen in [SPEC.md](SPEC.md).
   vorgekocht, die den jeweils nächsten Mittag mitabdecken. Dort gilt ein
   Mindestwert von 30 g Protein je Portion – notfalls greift die
   Protein-Variante des Rezepts.
-- **Wochenende** darf aufwendiger sein; pro Wochenende steht mindestens ein
-  süßes oder zünftiges Gericht auf dem Plan.
+- **Wochenende** darf aufwendiger sein; pro Wochenende stellt der Planer
+  mindestens ein süßes oder zünftiges Gericht auf den Plan. Wer es von Hand
+  auf einen Werktag zieht, darf das – der Plan bleibt gültig.
 - **Abwechslung**: ein Gericht höchstens dreimal im Monat, nie zweimal
   innerhalb von sieben Tagen, nie zweimal in derselben Woche. Rund 60 % der
   Slots gehen an die Lieblingsgerichte, der Rest an Variationen.
@@ -120,7 +121,11 @@ Darunter steht der **Grundeinkauf**: Milch, Brot, Kaffee – was an keinem
 Rezept hängt und trotzdem jede Woche mit soll. Diese Liste wird nicht
 gerechnet, sondern von Hand gepflegt (ein Posten je Zeile, eine Zeile mit
 Doppelpunkt am Ende wird eine Überschrift). Beim ersten Mal steht dort ein
-Vorschlag, bis er gespeichert und damit ersetzt wird. Posten, die oben schon
+Vorschlag, bis er gespeichert und damit ersetzt wird: die Grundnahrungsmittel,
+gegliedert nach Kühlschrank, Obstschale, Backwaren, Vorratsschrank und
+Gefrierfach – gedacht zum Durchgehen vor dem Einkauf. Was da ist, wird
+gestrichen, der Rest wandert auf den Zettel. Mengen in Klammern (`Milch (2 l)`)
+sind nur ein Hinweis, wie viel im Haus sein soll. Posten, die oben schon
 ausgerechnet stehen, bekommen einen Hinweis – gestrichen wird nichts, denn die
 Rezeptmenge deckt selten den Hausgebrauch.
 

@@ -18,8 +18,11 @@ Zwei Schichten sichern beides ab, dieselben wie beim Planen:
   sich die Plätze tauschen lassen. Die Oberfläche zeigt nichts anderes an.
 * Beide Funktionen prüfen den geänderten Plan anschließend noch einmal
   vollständig. Erst das fängt die Regeln, die nicht an einem einzelnen Slot
-  hängen – etwa dass jedes Wochenende ein süßes oder zünftiges Gericht
-  braucht. Schlägt die Prüfung an, bleibt der alte Plan stehen.
+  hängen – etwa dass ein Gericht nicht zweimal in dieselbe Woche darf.
+  Schlägt die Prüfung an, bleibt der alte Plan stehen. Das süße oder
+  zünftige Wochenendgericht gehört ausdrücklich nicht dazu: es ist eine
+  Vorgabe für den Planer und nur eine Warnung, sonst wäre der Samstag von
+  Hand nicht mehr zu bewegen.
 """
 
 from __future__ import annotations

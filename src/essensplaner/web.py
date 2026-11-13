@@ -569,6 +569,13 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
     def grundeinkauf():
         """Was unabhängig vom Plan sowieso mit soll."""
         zeilen, eigen = shopping.lade_grundeinkauf(ctx.config)
+        # Wer einmal gespeichert hat, kommt an die Grundnahrungsmittel sonst
+        # nicht mehr heran – deshalb der Weg zurück zum Vorschlag. Er füllt
+        # nur das Feld; gespeichert wird erst mit dem Knopf.
+        vorschlag = request.args.get("vorschlag") == "1"
+        if vorschlag:
+            zeilen = list(shopping.STANDARD_GRUNDEINKAUF)
+            eigen = False
         text = chr(10).join(zeilen)
         if request.method == "POST":
             csrf_pruefen()
@@ -586,6 +593,7 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             text=text,
             gruppen=shopping.grundeinkauf_gruppen(zeilen),
             eigen=eigen,
+            vorschlag=vorschlag,
             config=ctx.config,
         )
 

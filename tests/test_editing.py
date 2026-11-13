@@ -283,3 +283,42 @@ def test_unbekannter_platz_wird_abgelehnt(planner, plan):
         plaetze_tauschen(plan, meal.datum, "XX", anderes.datum, anderes.slot, planner)
     with pytest.raises(AenderungsFehler, match="kein Slot"):
         plaetze_tauschen(plan, meal.datum, meal.slot, anderes.datum, "XX", planner)
+
+
+def _ist_highlight(planner, config, meal) -> bool:
+    rezept = planner.rezepte[meal.recipe_slug]
+    return any(rezept.hat_tag(t) for t in config.wochenende_pflicht_tags)
+
+
+def test_das_wochenende_haelt_kein_gericht_fest(planner, mach_plan, rezepte, zutaten, config):
+    """Das Pflicht-Highlight darf das Wochenende verlassen.
+
+    Der Planer legt samstags oder sonntags ein süßes oder zünftiges Gericht
+    ab. Als harte Regel würde das jeden Tausch verbieten, der es auf einen
+    Werktag schiebt – und genau diese Tausche hat die Oberfläche angeboten
+    und dann abgelehnt. Jetzt ist es nur noch eine Warnung.
+    """
+    geprueft = 0
+    leere_wochenenden = 0
+    for monat in TEST_MONATE[:3]:
+        plan = mach_plan(monat)
+        for meal in plan.alle_meals:
+            if meal.slot not in ("SA", "SO") or not _ist_highlight(planner, config, meal):
+                continue
+            for partner in planner.tauschpartner(plan, *_platz(meal)):
+                if partner.slot in ("SA", "SO"):
+                    continue
+                geaendert = plaetze_tauschen(
+                    plan, meal.datum, meal.slot, partner.datum, partner.slot, planner
+                )
+                befunde = rules.pruefe_plan(geaendert, rezepte, zutaten, config)
+                assert rules.nur_fehler(befunde) == []
+                geprueft += 1
+                ohne = [i for i in befunde if i.code == "wochenende_ohne_highlight"]
+                if ohne:
+                    assert all(i.severity == rules.SEVERITY_WARNUNG for i in ohne)
+                    leere_wochenenden += 1
+    assert geprueft, "Kein Testmonat bietet so einen Tausch an – der Test prüft nichts"
+    assert leere_wochenenden, (
+        "Kein Tausch räumt ein Wochenende leer – dann prüft der Test die alte Regel nicht"
+    )

@@ -4,12 +4,18 @@
 {% block inhalt %}
 <h1>Grundeinkauf</h1>
 <p class="leise">
-  Was unabhängig vom Plan sowieso mit soll: Milch, Brot, Kaffee. Diese Liste
-  wird nicht gerechnet, sondern von dir gepflegt, und steht auf jedem
-  Wocheneinkauf unter den beiden anderen Listen.
+  Was unabhängig vom Plan sowieso mit soll: Milch, Brot, Kaffee. Die Liste ist
+  zum Durchgehen gedacht – Kühlschrank auf, Vorratsschrank auf, und was fehlt,
+  kommt mit. Sie wird nicht gerechnet, sondern von dir gepflegt, und steht auf
+  jedem Wocheneinkauf unter den beiden anderen Listen.
 </p>
 
-{% if not eigen %}
+{% if vorschlag %}
+  <p class="meldung hinweis">
+    Das sind die Grundnahrungsmittel zum Durchgehen. Deine bisherige Liste
+    bleibt stehen, bis du hier speicherst.
+  </p>
+{% elif not eigen %}
   <p class="meldung hinweis">
     Das ist bisher nur ein Vorschlag. Speichern macht daraus deine Liste.
   </p>
@@ -39,13 +45,18 @@
     <label for="zeilen">Ein Posten je Zeile</label>
     <span class="hilfe">
       Eine Zeile mit Doppelpunkt am Ende wird eine Überschrift, etwa
-      <code>Kühlregal:</code> – alles darunter gehört dazu. Mengen kannst du
+      <code>Kühlschrank:</code> – alles darunter gehört dazu. Mengen kannst du
       dahinterschreiben, sie werden nicht gerechnet. Ein leeres Feld löscht die
       Liste.
     </span>
     <textarea id="zeilen" name="zeilen" spellcheck="false">{{ text }}</textarea>
   </div>
   <button class="knopf haupt" type="submit">Speichern</button>
+  {% if eigen %}
+    <a class="knopf" href="{{ url_for('grundeinkauf', vorschlag=1) }}">
+      Grundnahrungsmittel einsetzen
+    </a>
+  {% endif %}
   <a class="knopf" href="{{ url_for('start') }}">Zum Monatsplan</a>
 </form>
 

@@ -761,3 +761,58 @@ def test_monat_ohne_plan_kommt_ohne_karte_aus(angemeldet):
     text = angemeldet.get("/monat/2030-05").get_data(as_text=True)
     assert "tauschdaten" not in text
     assert "griff" not in text
+
+
+def test_der_vorschlag_laesst_sich_zurueckholen(angemeldet, config):
+    """Nach dem ersten Speichern muss man wieder an die Grundliste kommen."""
+    seite = angemeldet.get("/grundeinkauf")
+    angemeldet.post(
+        "/grundeinkauf",
+        data={"csrf": _token(seite.data), "zeilen": "Haushalt:" + NL + "Müllbeutel"},
+    )
+    assert shopping.lade_grundeinkauf(config) == (["Haushalt:", "Müllbeutel"], True)
+
+    text = angemeldet.get("/grundeinkauf?vorschlag=1").get_data(as_text=True)
+    assert "Kühlschrank:" in text
+    assert "Grundnahrungsmittel zum Durchgehen" in text
+    # Nur im Feld, noch nicht gespeichert.
+    assert shopping.lade_grundeinkauf(config) == (["Haushalt:", "Müllbeutel"], True)
+
+
+def test_der_knopf_steht_da_wo_er_hilft(angemeldet):
+    """Zurück zum Vorschlag braucht nur, wer eine eigene Liste hat."""
+    seite = angemeldet.get("/grundeinkauf")
+    assert "vorschlag=1" not in seite.get_data(as_text=True)
+
+    angemeldet.post("/grundeinkauf", data={"csrf": _token(seite.data), "zeilen": "Müllbeutel"})
+    assert "vorschlag=1" in angemeldet.get("/grundeinkauf").get_data(as_text=True)
+    assert "vorschlag=1" not in angemeldet.get("/grundeinkauf?vorschlag=1").get_data(as_text=True)
+
+
+def test_das_wochenende_blockiert_das_verschieben_nicht(angemeldet, planner, plan, config):
+    """Das süße Wochenendgericht darf per Hand auf einen Werktag.
+
+    Vorher bot die Seite den Tausch an und lehnte ihn beim Ablegen ab.
+    """
+    geprueft = 0
+    for meal in plan.alle_meals:
+        rezept = planner.rezepte[meal.recipe_slug]
+        ist_highlight = any(rezept.hat_tag(t) for t in config.wochenende_pflicht_tags)
+        if meal.slot not in ("SA", "SO") or not ist_highlight:
+            continue
+        for partner in planner.tauschpartner(plan, meal.datum, meal.slot):
+            if partner.slot in ("SA", "SO"):
+                continue
+            pfad = f"/monat/{MONAT}/{meal.datum}/{meal.slot}"
+            token = _token(angemeldet.get(pfad).data)
+            antwort = angemeldet.post(
+                f"{pfad}/verschieben",
+                data={"csrf": token, "ziel": f"{partner.datum}_{partner.slot}"},
+                follow_redirects=True,
+            )
+            assert "Getauscht" in antwort.get_data(as_text=True)
+            geprueft += 1
+            break
+        if geprueft:
+            break
+    assert geprueft, "Der Plan hat keinen solchen Tausch - der Test prüft nichts"

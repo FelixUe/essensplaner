@@ -366,28 +366,61 @@ def wochen_pantry_liste(
 GRUNDEINKAUF_MAX_ZEILEN = 80
 GRUNDEINKAUF_MAX_LAENGE = 80
 
-#: Vorschlag für den Anfang. Er steht nur da, solange nichts Eigenes
-#: gespeichert ist – die erste Speicherung ersetzt ihn vollständig.
+#: Vorschlag für den Anfang: ein Gang durch Kühlschrank, Obstschale und
+#: Vorratsschrank. Gedacht als Kontrollliste – was fehlt, bleibt stehen,
+#: der Rest wird gestrichen. Er steht nur da, solange nichts Eigenes
+#: gespeichert ist; die erste Speicherung ersetzt ihn vollständig.
+#: Haushaltskram (Spülmittel, Müllbeutel) fehlt bewusst – das kommt über
+#: die Bearbeiten-Seite dazu, wenn es gebraucht wird.
 STANDARD_GRUNDEINKAUF: tuple[str, ...] = (
-    "Kühlregal:",
-    "Milch",
+    "Kühlschrank:",
+    "Milch (2 l)",
     "Butter",
-    "Eier",
-    "Joghurt",
+    "Eier (10 Stück)",
+    "Naturjoghurt",
+    "Quark oder Skyr",
+    "Sahne oder Schmand",
     "Käse fürs Brot",
+    "Streukäse zum Überbacken",
     "Aufschnitt",
+    "Frischkäse",
+    "Senf und Ketchup",
+    "Obst & Gemüse:",
+    "Bananen",
+    "Äpfel",
+    "Obst für die Brotdosen",
+    "Zitronen",
+    "Zwiebeln",
+    "Knoblauch",
+    "Möhren",
+    "Kartoffeln",
+    "Salat oder Gurke",
+    "Tomaten",
     "Backwaren:",
     "Brot",
     "Brötchen fürs Wochenende",
-    "Obst & Gemüse:",
-    "Obst für die Brotdosen",
-    "Bananen",
-    "Äpfel",
-    "Trockenware:",
-    "Kaffee",
+    "Toast",
+    "Vorratsschrank:",
+    "Nudeln",
+    "Reis",
+    "Mehl",
+    "Haferflocken",
     "Müsli",
-    "Nudeln als Vorrat",
-    "Reis als Vorrat",
+    "Zucker",
+    "Salz",
+    "Pfeffer",
+    "Bratöl",
+    "Olivenöl",
+    "Gemüsebrühe",
+    "Passierte Tomaten",
+    "Gehackte Tomaten (Dose)",
+    "Kidneybohnen oder Kichererbsen",
+    "Kaffee",
+    "Tee",
+    "Gefrierfach:",
+    "TK-Erbsen",
+    "TK-Spinat",
+    "TK-Beeren",
 )
 
 
@@ -478,6 +511,19 @@ def _erstes_wort(text: str) -> str:
     return teile[0].casefold() if teile else ""
 
 
+def _ohne_menge(zeile: str) -> str:
+    """'Milch (2 l)' wird zu 'milch'.
+
+    Die Klammer hinter dem Posten ist ein Hinweis für den Haushalt und
+    gehört nicht zum Namen – sonst erkennt der Abgleich unten die Milch
+    nicht wieder, nur weil eine Zielmenge dabeisteht.
+    """
+    text = zeile.strip()
+    if text.endswith(")") and "(" in text:
+        text = text[: text.rindex("(")].strip()
+    return text.casefold()
+
+
 def grundeinkauf_doppelt(zeilen: list[str], *listen: ShoppingList) -> set[str]:
     """Zeilen des Grundeinkaufs, die schon auf einer gerechneten Liste stehen.
 
@@ -485,9 +531,9 @@ def grundeinkauf_doppelt(zeilen: list[str], *listen: ShoppingList) -> set[str]:
     ausgerechnet, einmal als Grundeinkauf. Der Hinweis sagt das nur – er
     streicht nichts, denn die Rezeptmenge deckt selten den Hausgebrauch.
 
-    Verglichen wird streng: die ganze Zeile gegen den Zutatennamen oder
-    dessen erstes Wort. Eine lockerere Suche hält sonst "Milch" für einen
-    Treffer in "Kokosmilch".
+    Verglichen wird streng: die ganze Zeile ohne Mengenklammer gegen den
+    Zutatennamen oder dessen erstes Wort. Eine lockerere Suche hält sonst
+    "Milch" für einen Treffer in "Kokosmilch".
     """
     namen = {i.name.casefold() for sl in listen for i in sl.items}
     ersten = {_erstes_wort(i.name) for sl in listen for i in sl.items}
@@ -495,7 +541,7 @@ def grundeinkauf_doppelt(zeilen: list[str], *listen: ShoppingList) -> set[str]:
     for zeile in zeilen:
         if zeile.endswith(":"):
             continue
-        schluessel = zeile.strip().casefold()
+        schluessel = _ohne_menge(zeile)
         if schluessel in namen or schluessel in ersten:
             treffer.add(zeile)
     return treffer

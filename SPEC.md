@@ -53,6 +53,8 @@ Jedes Rezept und jede generierte Variante muss vor dem Speichern gegen diese Lis
 
 ### 3.4 Wochenende
 - Pro Wochenende mindestens ein Gericht mit Tag `suess` oder `zuenftig`.
+  Der Planer baut es beim Würfeln ein; von Hand darf man es wieder
+  wegschieben, dann steht es nur noch als Warnung im Prüfbericht.
 - Fischstäbchen höchstens 1× pro Monat (konfigurierbar).
 
 ---
@@ -201,6 +203,6 @@ kidneybohnen_dose:
 1. Ein generierter Monatsplan enthält keine ausgeschlossene Zutat (automatischer Test).
 2. Alle MO/MI-Gerichte haben ≥ 30 g Protein pro Portion.
 3. Kein Gericht öfter als 3× im Monat und nie zweimal innerhalb von 7 Tagen.
-4. Jedes Wochenende hat mindestens ein süßes oder zünftiges Gericht.
+4. Jedes Wochenende hat mindestens ein süßes oder zünftiges Gericht (Vorgabe für den Planer, keine Sperre für Änderungen von Hand).
 5. Wochenmail kommt freitags an, Frischeliste ist nach Abteilung sortiert und mengenmäßig aggregiert.
 6. Vorratsliste summiert alle Pantry-Zutaten des Monats, auf Packungsgrößen gerundet.

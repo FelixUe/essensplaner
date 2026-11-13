@@ -466,7 +466,12 @@ def pruefe_plan(
                     )
                 )
 
-    # Kriterium 4: jedes Wochenende mindestens ein süßes oder zünftiges Gericht.
+    # Kriterium 4: jedes Wochenende mindestens ein süßes oder zünftiges
+    # Gericht. Nur eine Warnung, kein Fehler: der Planer baut das Highlight
+    # beim Würfeln aktiv ein, aber als Fehler würde es jedes Verschieben
+    # verbieten, bei dem das einzige süße Gericht das Wochenende verlässt.
+    # Ein Plan von Hand umsortieren zu können wiegt mehr als der Pfannkuchen
+    # am Samstag.
     for woche in plan.weeks:
         wochenende = [m for m in woche.meals if m.slot in ("SA", "SO")]
         if not wochenende:
@@ -485,6 +490,7 @@ def pruefe_plan(
                         f"Wochenende ab {woche.start} hat kein Gericht mit "
                         f"{' oder '.join(config.wochenende_pflicht_tags)}"
                     ),
+                    severity=SEVERITY_WARNUNG,
                 )
             )
 

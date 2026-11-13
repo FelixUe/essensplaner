@@ -394,17 +394,6 @@ def test_ueberschrift_ohne_posten_bleibt_sichtbar():
     assert shopping.grundeinkauf_gruppen(["Obst:"]) == [("Obst", [])]
 
 
-def test_der_vorschlag_ist_selbst_gegliedert():
-    gruppen = shopping.grundeinkauf_gruppen(list(shopping.STANDARD_GRUNDEINKAUF))
-    assert [titel for titel, _ in gruppen] == [
-        "Kühlregal",
-        "Backwaren",
-        "Obst & Gemüse",
-        "Trockenware",
-    ]
-    assert all(posten for _, posten in gruppen)
-
-
 def test_doppeltes_wird_als_solches_erkannt(mach_plan, rezepte, zutaten, config):
     """Milch soll nicht zweimal auf demselben Zettel stehen."""
     woche = mach_plan("2026-12").weeks[0]
@@ -434,3 +423,42 @@ def test_aehnliche_namen_sind_kein_treffer(mach_plan, rezepte, zutaten, config):
         if "milch" in name.casefold() and name.casefold() != "milch":
             # Ein solcher Name existiert - und darf den Treffer nicht auslösen.
             assert treffer in ({"Milch"}, set())
+
+
+def test_der_vorschlag_laesst_sich_so_speichern():
+    """Was vorgeschlagen wird, muss auch durch die Prüfung gehen."""
+    zeilen = shopping.pruefe_grundeinkauf(NL.join(shopping.STANDARD_GRUNDEINKAUF))
+    assert zeilen == list(shopping.STANDARD_GRUNDEINKAUF)
+
+
+def test_der_vorschlag_fuehrt_durch_die_vorraete():
+    """Die Liste ist zum Kontrollieren gedacht, nicht zum Durchlesen.
+
+    Deshalb sind die Überschriften Orte in der Wohnung und keine Abteilungen
+    im Laden: man geht Kühlschrank, Obstschale und Schrank einmal durch.
+    """
+    gruppen = shopping.grundeinkauf_gruppen(list(shopping.STANDARD_GRUNDEINKAUF))
+    assert [titel for titel, _ in gruppen] == [
+        "Kühlschrank",
+        "Obst & Gemüse",
+        "Backwaren",
+        "Vorratsschrank",
+        "Gefrierfach",
+    ]
+    assert all(len(posten) >= 3 for _, posten in gruppen)
+    for posten in ("Milch (2 l)", "Butter", "Eier (10 Stück)", "Mehl", "Kaffee"):
+        assert posten in shopping.STANDARD_GRUNDEINKAUF
+
+
+def test_mengenklammer_stoert_den_abgleich_nicht(mach_plan, rezepte, zutaten, config):
+    """'Milch (2 l)' ist dieselbe Milch wie die aus dem Rezept."""
+    woche = mach_plan("2026-12").weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    vorrat = shopping.wochen_pantry_liste(woche, rezepte, zutaten, config)
+    name = next(
+        (i.name for sl in (frisch, vorrat) for i in sl.items),
+        "",
+    )
+    assert name, "die Woche braucht Einkäufe, sonst prüft der Test nichts"
+    zeile = f"{name} (2 l)"
+    assert shopping.grundeinkauf_doppelt([zeile], frisch, vorrat) == {zeile}
