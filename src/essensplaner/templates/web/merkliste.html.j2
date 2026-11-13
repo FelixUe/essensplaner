@@ -1,0 +1,76 @@
+{% extends "basis.html.j2" %}
+{% block titel %}Merkliste – Essensplaner{% endblock %}
+
+{% block inhalt %}
+<h1>Merkliste</h1>
+<p class="leise">
+  Gerichte, die demnächst auf den Tisch sollen. Die Merkliste plant nichts von
+  selbst – wenn du einen Tag änderst, stehen diese Gerichte dort ganz oben.
+</p>
+
+{% if not gerichte and not verschwunden %}
+  <div class="karte">
+    <div class="zeile" style="display: block;">
+      <p style="margin-top: 0;">Noch nichts vorgemerkt.</p>
+      <p class="leise" style="font-size: 13px; margin-bottom: 0;">
+        Auf jeder Rezeptseite gibt es dafür einen Knopf. Und wenn du ein Gericht
+        aus dem Plan nimmst, kannst du es beim Tauschen gleich hier ablegen.
+      </p>
+    </div>
+  </div>
+{% else %}
+  <div class="karte">
+    {% for r in gerichte %}
+      <div class="zeile">
+        <div class="gericht">
+          <div class="name">
+            <a href="{{ url_for('rezept_ansehen', slug=r.slug) }}"
+               style="color: inherit;">{{ r.name }}</a>
+          </div>
+          <div class="unten">
+            {% if r.slug in gestrichen %}
+              <span class="marke warnung">gestrichen – wird nicht eingeplant</span>
+            {% endif %}
+            {{ r.slots | join(", ") if r.slots else "ohne Slot" }} &middot;
+            {{ r.prep_minutes }} min &middot;
+            {{ "%.0f" | format(r.protein_per_serving_g) }} g Protein
+          </div>
+        </div>
+        <div>
+          <form method="post" action="{{ url_for('merkliste_vergessen', slug=r.slug) }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <button class="knopf" type="submit">Herunternehmen</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+
+    {% for slug in verschwunden %}
+      <div class="zeile">
+        <div class="gericht">
+          <div class="name">{{ slug }}</div>
+          <div class="unten">
+            <span class="marke warnung">Rezept gibt es nicht mehr</span>
+          </div>
+        </div>
+        <div>
+          <form method="post" action="{{ url_for('merkliste_vergessen', slug=slug) }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <button class="knopf" type="submit">Herunternehmen</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<p>
+  <a class="knopf" href="{{ url_for('start') }}">Zum Monatsplan</a>
+  <a class="knopf" href="{{ url_for('rezepte_liste') }}">Alle Rezepte</a>
+</p>
+{% endblock %}
+
+{% block fuss %}
+  Eingeplant heißt erledigt: wählst du ein vorgemerktes Gericht für einen Tag,
+  nimmt es die Merkliste selbst herunter.
+{% endblock %}

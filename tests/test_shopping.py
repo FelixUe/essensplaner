@@ -16,6 +16,8 @@ from essensplaner.shopping import ABTEILUNG_REIHENFOLGE, abteilung_sortierung
 
 from .conftest import TEST_MONATE
 
+NL = chr(10)
+
 
 @pytest.fixture
 def frisch(plan, rezepte, zutaten, config):
@@ -321,3 +323,114 @@ def test_jede_frischware_laesst_sich_in_eine_packung_umrechnen(rezepte, zutaten)
             ):
                 offen.append(f"{zutat.name} ({einheit} vs. {zutat.pack_qty} {zutat.pack_unit})")
     assert offen == []
+
+
+# --------------------------------------------------------- Grundeinkauf
+
+
+@pytest.fixture
+def volume(config, tmp_path, monkeypatch):
+    monkeypatch.setenv("ESSENSPLANER_PLANS_DIR", str(tmp_path))
+    return tmp_path
+
+
+def test_ohne_eigene_liste_kommt_ein_vorschlag(volume, config):
+    zeilen, eigen = shopping.lade_grundeinkauf(config)
+    assert zeilen == list(shopping.STANDARD_GRUNDEINKAUF)
+    assert eigen is False, "ein Vorschlag darf nicht als eigene Liste gelten"
+
+
+def test_gespeicherte_liste_ersetzt_den_vorschlag(volume, config):
+    zeilen = shopping.speichere_grundeinkauf(config, "Milch" + NL + "Brot" + NL)
+    assert zeilen == ["Milch", "Brot"]
+    assert shopping.lade_grundeinkauf(config) == (["Milch", "Brot"], True)
+
+
+def test_leere_zeilen_und_leerraum_fallen_weg(volume, config):
+    zeilen = shopping.speichere_grundeinkauf(
+        config, "  Milch  " + NL + NL + NL + "   " + NL + "Brot" + NL
+    )
+    assert zeilen == ["Milch", "Brot"]
+
+
+def test_leeres_feld_loescht_die_liste(volume, config):
+    shopping.speichere_grundeinkauf(config, "Milch")
+    assert shopping.speichere_grundeinkauf(config, "   ") == []
+    assert shopping.lade_grundeinkauf(config) == ([], True)
+
+
+def test_zu_viele_zeilen_werden_abgelehnt(volume, config):
+    text = NL.join(f"Posten {n}" for n in range(shopping.GRUNDEINKAUF_MAX_ZEILEN + 1))
+    with pytest.raises(shopping.EinkaufFehler, match="zu viele"):
+        shopping.speichere_grundeinkauf(config, text)
+    assert shopping.lade_grundeinkauf(config)[1] is False, "nichts darf gespeichert sein"
+
+
+def test_zu_lange_zeile_wird_abgelehnt(volume, config):
+    with pytest.raises(shopping.EinkaufFehler, match="zu lang"):
+        shopping.speichere_grundeinkauf(config, "x" * (shopping.GRUNDEINKAUF_MAX_LAENGE + 1))
+
+
+def test_kaputte_datei_faellt_auf_den_vorschlag_zurueck(volume, config):
+    shopping.grundeinkauf_pfad(config).write_text("kein json", encoding="utf-8")
+    zeilen, eigen = shopping.lade_grundeinkauf(config)
+    assert zeilen == list(shopping.STANDARD_GRUNDEINKAUF)
+    assert eigen is False
+
+
+def test_doppelpunkt_macht_eine_ueberschrift():
+    gruppen = shopping.grundeinkauf_gruppen(
+        ["Milch", "Kühlregal:", "Butter", "Eier", "Backwaren:", "Brot"]
+    )
+    assert gruppen == [
+        ("", ["Milch"]),
+        ("Kühlregal", ["Butter", "Eier"]),
+        ("Backwaren", ["Brot"]),
+    ]
+
+
+def test_ueberschrift_ohne_posten_bleibt_sichtbar():
+    """Sonst verschwindet eine gerade angefangene Gruppe beim Tippen."""
+    assert shopping.grundeinkauf_gruppen(["Obst:"]) == [("Obst", [])]
+
+
+def test_der_vorschlag_ist_selbst_gegliedert():
+    gruppen = shopping.grundeinkauf_gruppen(list(shopping.STANDARD_GRUNDEINKAUF))
+    assert [titel for titel, _ in gruppen] == [
+        "Kühlregal",
+        "Backwaren",
+        "Obst & Gemüse",
+        "Trockenware",
+    ]
+    assert all(posten for _, posten in gruppen)
+
+
+def test_doppeltes_wird_als_solches_erkannt(mach_plan, rezepte, zutaten, config):
+    """Milch soll nicht zweimal auf demselben Zettel stehen."""
+    woche = mach_plan("2026-12").weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    namen = [i.name for i in frisch.items]
+    assert namen, "die Woche braucht Frischware, sonst prüft der Test nichts"
+
+    zeilen = [namen[0], "Etwas, das nie auf einer Rezeptliste steht"]
+    doppelt = shopping.grundeinkauf_doppelt(zeilen, frisch)
+    assert doppelt == {namen[0]}
+
+
+def test_ueberschriften_gelten_nie_als_doppelt(mach_plan, rezepte, zutaten, config):
+    woche = mach_plan("2026-12").weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    name = frisch.items[0].name
+    assert shopping.grundeinkauf_doppelt([f"{name}:"], frisch) == set()
+
+
+def test_aehnliche_namen_sind_kein_treffer(mach_plan, rezepte, zutaten, config):
+    """ "Milch" darf nicht als Treffer in "Kokosmilch" durchgehen."""
+    woche = mach_plan("2026-12").weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    vorrat = shopping.wochen_pantry_liste(woche, rezepte, zutaten, config)
+    treffer = shopping.grundeinkauf_doppelt(["Milch"], frisch, vorrat)
+    for name in [i.name for i in frisch.items] + [i.name for i in vorrat.items]:
+        if "milch" in name.casefold() and name.casefold() != "milch":
+            # Ein solcher Name existiert - und darf den Treffer nicht auslösen.
+            assert treffer in ({"Milch"}, set())

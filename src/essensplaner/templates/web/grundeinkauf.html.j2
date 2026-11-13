@@ -1,0 +1,74 @@
+{% extends "basis.html.j2" %}
+{% block titel %}Grundeinkauf – Essensplaner{% endblock %}
+
+{% block inhalt %}
+<h1>Grundeinkauf</h1>
+<p class="leise">
+  Was unabhängig vom Plan sowieso mit soll: Milch, Brot, Kaffee. Diese Liste
+  wird nicht gerechnet, sondern von dir gepflegt, und steht auf jedem
+  Wocheneinkauf unter den beiden anderen Listen.
+</p>
+
+{% if not eigen %}
+  <p class="meldung hinweis">
+    Das ist bisher nur ein Vorschlag. Speichern macht daraus deine Liste.
+  </p>
+{% endif %}
+
+<style>
+  .feld { display: grid; gap: 6px; margin-bottom: 14px; }
+  .feld label { font-weight: 500; font-size: 14px; }
+  .feld .hilfe { color: var(--ink-leise); font-size: 12.5px; }
+  .feld textarea {
+    width: 100%;
+    min-height: 16em;
+    padding: 9px 11px;
+    border: 1px solid var(--rand-stark);
+    border-radius: var(--radius);
+    background: var(--flaeche);
+    color: var(--ink);
+    font: inherit;
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+  }
+</style>
+
+<form method="post">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <div class="feld">
+    <label for="zeilen">Ein Posten je Zeile</label>
+    <span class="hilfe">
+      Eine Zeile mit Doppelpunkt am Ende wird eine Überschrift, etwa
+      <code>Kühlregal:</code> – alles darunter gehört dazu. Mengen kannst du
+      dahinterschreiben, sie werden nicht gerechnet. Ein leeres Feld löscht die
+      Liste.
+    </span>
+    <textarea id="zeilen" name="zeilen" spellcheck="false">{{ text }}</textarea>
+  </div>
+  <button class="knopf haupt" type="submit">Speichern</button>
+  <a class="knopf" href="{{ url_for('start') }}">Zum Monatsplan</a>
+</form>
+
+{% if gruppen %}
+  <h2 style="margin: 26px 0 10px;">So steht es auf dem Einkaufszettel</h2>
+  <section class="karte">
+    {% for titel, posten in gruppen %}
+      <div class="zeile" style="display: block;">
+        {% if titel %}
+          <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+                      color: var(--ink-leise); margin-bottom: 4px;">{{ titel }}</div>
+        {% endif %}
+        <ul style="margin: 0; padding-left: 1.1em; columns: 2 200px; column-gap: 24px;">
+          {% for eintrag in posten %}
+            <li style="padding: 1px 0; break-inside: avoid;">{{ eintrag }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  </section>
+{% endif %}
+{% endblock %}
+
+{% block fuss %}
+  Die Liste liegt im Volume und übersteht jeden Rollout.
+{% endblock %}

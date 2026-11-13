@@ -40,7 +40,12 @@ from flask import (
 )
 
 from . import data, kalender, katalog, shopping, units
-from .editing import AenderungsFehler, gericht_tauschen
+from .editing import (
+    AenderungsFehler,
+    finde_mahlzeit,
+    gericht_tauschen,
+    plaetze_tauschen,
+)
 from .katalog import KatalogFehler
 from .models import MonthPlan
 from .planner import Planner, PlanungsFehler
@@ -356,14 +361,20 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
         woche = plan.woche_ab(start) or plan.woche_fuer(start)
         if woche is None:
             abort(404)
+        zeilen, eigen = shopping.lade_grundeinkauf(ctx.config)
+        frisch = shopping.frischeliste(woche, kat.rezepte, ctx.zutaten, ctx.config, ctx.bestand)
+        vorrat = shopping.wochen_pantry_liste(
+            woche, kat.rezepte, ctx.zutaten, ctx.config, ctx.bestand
+        )
         return render_template(
             "einkauf.html.j2",
             monat=monat,
             woche=woche,
-            frisch=shopping.frischeliste(woche, kat.rezepte, ctx.zutaten, ctx.config, ctx.bestand),
-            vorrat=shopping.wochen_pantry_liste(
-                woche, kat.rezepte, ctx.zutaten, ctx.config, ctx.bestand
-            ),
+            frisch=frisch,
+            vorrat=vorrat,
+            grundeinkauf=shopping.grundeinkauf_gruppen(zeilen),
+            grundeinkauf_eigen=eigen,
+            grundeinkauf_doppelt=shopping.grundeinkauf_doppelt(zeilen, frisch, vorrat),
             config=ctx.config,
         )
 
@@ -381,12 +392,29 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
         if aktuell is None:
             abort(404)
         alternativen = kat.planner.alternativen(plan, tag, slot)
+        # Die Merkliste wird bei jedem Aufruf frisch gelesen: sie ändert sich
+        # beim Tauschen selbst, und zwei offene Tabs sollen nicht auseinander
+        # laufen.
+        vorgemerkt_slugs = katalog.lade_merkliste(ctx.config)
+        moeglich = {r.slug for r in alternativen}
+        vorgemerkt = [
+            kat.rezepte[s] for s in vorgemerkt_slugs if s in moeglich and s in kat.rezepte
+        ]
+        vorgemerkt_hier_nicht = [
+            kat.rezepte[s]
+            for s in vorgemerkt_slugs
+            if s not in moeglich and s in kat.rezepte and s != aktuell.recipe_slug
+        ]
         return render_template(
             "tauschen.html.j2",
             monat=monat,
             meal=aktuell,
             rezept=kat.rezepte.get(aktuell.recipe_slug),
-            alternativen=alternativen,
+            alternativen=[r for r in alternativen if r.slug not in vorgemerkt_slugs],
+            vorgemerkt=vorgemerkt,
+            vorgemerkt_hier_nicht=vorgemerkt_hier_nicht,
+            schon_vorgemerkt=aktuell.recipe_slug in vorgemerkt_slugs,
+            partner=kat.planner.tauschpartner(plan, tag, slot),
             config=ctx.config,
         )
 
@@ -403,6 +431,8 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             plan = plan_holen(monat)
             if plan is None:
                 abort(404)
+            bisher = finde_mahlzeit(plan, tag, slot)
+            alter_slug = bisher.recipe_slug if bisher else ""
             try:
                 geaendert = gericht_tauschen(plan, tag, slot, neuer_slug, kat.planner)
             except AenderungsFehler as exc:
@@ -412,8 +442,132 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
 
         name = kat.rezepte[neuer_slug].name
         log.info("Gericht getauscht: %s %s -> %s", datum, slot, neuer_slug)
-        flash(f"{slot} am {kalender.formatiere_kurz(tag)}: jetzt {name}.", "erfolg")
+
+        # Was eingeplant wurde, ist von der Merkliste erledigt. Das bisherige
+        # Gericht kommt nur auf die Liste, wenn das ausdrücklich angekreuzt
+        # war – sonst sammelte sich dort alles an, was je getauscht wurde.
+        nachsatz = ""
+        if neuer_slug in katalog.lade_merkliste(ctx.config):
+            katalog.vergessen(ctx.config, neuer_slug)
+            nachsatz = " Von der Merkliste genommen."
+        if request.form.get("merken") == "on" and alter_slug in kat.rezepte:
+            try:
+                katalog.merken(ctx.config, alter_slug)
+            except KatalogFehler as exc:
+                nachsatz += f" {exc}"
+            else:
+                nachsatz += f" {kat.rezepte[alter_slug].name} steht jetzt auf der Merkliste."
+
+        flash(f"{slot} am {kalender.formatiere_kurz(tag)}: jetzt {name}.{nachsatz}", "erfolg")
         return redirect(url_for("monat_ansehen", monat=monat) + f"#slot-{datum}-{slot}")
+
+    @app.post("/monat/<monat>/<datum>/<slot>/verschieben")
+    def verschieben(monat: str, datum: str, slot: str):
+        """Zwei Termine die Plätze tauschen lassen.
+
+        Kein freies Verschieben: ein Slot dürfte dabei nicht leer bleiben.
+        Deshalb wechseln immer zwei Gerichte miteinander, und beide müssen
+        auf dem neuen Platz erlaubt sein.
+        """
+        csrf_pruefen()
+        try:
+            tag = date.fromisoformat(datum)
+        except ValueError:
+            abort(404)
+        zurueck = redirect(url_for("tauschen_zeigen", monat=monat, datum=datum, slot=slot))
+
+        ziel_datum_text, _, ziel_slot = (request.form.get("ziel") or "").partition("_")
+        try:
+            ziel_tag = date.fromisoformat(ziel_datum_text)
+        except ValueError:
+            flash("Kein gültiger Tag zum Tauschen ausgewählt.", "fehler")
+            return zurueck
+
+        with data.PLAN_SPERRE:
+            plan = plan_holen(monat)
+            if plan is None:
+                abort(404)
+            hier = finde_mahlzeit(plan, tag, slot)
+            dort = finde_mahlzeit(plan, ziel_tag, ziel_slot)
+            try:
+                geaendert = plaetze_tauschen(plan, tag, slot, ziel_tag, ziel_slot, kat.planner)
+            except AenderungsFehler as exc:
+                flash(str(exc), "fehler")
+                return zurueck
+            data.save_plan(geaendert, ctx.config.plans_dir)
+
+        log.info("Plätze getauscht: %s %s <-> %s %s", datum, slot, ziel_datum_text, ziel_slot)
+        flash(
+            f"Getauscht: {hier.recipe_name} ist jetzt am "
+            f"{kalender.formatiere_kurz(ziel_tag)}, {dort.recipe_name} am "
+            f"{kalender.formatiere_kurz(tag)}",
+            "erfolg",
+        )
+        return redirect(url_for("monat_ansehen", monat=monat) + f"#slot-{datum}-{slot}")
+
+    # ---------------------------------------------------------- Merkliste
+
+    @app.get("/merkliste")
+    def merkliste():
+        slugs = katalog.lade_merkliste(ctx.config)
+        return render_template(
+            "merkliste.html.j2",
+            gerichte=[kat.rezepte[s] for s in slugs if s in kat.rezepte],
+            verschwunden=[s for s in slugs if s not in kat.rezepte],
+            gestrichen=kat.gestrichen,
+            config=ctx.config,
+        )
+
+    @app.post("/merkliste/<slug>/merken")
+    def merkliste_merken(slug: str):
+        csrf_pruefen()
+        if slug not in kat.rezepte:
+            abort(404)
+        try:
+            katalog.merken(ctx.config, slug)
+        except KatalogFehler as exc:
+            flash(str(exc), "fehler")
+        else:
+            flash(
+                f"{kat.rezepte[slug].name} steht auf der Merkliste. "
+                "Du findest es beim Ändern eines Tages ganz oben.",
+                "erfolg",
+            )
+        return redirect(request.form.get("weiter") or url_for("merkliste"))
+
+    @app.post("/merkliste/<slug>/vergessen")
+    def merkliste_vergessen(slug: str):
+        csrf_pruefen()
+        katalog.vergessen(ctx.config, slug)
+        name = kat.rezepte[slug].name if slug in kat.rezepte else slug
+        flash(f"{name} ist nicht mehr vorgemerkt.", "hinweis")
+        return redirect(request.form.get("weiter") or url_for("merkliste"))
+
+    # ------------------------------------------------------- Grundeinkauf
+
+    @app.route("/grundeinkauf", methods=["GET", "POST"])
+    def grundeinkauf():
+        """Was unabhängig vom Plan sowieso mit soll."""
+        zeilen, eigen = shopping.lade_grundeinkauf(ctx.config)
+        text = chr(10).join(zeilen)
+        if request.method == "POST":
+            csrf_pruefen()
+            text = request.form.get("zeilen", "")
+            try:
+                zeilen = shopping.speichere_grundeinkauf(ctx.config, text)
+            except shopping.EinkaufFehler as exc:
+                flash(str(exc), "fehler")
+            else:
+                eigen = True
+                text = chr(10).join(zeilen)
+                flash(f"Grundeinkauf gespeichert: {len(zeilen)} Zeilen.", "erfolg")
+        return render_template(
+            "grundeinkauf.html.j2",
+            text=text,
+            gruppen=shopping.grundeinkauf_gruppen(zeilen),
+            eigen=eigen,
+            config=ctx.config,
+        )
 
     # ---------------------------------------------------------- Rezepte
 
@@ -445,6 +599,7 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             gesamt=len(kat.rezepte),
             gestrichen=kat.gestrichen,
             eigene=kat.eigene,
+            vorgemerkt=set(katalog.lade_merkliste(ctx.config)),
             abgelehnt=kat.planner.abgelehnt,
             suche=request.args.get("q") or "",
             config=ctx.config,
@@ -541,6 +696,7 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             varianten=varianten,
             ist_gestrichen=slug in kat.gestrichen,
             ist_eigenes=slug in kat.eigene,
+            ist_vorgemerkt=slug in katalog.lade_merkliste(ctx.config),
             probleme=[i.nachricht for i in kat.planner.abgelehnt.get(slug, [])],
             config=ctx.config,
         )
@@ -580,6 +736,7 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
         name = kat.rezepte[slug].name
         katalog.loesche_eigenes(ctx.config, slug)
         katalog.aufnehmen(ctx.config, slug)
+        katalog.vergessen(ctx.config, slug)
         kat.neu_laden()
         log.info("Eigenes Rezept gelöscht: %s", slug)
         flash(f"{name} wurde gelöscht.", "erfolg")

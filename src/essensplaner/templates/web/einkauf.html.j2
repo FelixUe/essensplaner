@@ -56,6 +56,40 @@
 
 {{ liste(vorrat, "Haltbares – ebenfalls auf Packungsgrößen aufgerundet. Was im Schrank steht, kannst du streichen.") }}
 
+<section class="karte">
+  <div class="kopf">
+    <h2>Immer dabei</h2>
+    <span class="spanne">
+      {% if grundeinkauf_eigen %}dein Grundeinkauf{% else %}Vorschlag{% endif %}
+    </span>
+    <a class="knopf" style="margin-left: auto;"
+       href="{{ url_for('grundeinkauf') }}">Bearbeiten</a>
+  </div>
+  {% if not grundeinkauf %}
+    <div class="zeile"><span class="gericht">Nichts hinterlegt.</span></div>
+  {% else %}
+    {% for titel, posten in grundeinkauf %}
+      <div class="zeile" style="display: block;">
+        {% if titel %}<div class="abteilung">{{ titel }}</div>{% endif %}
+        <ul class="posten">
+          {% for eintrag in posten %}
+            <li>
+              {{ eintrag }}
+              {%- if eintrag in grundeinkauf_doppelt %}
+                <span style="color: var(--ink-leise); font-size: 12px;">&middot; steht schon oben</span>
+              {%- endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  {% endif %}
+</section>
+<p class="leise" style="font-size: 12.5px; margin-top: -6px;">
+  Hängt an keinem Rezept: Milch, Brot, Kaffee. Die Liste pflegst du selbst,
+  sie steht auf jedem Wocheneinkauf.
+</p>
+
 <p>
   <a class="knopf" href="{{ url_for('monat_ansehen', monat=monat) }}">Zurück zum Monat</a>
 </p>

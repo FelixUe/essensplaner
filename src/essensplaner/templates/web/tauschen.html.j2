@@ -1,5 +1,5 @@
 {% extends "basis.html.j2" %}
-{% block titel %}{{ meal.slot }} tauschen – Essensplaner{% endblock %}
+{% block titel %}{{ meal.recipe_name }} ändern – Essensplaner{% endblock %}
 
 {% block inhalt %}
 <h1>{{ meal.datum | datum_lang }}</h1>
@@ -8,26 +8,109 @@
   geplant ist <strong>{{ meal.recipe_name }}</strong>
 </p>
 
-{% if not alternativen %}
-  <div class="karte">
+<p class="leise" style="font-size: 13px;">
+  Zwei Wege: das Gericht auf einen anderen Tag schieben – dann wechseln die
+  beiden Tage ihre Gerichte – oder hier ein anderes Gericht einsetzen.
+</p>
+
+<section class="karte">
+  <div class="kopf">
+    <h2>Auf einen anderen Tag schieben</h2>
+    <span class="spanne">{{ partner | length }} möglich</span>
+  </div>
+  {% if not partner %}
     <div class="zeile" style="display: block;">
-      <p style="margin: 0;">Für diesen Slot gibt es gerade keine Alternative.</p>
+      <p style="margin: 0;">Kein anderer Tag im Monat passt.</p>
       <p class="leise" style="font-size: 13px; margin-bottom: 0;">
-        Jedes andere Gericht scheitert an einer harten Regel: falscher Slot,
-        nicht in der Saison, diese Woche schon auf dem Tisch, zu nah am letzten
-        Mal oder über der Monatsgrenze.
+        Ein Tausch geht nur, wenn beide Gerichte am neuen Platz erlaubt sind:
+        richtiger Kochtag, genug Protein an Montag und Mittwoch, Frischware
+        nicht zu weit vom Einkauf weg, und kein Gericht zweimal in einer Woche.
       </p>
     </div>
-  </div>
-{% else %}
-  <p class="leise">
-    {{ alternativen | length }} Gerichte sind hier erlaubt. Was nicht in der Liste
-    steht, verstößt gegen eine Regel – Slot, Saison, Abstand oder Monatsgrenze.
-  </p>
+  {% else %}
+    <form method="post"
+          action="{{ url_for('verschieben', monat=monat, datum=meal.datum, slot=meal.slot) }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      {% for p in partner %}
+        <div class="zeile">
+          <div class="tag">
+            {{ config.slot_kochtag(p.slot)[:2] }} {{ p.datum | datum_kurz }}
+          </div>
+          <div class="gericht">
+            <div class="name">{{ p.recipe_name }}</div>
+            <div class="unten">
+              {% if p.tage > 1 %}
+                <span class="marke zwei">{{ p.tage }} Tage</span>
+              {% endif %}
+              {{ p.deckt_ab }} &middot; kommt dann auf {{ meal.datum | datum_kurz }}
+            </div>
+          </div>
+          <div>
+            <button class="knopf" type="submit" name="ziel"
+                    value="{{ p.datum }}_{{ p.slot }}">Plätze tauschen</button>
+          </div>
+        </div>
+      {% endfor %}
+    </form>
+  {% endif %}
+</section>
 
-  <form method="post" action="{{ url_for('tauschen', monat=monat, datum=meal.datum, slot=meal.slot) }}">
-    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <div class="karte">
+<form method="post" action="{{ url_for('tauschen', monat=monat, datum=meal.datum, slot=meal.slot) }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+  {% if schon_vorgemerkt %}
+    <p class="meldung hinweis">
+      {{ meal.recipe_name }} steht selbst auf der Merkliste.
+    </p>
+  {% else %}
+    <p class="meldung hinweis" style="display: flex; gap: 8px; align-items: baseline;">
+      <input type="checkbox" id="merken" name="merken" style="width: auto;">
+      <label for="merken">
+        {{ meal.recipe_name }} auf die Merkliste setzen, wenn ich es hier ersetze
+      </label>
+    </p>
+  {% endif %}
+
+  {% if vorgemerkt %}
+    <section class="karte">
+      <div class="kopf">
+        <h2>Von der Merkliste</h2>
+        <span class="spanne">hier erlaubt</span>
+      </div>
+      {% for r in vorgemerkt %}
+        <div class="zeile">
+          <div class="gericht">
+            <div class="name">{{ r.name }}</div>
+            <div class="unten">
+              <span class="marke zwei">vorgemerkt</span>
+              {{ r.prep_minutes }} min &middot;
+              {{ "%.0f" | format(r.protein_fuer(r.variant_fuer(meal.slot, config.protein_slots))) }} g Protein
+            </div>
+          </div>
+          <div>
+            <button class="knopf haupt" type="submit" name="rezept" value="{{ r.slug }}">Wählen</button>
+          </div>
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  <section class="karte">
+    <div class="kopf">
+      <h2>Anderes Gericht</h2>
+      <span class="spanne">{{ alternativen | length }} erlaubt</span>
+    </div>
+    {% if not alternativen %}
+      <div class="zeile" style="display: block;">
+        <p style="margin: 0;">Für diesen Tag gibt es gerade kein anderes Gericht.</p>
+        <p class="leise" style="font-size: 13px; margin-bottom: 0;">
+          Jedes andere scheitert an einer harten Regel: falscher Kochtag, nicht
+          in der Saison, diese Woche schon auf dem Tisch, zu nah am letzten Mal,
+          über der Monatsgrenze, zu wenig Protein oder Frischware, die bis dahin
+          nicht hält.
+        </p>
+      </div>
+    {% else %}
       {% for r in alternativen %}
         <div class="zeile">
           <div class="gericht">
@@ -44,14 +127,24 @@
           </div>
         </div>
       {% endfor %}
-    </div>
-  </form>
+    {% endif %}
+  </section>
+</form>
+
+{% if vorgemerkt_hier_nicht %}
+  <p class="leise" style="font-size: 12.5px;">
+    Auch vorgemerkt, hier aber nicht erlaubt:
+    {{ vorgemerkt_hier_nicht | map(attribute="name") | join(", ") }}.
+  </p>
 {% endif %}
 
-<p><a class="knopf" href="{{ url_for('monat_ansehen', monat=monat) }}">Zurück zum Monat</a></p>
+<p>
+  <a class="knopf" href="{{ url_for('monat_ansehen', monat=monat) }}">Zurück zum Monat</a>
+  <a class="knopf" href="{{ url_for('merkliste') }}">Merkliste</a>
+</p>
 {% endblock %}
 
 {% block fuss %}
-  Nach dem Tausch wird der ganze Monatsplan noch einmal geprüft. Scheitert er,
-  bleibt der alte Plan stehen.
+  Nach jeder Änderung wird der ganze Monatsplan noch einmal geprüft. Scheitert
+  er, bleibt der alte Plan stehen.
 {% endblock %}

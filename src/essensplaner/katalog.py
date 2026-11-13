@@ -14,6 +14,11 @@ Zwei Dateien neben den Plänen:
 ``gestrichen.json``
     Slugs, die nicht mehr eingeplant werden sollen.
 
+``merkliste.json``
+    Slugs, die demnächst auf den Tisch sollen. Die Merkliste plant nichts
+    von selbst – sie ist der Zettel, von dem man beim Ändern eines Slots
+    etwas herunternimmt.
+
 Gestrichen heißt **nicht gelöscht**: das Rezept bleibt ladbar. Ein Plan, der
 schon steht, nennt es weiterhin beim Namen, und sein Einkaufszettel stimmt.
 Nur der Planer nimmt es nicht mehr in die Auswahl. Für die 52 Rezepte aus dem
@@ -111,16 +116,10 @@ def lade_gestrichen(config: Config) -> set[str]:
 
 
 def speichere_gestrichen(config: Config, slugs: set[str]) -> Path:
-    pfad = gestrichen_pfad(config)
-    pfad.parent.mkdir(parents=True, exist_ok=True)
-    inhalt = {"slugs": sorted(slugs), "geaendert": date.today().isoformat()}
-    with data.PLAN_SPERRE:
-        temp = pfad.with_suffix(".tmp")
-        with temp.open("w", encoding="utf-8", newline="\n") as fh:
-            json.dump(inhalt, fh, ensure_ascii=False, indent=2)
-            fh.write("\n")
-        temp.replace(pfad)
-    return pfad
+    return data.schreibe_json(
+        gestrichen_pfad(config),
+        {"slugs": sorted(slugs), "geaendert": date.today().isoformat()},
+    )
 
 
 def streichen(config: Config, slug: str) -> set[str]:
@@ -134,6 +133,71 @@ def aufnehmen(config: Config, slug: str) -> set[str]:
     aktuell = lade_gestrichen(config)
     aktuell.discard(slug)
     speichere_gestrichen(config, aktuell)
+    return aktuell
+
+
+# -------------------------------------------------------------- Merkliste
+
+#: Mehr als das ist keine Merkliste mehr, sondern ein zweiter Katalog.
+MERKLISTE_MAX = 50
+
+
+def merkliste_pfad(config: Config) -> Path:
+    return config.plans_dir / "merkliste.json"
+
+
+def lade_merkliste(config: Config) -> list[str]:
+    """Vorgemerkte Gerichte, in der Reihenfolge, in der sie notiert wurden."""
+    pfad = merkliste_pfad(config)
+    if not pfad.is_file():
+        return []
+    try:
+        with pfad.open(encoding="utf-8") as fh:
+            roh = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        log.warning("merkliste.json nicht lesbar (%s) – die Merkliste bleibt leer", exc)
+        return []
+    if isinstance(roh, dict):
+        roh = roh.get("slugs", [])
+    if not isinstance(roh, list):
+        return []
+    # Reihenfolge erhalten, Doppelte entfernen.
+    eintraege: list[str] = []
+    for eintrag in roh:
+        if isinstance(eintrag, str) and eintrag not in eintraege:
+            eintraege.append(eintrag)
+    return eintraege
+
+
+def speichere_merkliste(config: Config, slugs: list[str]) -> Path:
+    return data.schreibe_json(
+        merkliste_pfad(config),
+        {"slugs": slugs, "geaendert": date.today().isoformat()},
+    )
+
+
+def merken(config: Config, slug: str) -> list[str]:
+    """Ein Gericht vormerken. Zweimal merken ändert nichts."""
+    aktuell = lade_merkliste(config)
+    if slug in aktuell:
+        return aktuell
+    if len(aktuell) >= MERKLISTE_MAX:
+        raise KatalogFehler(
+            f"Auf der Merkliste stehen schon {MERKLISTE_MAX} Gerichte. "
+            "Erst eines einplanen oder wieder herunternehmen."
+        )
+    aktuell.append(slug)
+    speichere_merkliste(config, aktuell)
+    return aktuell
+
+
+def vergessen(config: Config, slug: str) -> list[str]:
+    """Ein Gericht von der Merkliste nehmen."""
+    aktuell = lade_merkliste(config)
+    if slug not in aktuell:
+        return aktuell
+    aktuell = [s for s in aktuell if s != slug]
+    speichere_merkliste(config, aktuell)
     return aktuell
 
 

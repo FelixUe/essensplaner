@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import random
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -124,6 +125,26 @@ class Planner:
         return rezept.hat_tag("fisch") or any(
             "fischstaebchen" in z.item for z in rezept.ingredients
         )
+
+    def _slot_passt(self, rezept: Recipe, slot: str, variante: str | None) -> bool:
+        """Protein und Haltbarkeit am konkreten Slot prüfen.
+
+        Doppelte Sicherung neben der Rezeptfreigabe, denn beides hängt nicht
+        am Rezept allein, sondern am Platz: dasselbe Gericht kann samstags in
+        Ordnung sein und montags nicht – weil dort 30 g Protein Pflicht sind
+        oder weil der Blattsalat bis Mittwoch nicht mehr frisch ist.
+        """
+        if slot in self.config.protein_slots:
+            if rezept.protein_fuer(variante) < self.config.protein_min_g:
+                return False
+        if slot not in self.config.frischware_slots:
+            if any(
+                (z := self.zutaten.get(zeile.item)) is not None and z.empfindlich
+                for zeile in rezept.zutaten_fuer(variante)
+                if not zeile.optional
+            ):
+                return False
+        return True
 
     def _regeln_erlauben(
         self,
@@ -307,19 +328,8 @@ class Planner:
             if not self._regeln_erlauben(rezept, slot, datum, zustand, wochen_slugs):
                 continue
             variante = rezept.variant_fuer(slot, self.config.protein_slots)
-
-            # Doppelte Sicherung: Protein und Haltbarkeit noch einmal am
-            # konkreten Slot prüfen, nicht nur an der Rezeptfreigabe.
-            if slot in self.config.protein_slots:
-                if rezept.protein_fuer(variante) < self.config.protein_min_g:
-                    continue
-            if slot not in self.config.frischware_slots:
-                if any(
-                    (z := self.zutaten.get(zeile.item)) is not None and z.empfindlich
-                    for zeile in rezept.zutaten_fuer(variante)
-                    if not zeile.optional
-                ):
-                    continue
+            if not self._slot_passt(rezept, slot, variante):
+                continue
 
             gewicht = self._gewicht(rezept, zustand, wochen_zutaten, wochen_grundzutaten, variante)
             kandidaten.append((rezept, variante, gewicht))
@@ -402,17 +412,34 @@ class Planner:
 
     # ------------------------------------------ Plan nachträglich ändern
 
-    def _zustand_aus_plan(self, plan: MonthPlan, ohne: PlannedMeal | None = None) -> _Zustand:
+    @staticmethod
+    def _gleicher_platz(a: PlannedMeal, b: PlannedMeal) -> bool:
+        """Ob zwei Mahlzeiten denselben Platz im Monat meinen."""
+        return a.slot == b.slot and a.datum == b.datum
+
+    def _zustand_aus_plan(
+        self,
+        plan: MonthPlan,
+        ohne: PlannedMeal | Iterable[PlannedMeal] | None = None,
+    ) -> _Zustand:
         """Den Planungszustand aus einem fertigen Plan nachbilden.
 
-        Gebraucht wird das beim Tauschen eines einzelnen Gerichts: dann soll
-        der Zustand der des Monats sein, als stünde der betroffene Slot noch
-        leer. Die Gefriertruhe bleibt aus – ein von Hand gewähltes Gericht
+        Gebraucht wird das beim Ändern eines fertigen Plans: dann soll der
+        Zustand der des Monats sein, als stünden die betroffenen Slots noch
+        leer. Beim Verschieben sind das zwei – sonst blockierten sich die
+        beiden Gerichte über Monatsgrenze und Mindestabstand gegenseitig. Die Gefriertruhe bleibt aus – ein von Hand gewähltes Gericht
         wird gekocht, nicht aufgetaut.
         """
+        if ohne is None:
+            ausgenommen: tuple[PlannedMeal, ...] = ()
+        elif isinstance(ohne, PlannedMeal):
+            ausgenommen = (ohne,)
+        else:
+            ausgenommen = tuple(ohne)
+
         zustand = _Zustand()
         for meal in plan.alle_meals:
-            if ohne is not None and meal.slot == ohne.slot and meal.datum == ohne.datum:
+            if any(self._gleicher_platz(meal, frei) for frei in ausgenommen):
                 continue
             rezept = self.rezepte.get(meal.recipe_slug)
             zustand.monatszaehler[meal.recipe_slug] += 1
@@ -448,8 +475,68 @@ class Planner:
             for rezept in self.rezepte.values()
             if (aktuell is None or rezept.slug != aktuell.recipe_slug)
             and self._regeln_erlauben(rezept, slot, datum, zustand, wochen_slugs)
+            and self._slot_passt(rezept, slot, rezept.variant_fuer(slot, self.config.protein_slots))
         ]
         return sorted(treffer, key=lambda r: r.name.lower())
+
+    def mahlzeit_am(self, plan: MonthPlan, datum: date, slot: str) -> PlannedMeal | None:
+        """Die Mahlzeit, die an diesem Platz im Plan steht."""
+        woche = plan.woche_fuer(datum)
+        if woche is None:
+            return None
+        meal = woche.meal(slot)
+        return meal if meal is not None and meal.datum == datum else None
+
+    def tausch_moeglich(self, plan: MonthPlan, a: PlannedMeal, b: PlannedMeal) -> bool:
+        """Ob zwei Termine die Plätze tauschen könnten.
+
+        Geprüft wird in beide Richtungen und mit beiden Plätzen als leer
+        gedacht: jedes der Gerichte muss dort stehen dürfen, wo das andere
+        steht. Würde nur eine Richtung geprüft, käme ein Gericht auf einen
+        Montag, für den es zu wenig Protein hat.
+        """
+        rezept_a = self.rezepte.get(a.recipe_slug)
+        rezept_b = self.rezepte.get(b.recipe_slug)
+        if rezept_a is None or rezept_b is None:
+            return False
+        if self._gleicher_platz(a, b) or rezept_a.slug == rezept_b.slug:
+            return False
+        # Gefriertruhe: der Platz hängt an einer anderen Woche, in der doppelt
+        # gekocht wurde. Verschieben würde diese Kopplung zerreißen.
+        if any(m.aus_gefriertruhe or m.batch_cook for m in (a, b)):
+            return False
+
+        zustand = self._zustand_aus_plan(plan, ohne=(a, b))
+        for ziel, rezept in ((a, rezept_b), (b, rezept_a)):
+            woche = plan.woche_fuer(ziel.datum)
+            if woche is None:  # pragma: no cover - Mahlzeiten stammen aus dem Plan
+                return False
+            wochen_slugs = {
+                m.recipe_slug
+                for m in woche.meals
+                if not self._gleicher_platz(m, a) and not self._gleicher_platz(m, b)
+            }
+            if not self._regeln_erlauben(rezept, ziel.slot, ziel.datum, zustand, wochen_slugs):
+                return False
+            variante = rezept.variant_fuer(ziel.slot, self.config.protein_slots)
+            if not self._slot_passt(rezept, ziel.slot, variante):
+                return False
+        return True
+
+    def tauschpartner(self, plan: MonthPlan, datum: date, slot: str) -> list[PlannedMeal]:
+        """Mit welchen anderen Terminen dieses Gericht die Plätze tauschen kann.
+
+        Der Planer würfelt einen Monat, in dem alles passt; was er nicht
+        weiß, ist, dass am Samstag Besuch kommt. Dann soll sich das Gericht
+        auf einen anderen Tag schieben lassen, statt gegen ein ganz anderes
+        ausgetauscht zu werden. Zurück kommen nur Termine, bei denen der
+        Tausch in beide Richtungen regelkonform wäre.
+        """
+        quelle = self.mahlzeit_am(plan, datum, slot)
+        if quelle is None:
+            return []
+        partner = [m for m in plan.alle_meals if self.tausch_moeglich(plan, quelle, m)]
+        return sorted(partner, key=lambda m: (m.datum, m.slot))
 
     def mahlzeit_bauen(self, rezept: Recipe, slot: str, datum: date) -> PlannedMeal:
         """Eine Mahlzeit für einen Slot zusammensetzen, ohne zu würfeln."""

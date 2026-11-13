@@ -82,14 +82,31 @@ ohne Zoom lesbar.
 
 Der Planer würfelt einen regelkonformen Monat. Was er nicht wissen kann: dass
 am Samstag Besuch kommt. Dafür gibt es eine kleine Oberfläche im Container –
-Monatsübersicht, und je Tag ein Knopf *Tauschen*.
+Monatsübersicht, und je Tag ein Knopf *Ändern*. Dahinter liegen zwei Wege:
 
-Angeboten werden dort nur Gerichte, die in diesem Slot erlaubt sind: richtiger
-Slot, in der Saison, diese Woche noch nicht auf dem Tisch, Mindestabstand
-eingehalten, Monatsgrenze nicht erreicht. Nach dem Tausch läuft die
-vollständige Planprüfung noch einmal; scheitert sie, bleibt der alte Plan
-stehen. Ein von Hand geänderter Plan ist damit genauso regelkonform wie ein
-gewürfelter.
+- **Auf einen anderen Tag schieben.** Zwei geplante Gerichte tauschen die
+  Plätze. Kein freies Verschieben – ein Kochtag soll nicht leer bleiben.
+  Beide Gerichte müssen auf dem neuen Platz erlaubt sein, und Portionen,
+  Variante und Tagesabdeckung richten sich danach neu: vom Samstag auf den
+  Montag heißt vier Portionen und zwei Esstage.
+- **Ein anderes Gericht einsetzen.** Angeboten wird nur, was in diesem Slot
+  erlaubt ist.
+
+Erlaubt heißt in beiden Fällen dasselbe: richtiger Slot, in der Saison, diese
+Woche noch nicht auf dem Tisch, Mindestabstand eingehalten, Monatsgrenze nicht
+erreicht, genug Protein an den Vorkochtagen und keine Frischware, die bis
+dahin nicht hält. Nach jeder Änderung läuft die vollständige Planprüfung noch
+einmal; scheitert sie, bleibt der alte Plan stehen. Ein von Hand geänderter
+Plan ist damit genauso regelkonform wie ein gewürfelter.
+
+### Merkliste
+
+Gerichte, die demnächst auf den Tisch sollen, kommen auf die **Merkliste** –
+ein Knopf auf jeder Rezeptseite. Sie plant nichts von selbst: beim Ändern
+eines Tages stehen die vorgemerkten Gerichte oben in der Auswahl, sofern sie
+dort erlaubt sind. Wird eines eingeplant, nimmt es die Liste selbst herunter.
+Umgekehrt kann das herausgenommene Gericht per Häkchen gleich auf die
+Merkliste wandern – so tauscht man eines gegen das andere.
 
 Je Woche gibt es dort auch den **Einkaufszettel**: Frischware für den
 Einkaufstag und die haltbaren Zutaten dieser Woche. Beide Listen nennen
@@ -98,6 +115,14 @@ kaufbare Mengen – 20 g Ingwer bekommt man nirgends, also steht dort die
 verschiedene Einheiten sprechen (drei Möhren, ein Kilobeutel), rechnet das
 hinterlegte Stückgewicht um. Der Zettel wird bei jedem Aufruf neu gerechnet,
 stimmt nach einem Tausch also sofort.
+
+Darunter steht der **Grundeinkauf**: Milch, Brot, Kaffee – was an keinem
+Rezept hängt und trotzdem jede Woche mit soll. Diese Liste wird nicht
+gerechnet, sondern von Hand gepflegt (ein Posten je Zeile, eine Zeile mit
+Doppelpunkt am Ende wird eine Überschrift). Beim ersten Mal steht dort ein
+Vorschlag, bis er gespeichert und damit ersetzt wird. Posten, die oben schon
+ausgerechnet stehen, bekommen einen Hinweis – gestrichen wird nichts, denn die
+Rezeptmenge deckt selten den Hausgebrauch.
 
 **Mailversand ist optional.** Bleibt `SMTP_HOST` leer, erzeugt der Scheduler
 weiterhin die Monatspläne und verschickt nur nichts – alles steht in der
@@ -124,7 +149,8 @@ ausgeschlossene Zutaten, Protein in MO/MI, Haltbarkeit. Was durchfällt, wird
 gar nicht erst gespeichert.
 
 Beides landet im Volume neben den Plänen (`rezepte/*.yaml` und
-`gestrichen.json`) und überlebt damit jeden Rollout. Die 52 Rezepte aus dem
+`gestrichen.json`, dazu `merkliste.json` und `grundeinkauf.json`) und
+überlebt damit jeden Rollout. Die 52 Rezepte aus dem
 Repo liegen schreibgeschützt im Image – für sie ist Streichen der einzige
 Weg, und Änderungen an ihnen gehören weiter in git.
 
@@ -304,7 +330,8 @@ src/essensplaner/
   scheduler.py           eingebauter Scheduler
   cli.py                 Kommandozeile
   web.py                 Weboberfläche (Flask, nur mit Passwort)
-  templates/web/         Vorlagen der Oberfläche (Monat, Einkauf, Tausch)
+  templates/web/         Vorlagen der Oberfläche (Monat, Einkauf, Ändern,
+                         Rezepte, Merkliste, Grundeinkauf)
 tools/protein_sync.py    Proteinangaben mit der Nachrechnung abgleichen
 tools/uebersicht.py      alle Rezepte als JSON und als Seite zum Durchsehen
 tests/                   die sechs Akzeptanzkriterien und alles darum

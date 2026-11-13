@@ -6,6 +6,7 @@
 <p class="leise">
   {% if ist_gestrichen %}<span class="marke warnung">gestrichen</span>{% endif %}
   {% if ist_eigenes %}<span class="marke">eigenes Rezept</span>{% endif %}
+  {% if ist_vorgemerkt %}<span class="marke zwei">vorgemerkt</span>{% endif %}
   {% if rezept.core %}<span class="marke">Kernrezept</span>{% endif %}
   {{ rezept.prep_minutes }} min &middot;
   Grundmenge {{ rezept.base_servings }} Erwachsenenportionen &middot;
@@ -64,6 +65,33 @@
     </div>
   </section>
 {% endfor %}
+
+<section class="karte">
+  <div class="kopf"><h2>Merkliste</h2></div>
+  <div class="zeile" style="display: block;">
+    {% if ist_vorgemerkt %}
+      <p style="margin-top: 0;">
+        Steht auf der Merkliste. Wenn du einen Tag änderst, findest du es dort
+        ganz oben – sofern es an dem Tag erlaubt ist.
+      </p>
+      <form method="post" action="{{ url_for('merkliste_vergessen', slug=rezept.slug) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="weiter" value="{{ url_for('rezept_ansehen', slug=rezept.slug) }}">
+        <button class="knopf" type="submit">Von der Merkliste nehmen</button>
+      </form>
+    {% else %}
+      <p style="margin-top: 0;">
+        Vormerken ändert noch nichts am Plan. Es legt das Gericht nur auf den
+        Zettel, von dem du beim Ändern eines Tages wählst.
+      </p>
+      <form method="post" action="{{ url_for('merkliste_merken', slug=rezept.slug) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="weiter" value="{{ url_for('rezept_ansehen', slug=rezept.slug) }}">
+        <button class="knopf haupt" type="submit">Vormerken</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
 
 <section class="karte">
   <div class="kopf"><h2>Katalog</h2></div>

@@ -32,6 +32,7 @@
             {% elif r.slug in abgelehnt %}
               <span class="marke warnung">Regelverstoß</span>
             {% endif %}
+            {% if r.slug in vorgemerkt %}<span class="marke zwei">vorgemerkt</span>{% endif %}
             {% if r.slug in eigene %}<span class="marke">eigenes</span>{% endif %}
             {% if r.core %}<span class="marke">Kern</span>{% endif %}
             {{ r.slots | join(", ") if r.slots else "ohne Slot" }} &middot;

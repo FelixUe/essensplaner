@@ -240,3 +240,59 @@ def test_dump_und_parse_sind_umkehrbar(zutaten):
     assert [(z.item, z.qty, z.unit) for z in wieder.ingredients] == [
         (z.item, z.qty, z.unit) for z in rezept.ingredients
     ]
+
+
+# ------------------------------------------------------------ Merkliste
+
+
+def test_merken_bleibt_in_der_reihenfolge(volume, config):
+    katalog.merken(config, "pizza")
+    katalog.merken(config, "wraps")
+    katalog.merken(config, "kuerbissuppe")
+    assert katalog.lade_merkliste(config) == ["pizza", "wraps", "kuerbissuppe"]
+
+
+def test_zweimal_merken_aendert_nichts(volume, config):
+    katalog.merken(config, "pizza")
+    katalog.merken(config, "pizza")
+    assert katalog.lade_merkliste(config) == ["pizza"]
+
+
+def test_vergessen_nimmt_nur_das_eine_herunter(volume, config):
+    katalog.merken(config, "pizza")
+    katalog.merken(config, "wraps")
+    katalog.vergessen(config, "pizza")
+    assert katalog.lade_merkliste(config) == ["wraps"]
+    # Etwas herunterzunehmen, was nicht draufsteht, ist kein Fehler.
+    assert katalog.vergessen(config, "pizza") == ["wraps"]
+
+
+def test_merkliste_hat_eine_obergrenze(volume, config):
+    for nummer in range(katalog.MERKLISTE_MAX):
+        katalog.merken(config, f"gericht-{nummer}")
+    with pytest.raises(KatalogFehler, match="Merkliste"):
+        katalog.merken(config, "eines-zu-viel")
+
+
+def test_kaputte_merkliste_merkt_sich_nichts(volume, config):
+    """Lieber eine leere Merkliste als eine Oberfläche, die nicht startet."""
+    katalog.merkliste_pfad(config).write_text("kein json", encoding="utf-8")
+    assert katalog.lade_merkliste(config) == []
+
+
+def test_merkliste_ueberlebt_das_neu_laden(volume, config):
+    katalog.merken(config, "pizza")
+    assert katalog.merkliste_pfad(config).is_file()
+    assert katalog.lade_merkliste(config) == ["pizza"]
+
+
+def test_merkliste_aendert_den_plan_nicht(volume, config):
+    """Die Merkliste ist ein Zettel, keine Vorgabe für den Planer.
+
+    Anders als die Streichliste darf sie nichts bewirken: was vorgemerkt ist,
+    wählt ein Mensch beim Ändern eines Tages aus, nicht der Planer von selbst.
+    """
+    ohne = Kontext.laden(config, streng=False).planner().plan_monat("2027-04", seed=3)
+    katalog.merken(config, "pizza")
+    mit = Kontext.laden(config, streng=False).planner().plan_monat("2027-04", seed=3)
+    assert [m.recipe_slug for m in mit.alle_meals] == [m.recipe_slug for m in ohne.alle_meals]

@@ -241,6 +241,31 @@ def save_plan(plan: MonthPlan, plans_dir: Path) -> Path:
     return pfad
 
 
+def schreibe_json(pfad: Path, inhalt: object) -> Path:
+    """Eine kleine JSON-Datei im Volume ersetzen, ohne Zwischenzustand.
+
+    Dieselbe Vorsicht wie bei :func:`save_plan`: erst vollstaendig daneben
+    schreiben, dann umbenennen. Sonst steht nach einem Abbruch halbes JSON
+    in der Datei und die Anwendung liest es beim naechsten Start nicht mehr.
+    """
+    pfad.parent.mkdir(parents=True, exist_ok=True)
+    with PLAN_SPERRE:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=pfad.parent,
+            prefix=f".{pfad.stem}-",
+            suffix=".tmp",
+            delete=False,
+            newline=chr(10),
+        ) as fh:
+            json.dump(inhalt, fh, ensure_ascii=False, indent=2)
+            fh.write(chr(10))
+            temp = Path(fh.name)
+        os.replace(temp, pfad)
+    return pfad
+
+
 def load_plan(plans_dir: Path, monat: str) -> MonthPlan:
     pfad = plan_pfad(plans_dir, monat)
     if not pfad.is_file():

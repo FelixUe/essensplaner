@@ -1,13 +1,19 @@
-"""Einkaufslisten: Frischeliste je Woche, Vorratsliste je Monat.
+"""Einkaufslisten: Frischeliste je Woche, Vorratsliste je Monat, Grundeinkauf.
 
 Mengen werden aus den Rezepten auf die tatsächlich zu kochenden Portionen
 hochgerechnet (``portionen / base_servings``), je Zutat und Einheit addiert
 und erst zum Schluss auf eine kaufbare Menge gerundet. Die Vorratsliste
 rundet zusätzlich auf ganze Packungen auf.
+
+Daneben steht der Grundeinkauf: Milch, Brot, Kaffee – was nicht an einem
+Rezept hängt und trotzdem jede Woche mit in den Wagen soll. Er wird nicht
+gerechnet, sondern von Hand gepflegt und liegt deshalb im Volume.
 """
 
 from __future__ import annotations
 
+import json
+import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date
@@ -15,9 +21,11 @@ from pathlib import Path
 
 import yaml
 
-from . import units
+from . import data, units
 from .config import Config
 from .models import Ingredient, MonthPlan, PlannedMeal, Recipe, WeekPlan
+
+log = logging.getLogger(__name__)
 
 #: Reihenfolge der Abteilungen – ungefähr der Weg durch den Laden.
 ABTEILUNG_REIHENFOLGE = (
@@ -349,3 +357,145 @@ def wochen_pantry_liste(
         bis=woche.ende,
         items=_zu_items(posten, zutaten, mit_packungen=True),
     )
+
+
+# ---------------------------------------------------------- Grundeinkauf
+
+#: Lieber zu eng als zu weit: die Liste soll ein Zettel bleiben, den man im
+#: Laden überblickt, und keine zweite Datenbank.
+GRUNDEINKAUF_MAX_ZEILEN = 80
+GRUNDEINKAUF_MAX_LAENGE = 80
+
+#: Vorschlag für den Anfang. Er steht nur da, solange nichts Eigenes
+#: gespeichert ist – die erste Speicherung ersetzt ihn vollständig.
+STANDARD_GRUNDEINKAUF: tuple[str, ...] = (
+    "Kühlregal:",
+    "Milch",
+    "Butter",
+    "Eier",
+    "Joghurt",
+    "Käse fürs Brot",
+    "Aufschnitt",
+    "Backwaren:",
+    "Brot",
+    "Brötchen fürs Wochenende",
+    "Obst & Gemüse:",
+    "Obst für die Brotdosen",
+    "Bananen",
+    "Äpfel",
+    "Trockenware:",
+    "Kaffee",
+    "Müsli",
+    "Nudeln als Vorrat",
+    "Reis als Vorrat",
+)
+
+
+class EinkaufFehler(Exception):
+    """Eine Änderung am Grundeinkauf wurde nicht übernommen."""
+
+
+def grundeinkauf_pfad(config: Config) -> Path:
+    return config.plans_dir / "grundeinkauf.json"
+
+
+def lade_grundeinkauf(config: Config) -> tuple[list[str], bool]:
+    """Die Zeilen des Grundeinkaufs und ob sie selbst gepflegt sind.
+
+    Ohne eigene Liste kommt der Vorschlag zurück. Das zweite Feld sagt, was
+    von beidem es ist – die Oberfläche soll einen Vorschlag als solchen
+    kennzeichnen und nicht so tun, als hätte ihn jemand aufgeschrieben.
+    """
+    pfad = grundeinkauf_pfad(config)
+    if not pfad.is_file():
+        return list(STANDARD_GRUNDEINKAUF), False
+    try:
+        with pfad.open(encoding="utf-8") as fh:
+            roh = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        log.warning("grundeinkauf.json nicht lesbar (%s) – es gilt der Vorschlag", exc)
+        return list(STANDARD_GRUNDEINKAUF), False
+    if isinstance(roh, dict):
+        roh = roh.get("zeilen", [])
+    if not isinstance(roh, list):
+        return list(STANDARD_GRUNDEINKAUF), False
+    return [str(z) for z in roh if isinstance(z, str)], True
+
+
+def pruefe_grundeinkauf(text: str) -> list[str]:
+    """Aus dem Textfeld die Zeilen machen – oder sagen, was nicht geht."""
+    zeilen = [z.strip() for z in text.splitlines()]
+    zeilen = [z for z in zeilen if z]
+    if len(zeilen) > GRUNDEINKAUF_MAX_ZEILEN:
+        raise EinkaufFehler(
+            f"{len(zeilen)} Zeilen sind zu viele, mehr als {GRUNDEINKAUF_MAX_ZEILEN} "
+            "nimmt die Liste nicht."
+        )
+    zu_lang = [z for z in zeilen if len(z) > GRUNDEINKAUF_MAX_LAENGE]
+    if zu_lang:
+        raise EinkaufFehler(
+            f"Diese Zeile ist zu lang (mehr als {GRUNDEINKAUF_MAX_LAENGE} Zeichen): "
+            f"{zu_lang[0][:60]}…"
+        )
+    return zeilen
+
+
+def speichere_grundeinkauf(config: Config, text: str) -> list[str]:
+    """Den Grundeinkauf ersetzen. Ein leeres Feld löscht die Liste."""
+    zeilen = pruefe_grundeinkauf(text)
+    data.schreibe_json(
+        grundeinkauf_pfad(config),
+        {"zeilen": zeilen, "geaendert": date.today().isoformat()},
+    )
+    return zeilen
+
+
+def grundeinkauf_gruppen(zeilen: list[str]) -> list[tuple[str, list[str]]]:
+    """Die Zeilen nach Überschriften gruppieren.
+
+    Eine Zeile mit Doppelpunkt am Ende ist eine Überschrift ("Kühlregal:"),
+    alles darunter gehört dazu. Das ist die einfachste Gliederung, die man
+    in einem Textfeld hinschreiben kann, ohne sie zu lernen.
+    """
+    gruppen: list[tuple[str, list[str]]] = []
+    aktuell: list[str] = []
+    titel = ""
+    for zeile in zeilen:
+        if zeile.endswith(":") and len(zeile) > 1:
+            if aktuell or titel:
+                gruppen.append((titel, aktuell))
+            titel = zeile[:-1].strip()
+            aktuell = []
+        else:
+            aktuell.append(zeile)
+    if aktuell or titel:
+        gruppen.append((titel, aktuell))
+    return gruppen
+
+
+def _erstes_wort(text: str) -> str:
+    teile = text.split()
+    return teile[0].casefold() if teile else ""
+
+
+def grundeinkauf_doppelt(zeilen: list[str], *listen: ShoppingList) -> set[str]:
+    """Zeilen des Grundeinkaufs, die schon auf einer gerechneten Liste stehen.
+
+    Sonst steht Milch zweimal auf demselben Zettel: einmal für ein Rezept
+    ausgerechnet, einmal als Grundeinkauf. Der Hinweis sagt das nur – er
+    streicht nichts, denn die Rezeptmenge deckt selten den Hausgebrauch.
+
+    Verglichen wird streng: die ganze Zeile gegen den Zutatennamen oder
+    dessen erstes Wort. Eine lockerere Suche hält sonst "Milch" für einen
+    Treffer in "Kokosmilch".
+    """
+    namen = {i.name.casefold() for sl in listen for i in sl.items}
+    ersten = {_erstes_wort(i.name) for sl in listen for i in sl.items}
+    treffer: set[str] = set()
+    for zeile in zeilen:
+        if zeile.endswith(":"):
+            continue
+        schluessel = zeile.strip().casefold()
+        if schluessel in namen or schluessel in ersten:
+            treffer.add(zeile)
+    return treffer
