@@ -24,16 +24,17 @@ services:
       # Zeitzone bestimmt, wann "Freitag 07:00" ist.
       TZ: ${TZ:-Europe/Berlin}
 
-      # Mailversand. Gehört in Coolify unter Environment Variables,
-      # die Passwörter dort als Secret markieren.
-      SMTP_HOST: ${SMTP_HOST:?SMTP_HOST muss gesetzt sein}
+      # Mailversand ist optional. Bleibt SMTP_HOST leer, erzeugt der
+      # Scheduler weiterhin Pläne und verschickt nur nichts – die Übersicht
+      # steht dann in der Weboberfläche. Passwörter in Coolify als Secret.
+      SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       SMTP_SSL: ${SMTP_SSL:-false}
-      MAIL_FROM: ${MAIL_FROM:?MAIL_FROM muss gesetzt sein}
-      MAIL_TO: ${MAIL_TO:?MAIL_TO muss gesetzt sein}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_TO: ${MAIL_TO:-}
 
       # Weboberfläche: Monatsplan ansehen und Gerichte tauschen.
       # Ohne Passwort startet sie nicht – eine offene Seite, auf der Fremde

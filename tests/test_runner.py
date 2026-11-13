@@ -165,7 +165,19 @@ def test_kontext_laden_meldet_kaputte_stammdaten(tmp_path, config):
 
 @pytest.fixture
 def sched(tmp_config):
+    """Scheduler ohne Mailserver - der Normalfall seit dem Betrieb ohne SMTP."""
     return Scheduler(tmp_config)
+
+
+@pytest.fixture
+def sched_mit_mail(tmp_config):
+    """Scheduler mit konfiguriertem Mailserver, fuer die Versandpfade."""
+    import dataclasses
+
+    cfg = dataclasses.replace(
+        tmp_config, smtp=dataclasses.replace(tmp_config.smtp, host="smtp.example.com")
+    )
+    return Scheduler(cfg)
 
 
 def _freitag_morgen(tag: date, stunde: int = 7, minute: int = 5) -> datetime:
@@ -227,7 +239,7 @@ def test_monatsplan_laeuft_nach_der_wochenmail(sched):
     assert sched.monatsplan_faellig(gleich_nach_sieben, {}) is None
 
 
-def test_tick_fuehrt_faellige_aufgaben_aus_und_merkt_sie_sich(sched, monkeypatch):
+def test_tick_fuehrt_faellige_aufgaben_aus_und_merkt_sie_sich(sched_mit_mail, monkeypatch):
     """Die Mail darf nach einem Neustart nicht ein zweites Mal rausgehen."""
     gesendet: list[str] = []
 
@@ -238,25 +250,25 @@ def test_tick_fuehrt_faellige_aufgaben_aus_und_merkt_sie_sich(sched, monkeypatch
 
     freitag = date(2026, 12, 4)
     jetzt = _freitag_morgen(freitag)
-    erledigt = sched.tick(jetzt)
+    erledigt = sched_mit_mail.tick(jetzt)
     assert erledigt, "die Wochenmail müsste gelaufen sein"
     assert gesendet
 
     vorher = len(gesendet)
-    sched.tick(jetzt)
+    sched_mit_mail.tick(jetzt)
     assert len(gesendet) == vorher, "zweiter Tick hat erneut verschickt"
 
 
-def test_tick_laeuft_weiter_wenn_eine_aufgabe_scheitert(sched, monkeypatch):
+def test_tick_laeuft_weiter_wenn_eine_aufgabe_scheitert(sched_mit_mail, monkeypatch):
     """Ein Fehler beim Versand darf den Scheduler nicht beenden."""
 
     def kaputt(nachricht, config):
         raise RuntimeError("SMTP down")
 
     monkeypatch.setattr("essensplaner.mail.sende", kaputt)
-    erledigt = sched.tick(_freitag_morgen(date(2026, 12, 4)))
+    erledigt = sched_mit_mail.tick(_freitag_morgen(date(2026, 12, 4)))
     assert erledigt == []
-    assert runner.lade_state(sched.config).get("send-weekly") is None
+    assert runner.lade_state(sched_mit_mail.config).get("send-weekly") is None
 
 
 def test_unbekannte_zeitzone_faellt_auf_utc_zurueck(config):
@@ -277,3 +289,56 @@ def test_unlesbare_uhrzeit_faellt_auf_sieben_zurueck(config):
     cfg.raw.setdefault("mail", {})["wochenmail_uhrzeit"] = "morgens"
     s = Scheduler(cfg)
     assert (s.stunde, s.minute) == (7, 0)
+
+
+# ------------------------------------------------------- Betrieb ohne SMTP
+
+
+def _spion(aufrufe: list, rueckgabe):
+    def _f(*args, **kwargs):
+        aufrufe.append(kwargs)
+        return rueckgabe
+
+    return _f
+
+
+def test_ohne_smtp_wird_geplant_aber_nicht_verschickt(sched, monkeypatch):
+    """Ohne Mailserver soll der Scheduler trotzdem Pläne erzeugen.
+
+    Die Oberfläche zeigt den Plan; ein Versandversuch ohne SMTP wäre nur
+    eine Fehlermeldung alle Freitage.
+    """
+    assert not sched.config.smtp.konfiguriert
+    aufrufe: list = []
+    monkeypatch.setattr(
+        "essensplaner.scheduler.send_weekly",
+        _spion(aufrufe, runner.LaufErgebnis(aktion="send-weekly")),
+    )
+    monkeypatch.setattr(
+        "essensplaner.scheduler.generate_month",
+        _spion(aufrufe, runner.LaufErgebnis(aktion="generate-month")),
+    )
+
+    sched.tick(_freitag_morgen(date(2026, 12, 4)))
+
+    assert aufrufe, "Der Scheduler hat gar nichts ausgeführt"
+    for kwargs in aufrufe:
+        assert kwargs.get("mail_senden") is False
+
+
+def test_mit_smtp_wird_verschickt(sched_mit_mail, monkeypatch):
+    aufrufe: list = []
+    monkeypatch.setattr(
+        "essensplaner.scheduler.send_weekly",
+        _spion(aufrufe, runner.LaufErgebnis(aktion="send-weekly")),
+    )
+    monkeypatch.setattr(
+        "essensplaner.scheduler.generate_month",
+        _spion(aufrufe, runner.LaufErgebnis(aktion="generate-month")),
+    )
+
+    sched_mit_mail.tick(_freitag_morgen(date(2026, 12, 4)))
+
+    assert aufrufe
+    for kwargs in aufrufe:
+        assert kwargs.get("mail_senden") is True

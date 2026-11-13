@@ -91,8 +91,15 @@ vollständige Planprüfung noch einmal; scheitert sie, bleibt der alte Plan
 stehen. Ein von Hand geänderter Plan ist damit genauso regelkonform wie ein
 gewürfelter.
 
-Die Änderung wirkt sofort auf Einkaufsliste und Mails – beide lesen dieselbe
-Datei im Volume.
+Je Woche gibt es dort auch den **Einkaufszettel**: Frischware für den
+Einkaufstag und die haltbaren Zutaten dieser Woche, auf Packungsgrößen
+aufgerundet. Er wird bei jedem Aufruf neu gerechnet, stimmt nach einem Tausch
+also sofort.
+
+**Mailversand ist optional.** Bleibt `SMTP_HOST` leer, erzeugt der Scheduler
+weiterhin die Monatspläne und verschickt nur nichts – alles steht in der
+Oberfläche. Wer die Mails will, trägt die SMTP-Werte nach; dann laufen beide
+Wege nebeneinander.
 
 Die Oberfläche startet nur, wenn `ESSENSPLANER_WEB_PASSWORT` gesetzt ist.
 Ohne Passwort läuft allein der Scheduler. Das ist Absicht: hinter einer
@@ -269,7 +276,7 @@ src/essensplaner/
   scheduler.py           eingebauter Scheduler
   cli.py                 Kommandozeile
   web.py                 Weboberfläche (Flask, nur mit Passwort)
-  templates/web/         Vorlagen der Oberfläche
+  templates/web/         Vorlagen der Oberfläche (Monat, Einkauf, Tausch)
 tools/protein_sync.py    Proteinangaben mit der Nachrechnung abgleichen
 tools/uebersicht.py      alle Rezepte als JSON und als Seite zum Durchsehen
 tests/                   die sechs Akzeptanzkriterien und alles darum

@@ -106,19 +106,24 @@ ist, als **Secret** markieren.
 | Variable | Beispiel | Pflicht |
 |---|---|---|
 | `TZ` | `Europe/Berlin` | ja |
-| `SMTP_HOST` | `smtp.example.com` | ja |
+| `SMTP_HOST` | `smtp.example.com` | nein, siehe unten |
 | `SMTP_PORT` | `587` | – |
 | `SMTP_USER` | `essensplaner@example.com` | meist |
 | `SMTP_PASSWORD` | – | meist, **Secret** |
 | `SMTP_STARTTLS` | `true` | – |
 | `SMTP_SSL` | `false` | – |
-| `MAIL_FROM` | `essensplaner@example.com` | ja |
-| `MAIL_TO` | `erste.person@example.com,zweite.person@example.com` | ja |
+| `MAIL_FROM` | `essensplaner@example.com` | nur mit Mail |
+| `MAIL_TO` | `erste.person@example.com,zweite.person@example.com` | nur mit Mail |
 | `ESSENSPLANER_FREEZER` | `false` | – |
 | `ESSENSPLANER_SEED` | leer | – |
 | `ESSENSPLANER_WEB_PASSWORT` | – | für die Oberfläche, **Secret** |
 | `ESSENSPLANER_WEB_SECRET` | – | empfohlen, **Secret** |
 | `ESSENSPLANER_WEB_PORT` | `8080` | – |
+
+**Ohne Mailserver geht es auch.** Bleibt `SMTP_HOST` leer, erzeugt der
+Scheduler weiterhin die Monatspläne und verschickt nichts; Plan und
+Einkaufszettel stehen in der Weboberfläche. Dann ist `ESSENSPLANER_WEB_PASSWORT`
+die einzige Pflichtangabe. Die SMTP-Werte lassen sich jederzeit nachtragen.
 
 `MAIL_TO` nimmt mehrere Adressen, mit Komma getrennt. Die Werte überschreiben,
 was in `config.yaml` steht – dort stehen nur Platzhalter, damit nie eine echte

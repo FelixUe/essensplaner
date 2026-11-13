@@ -39,7 +39,7 @@ from flask import (
     url_for,
 )
 
-from . import data, kalender
+from . import data, kalender, shopping
 from .editing import AenderungsFehler, gericht_tauschen
 from .models import MonthPlan
 from .planner import Planner, PlanungsFehler
@@ -308,6 +308,36 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             data.save_plan(plan, ctx.config.plans_dir)
         flash(f"Plan für {_monat_titel(monat)} erzeugt.", "erfolg")
         return redirect(url_for("monat_ansehen", monat=monat))
+
+    @app.get("/monat/<monat>/woche/<freitag>/einkauf")
+    def einkauf(monat: str, freitag: str):
+        """Was für eine Woche eingekauft werden muss.
+
+        Frischware und Vorratszutaten getrennt: die Frischware wird am
+        Freitag gekauft, die Vorratszutaten kann man vorziehen. Beide
+        Listen stehen hier zusammen, weil ohne Monatsmail niemand sonst
+        die Vorratszutaten nennt.
+        """
+        plan = plan_holen(monat)
+        if plan is None:
+            abort(404)
+        try:
+            start = date.fromisoformat(freitag)
+        except ValueError:
+            abort(404)
+        woche = plan.woche_ab(start) or plan.woche_fuer(start)
+        if woche is None:
+            abort(404)
+        return render_template(
+            "einkauf.html.j2",
+            monat=monat,
+            woche=woche,
+            frisch=shopping.frischeliste(woche, ctx.rezepte, ctx.zutaten, ctx.config, ctx.bestand),
+            vorrat=shopping.wochen_pantry_liste(
+                woche, ctx.rezepte, ctx.zutaten, ctx.config, ctx.bestand
+            ),
+            config=ctx.config,
+        )
 
     @app.get("/monat/<monat>/<datum>/<slot>")
     def tauschen_zeigen(monat: str, datum: str, slot: str):

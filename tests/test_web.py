@@ -233,3 +233,57 @@ def test_plan_erzeugen_legt_eine_datei_an(angemeldet, plans_dir):
     antwort = angemeldet.post("/monat/2030-05/erzeugen", data={"csrf": token})
     assert antwort.status_code == 302
     assert (plans_dir / "2030-05.json").is_file()
+
+
+# ----------------------------------------------------------- Einkaufszettel
+
+
+def _einkaufspfad(client) -> str:
+    seite = client.get(f"/monat/{MONAT}")
+    treffer = re.search(rb'href="(/monat/[\d-]+/woche/[\d-]+/einkauf)"', seite.data)
+    assert treffer, "Auf der Monatsseite steht kein Einkaufs-Link"
+    return treffer.group(1).decode()
+
+
+def test_monatsseite_verlinkt_den_einkauf_je_woche(angemeldet, plan):
+    seite = angemeldet.get(f"/monat/{MONAT}")
+    links = re.findall(rb"/monat/[\d-]+/woche/([\d-]+)/einkauf", seite.data)
+    assert len(links) == len(plan.weeks)
+    assert {w.start.isoformat() for w in plan.weeks} == {x.decode() for x in links}
+
+
+def test_einkaufsseite_zeigt_beide_listen(angemeldet):
+    antwort = angemeldet.get(_einkaufspfad(angemeldet))
+    text = antwort.get_data(as_text=True)
+    assert antwort.status_code == 200
+    assert "Frischeliste" in text
+    assert "Vorrat diese Woche" in text
+
+
+def test_einkaufsseite_nennt_die_zutaten_der_woche(angemeldet, config, rezepte, zutaten, plan):
+    """Was auf dem Zettel steht, muss aus dem Plan dieser Woche kommen."""
+    from essensplaner import shopping
+
+    woche = plan.weeks[0]
+    erwartet = shopping.frischeliste(woche, rezepte, zutaten, config)
+    text = angemeldet.get(f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf").get_data(
+        as_text=True
+    )
+    assert erwartet.items, "Die Testwoche braucht Frischware"
+    for item in erwartet.items:
+        assert item.name in text, f"{item.name} fehlt auf dem Zettel"
+
+
+def test_einkauf_verlangt_anmeldung(client, plan):
+    pfad = f"/monat/{MONAT}/woche/{plan.weeks[0].start.isoformat()}/einkauf"
+    antwort = client.get(pfad)
+    assert antwort.status_code == 302
+    assert "/anmelden" in antwort.headers["Location"]
+
+
+def test_einkauf_fuer_unbekannte_woche_ist_nicht_gefunden(angemeldet):
+    assert angemeldet.get(f"/monat/{MONAT}/woche/2099-01-01/einkauf").status_code == 404
+
+
+def test_einkauf_fuer_monat_ohne_plan_ist_nicht_gefunden(angemeldet):
+    assert angemeldet.get("/monat/2030-05/woche/2030-04-26/einkauf").status_code == 404

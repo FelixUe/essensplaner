@@ -123,7 +123,12 @@ class Scheduler:
         if monat:
             try:
                 ctx = Kontext.laden(self.config)
-                ergebnis = generate_month(ctx, monat=monat, heute=jetzt.date())
+                ergebnis = generate_month(
+                    ctx,
+                    monat=monat,
+                    heute=jetzt.date(),
+                    mail_senden=self.config.smtp.konfiguriert,
+                )
                 log.info("%s", ergebnis)
                 state["generate-month"] = monat
                 speichere_state(self.config, state)
@@ -137,7 +142,7 @@ class Scheduler:
         if tag:
             try:
                 ctx = Kontext.laden(self.config)
-                ergebnis = send_weekly(ctx, tag=tag)
+                ergebnis = send_weekly(ctx, tag=tag, mail_senden=self.config.smtp.konfiguriert)
                 log.info("%s", ergebnis)
                 state["send-weekly"] = tag.isoformat()
                 speichere_state(self.config, state)
@@ -164,9 +169,15 @@ class Scheduler:
             (self.minute + MONATS_VERSATZ_MINUTEN) % 60,
             jetzt.strftime("%Y-%m-%d %H:%M %Z"),
         )
-        log.info("Empfänger: %s", ", ".join(self.config.mail_empfaenger) or "(keine)")
-        if not self.config.smtp.konfiguriert:
-            log.warning("SMTP ist nicht konfiguriert – Versand wird fehlschlagen.")
+        if self.config.smtp.konfiguriert:
+            log.info("Empfänger: %s", ", ".join(self.config.mail_empfaenger) or "(keine)")
+        else:
+            # Ohne SMTP wird trotzdem geplant – nur eben nichts verschickt.
+            # Die Pläne stehen in der Weboberfläche, das reicht als Betrieb.
+            log.info(
+                "Kein SMTP konfiguriert: Pläne werden erzeugt, aber keine Mails "
+                "verschickt. Der Plan steht in der Weboberfläche."
+            )
 
         while True:
             self.tick()

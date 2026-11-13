@@ -1,0 +1,67 @@
+{% extends "basis.html.j2" %}
+{% block titel %}Einkauf {{ woche.start | datum_kurz }} – Essensplaner{% endblock %}
+
+{% macro liste(sl, erklaerung) %}
+  <section class="karte">
+    <div class="kopf">
+      <h2>{{ sl.titel }}</h2>
+      <span class="spanne">{{ sl.items | length }} Posten</span>
+    </div>
+    {% if not sl.items %}
+      <div class="zeile"><span class="gericht">Nichts nötig.</span></div>
+    {% else %}
+      {% for abteilung, posten in sl.abteilungen %}
+        <div class="zeile" style="display: block;">
+          <div class="abteilung">{{ abteilung }}</div>
+          <ul class="posten">
+            {% for p in posten %}
+              <li>{{ p.anzeige }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </section>
+  <p class="leise" style="font-size: 12.5px; margin-top: -6px;">{{ erklaerung }}</p>
+{% endmacro %}
+
+{% block inhalt %}
+<h1>Einkauf</h1>
+<p class="leise">
+  Woche vom {{ woche.start | datum_lang }} bis {{ woche.ende | datum_lang }} &middot;
+  {{ woche.meals | length }} Mahlzeiten
+</p>
+
+<style>
+  .abteilung {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-leise);
+    margin-bottom: 4px;
+  }
+  ul.posten {
+    margin: 0;
+    padding-left: 1.1em;
+    columns: 2 200px;
+    column-gap: 24px;
+  }
+  ul.posten li {
+    padding: 1px 0;
+    break-inside: avoid;
+  }
+</style>
+
+{{ liste(frisch, "Am Einkaufstag kaufen. Die Mengen sind auf die geplanten Portionen gerechnet und bereits zusammengefasst.") }}
+
+{{ liste(vorrat, "Haltbares – auf Packungsgrößen aufgerundet, in Klammern der tatsächliche Bedarf. Was im Schrank steht, kannst du streichen.") }}
+
+<p>
+  <a class="knopf" href="{{ url_for('monat_ansehen', monat=monat) }}">Zurück zum Monat</a>
+</p>
+{% endblock %}
+
+{% block fuss %}
+  Die Liste wird bei jedem Aufruf neu gerechnet. Tauschst du ein Gericht,
+  stimmt sie sofort.
+{% endblock %}
