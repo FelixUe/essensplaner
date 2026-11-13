@@ -9,6 +9,7 @@ lässt.
 
 from __future__ import annotations
 
+import json
 import re
 
 import pytest
@@ -702,3 +703,61 @@ def test_doppeltes_im_grundeinkauf_wird_angemerkt(angemeldet, plan, rezepte, zut
     text = angemeldet.get(f"/monat/{MONAT}/woche/{woche.start}/einkauf").get_data(as_text=True)
     assert "Klopapier" in text
     assert "steht schon oben" in text
+
+
+# ----------------------------------------------------- Ziehen und Ablegen
+
+
+def _tauschkarte(text: str) -> dict:
+    """Die Karte der erlaubten Ziele aus der Monatsseite lesen."""
+    marke = '<script id="tauschdaten" type="application/json">'
+    start = text.index(marke) + len(marke)
+    return json.loads(text[start : text.index("</script>", start)])
+
+
+def test_monatsseite_schickt_die_erlaubten_ziele_mit(angemeldet, planner, plan):
+    """Beim Ziehen muss sofort zu sehen sein, wohin ein Gericht darf."""
+    karte = _tauschkarte(angemeldet.get(f"/monat/{MONAT}").get_data(as_text=True))
+    assert set(karte) == {f"{m.datum}_{m.slot}" for m in plan.alle_meals}
+    for meal in plan.alle_meals:
+        erwartet = [
+            f"{p.datum}_{p.slot}" for p in planner.tauschpartner(plan, meal.datum, meal.slot)
+        ]
+        assert karte[f"{meal.datum}_{meal.slot}"] == erwartet
+
+
+def test_die_karte_gilt_in_beide_richtungen(angemeldet):
+    """Wer A als Ziel von B nennt, muss B auch als Ziel von A nennen."""
+    karte = _tauschkarte(angemeldet.get(f"/monat/{MONAT}").get_data(as_text=True))
+    for platz, ziele in karte.items():
+        for ziel in ziele:
+            assert platz in karte[ziel], f"{platz} nach {ziel} geht, zurück nicht"
+
+
+def test_ein_griff_nur_wo_es_ein_ziel_gibt(angemeldet):
+    """Ein Griff, der nirgendwo hinführt, ist eine Enttäuschung."""
+    text = angemeldet.get(f"/monat/{MONAT}").get_data(as_text=True)
+    karte = _tauschkarte(text)
+    mit_ziel = sum(1 for ziele in karte.values() if ziele)
+    assert text.count('class="griff"') == mit_ziel
+
+
+def test_ziehen_landet_im_selben_pfad_wie_der_knopf(angemeldet, planner, plan):
+    """Das Ablegen nutzt dieselbe geprüfte Route, nicht eine zweite."""
+    text = angemeldet.get(f"/monat/{MONAT}").get_data(as_text=True)
+    assert 'id="verschiebeform"' in text
+    assert f'data-basis="/monat/{MONAT}"' in text
+
+    meal, _, pfad, wert = _paar(planner, plan)
+    assert f'data-platz="{meal.datum}_{meal.slot}"' in text
+    # So setzt das Skript die Adresse zusammen - sie muss es wirklich geben.
+    assert f"/monat/{MONAT}/{meal.datum}/{meal.slot}" == pfad
+    token = _token(angemeldet.get(f"/monat/{MONAT}").data)
+    antwort = angemeldet.post(f"{pfad}/verschieben", data={"csrf": token, "ziel": wert})
+    assert antwort.status_code == 302
+
+
+def test_monat_ohne_plan_kommt_ohne_karte_aus(angemeldet):
+    text = angemeldet.get("/monat/2030-05").get_data(as_text=True)
+    assert "tauschdaten" not in text
+    assert "griff" not in text

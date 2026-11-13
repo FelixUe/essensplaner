@@ -317,10 +317,30 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             statistik=statistik,
             rezepte=kat.rezepte,
             config=ctx.config,
+            tauschkarte=_tauschkarte(plan),
             voriger=_nachbarmonat(monat, -1),
             naechster=_nachbarmonat(monat, 1),
             heute=date.today(),
         )
+
+    def _tauschkarte(plan: MonthPlan | None) -> dict[str, list[str]]:
+        """Zu jedem Platz die Plätze, mit denen er tauschen darf.
+
+        Die Monatsseite lässt Gerichte mit der Maus oder dem Finger auf einen
+        anderen Tag ziehen. Welche Tage dabei in Frage kommen, entscheidet
+        derselbe Code wie auf der Änderungsseite – die Karte wird hier
+        einmal gerechnet und mitgeschickt, damit beim Ziehen sofort zu sehen
+        ist, wohin es gehen kann. Der Server prüft es beim Ablegen trotzdem
+        noch einmal: die Karte ist eine Anzeige, keine Zusage.
+        """
+        if plan is None:
+            return {}
+        return {
+            f"{m.datum}_{m.slot}": [
+                f"{p.datum}_{p.slot}" for p in kat.planner.tauschpartner(plan, m.datum, m.slot)
+            ]
+            for m in plan.alle_meals
+        }
 
     @app.post("/monat/<monat>/erzeugen")
     def monat_erzeugen(monat: str):

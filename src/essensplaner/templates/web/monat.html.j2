@@ -25,6 +25,59 @@
   </div>
 {% else %}
 
+  <style>
+    /* Der Griff erscheint nur, wenn das Ziehen auch funktioniert – ohne
+       JavaScript bliebe sonst ein Knopf stehen, der nichts tut. */
+    .griff, .zieh-hinweis { display: none; }
+    body.ziehen-an .griff {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      align-self: center;
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      margin-left: -8px;
+      border-radius: 8px;
+      color: var(--ink-leise);
+      font-size: 15px;
+      line-height: 1;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      /* Sonst scrollt das Telefon, statt das Gericht mitzunehmen. */
+      touch-action: none;
+    }
+    body.ziehen-an .griff:hover { background: var(--flaeche-2); color: var(--akzent); }
+    body.ziehen-an .zieh-hinweis { display: block; }
+
+    .zeile.zieht { opacity: 0.45; }
+    .zeile.ziel-moeglich { background: var(--akzent-weich); }
+    .zeile.ziel-aktiv { outline: 2px solid var(--akzent); outline-offset: -2px; }
+
+    .schwebe {
+      position: fixed;
+      z-index: 60;
+      pointer-events: none;
+      transform: translate(14px, -50%);
+      max-width: 62vw;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: var(--akzent);
+      color: var(--akzent-ink);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+    }
+  </style>
+
+  <p class="leise zieh-hinweis" style="font-size: 13px;">
+    Am Griff links lässt sich ein Gericht auf einen anderen Tag ziehen – die
+    beiden tauschen dann die Plätze. Grün hinterlegt ist, wohin es darf.
+  </p>
+
   {% for woche in plan.weeks %}
     <section class="karte">
       <div class="kopf">
@@ -36,7 +89,12 @@
 
       {% for meal in woche.meals %}
         {% set rezept = rezepte.get(meal.recipe_slug) %}
-        <div class="zeile" id="slot-{{ meal.datum }}-{{ meal.slot }}">
+        {% set platz = meal.datum ~ "_" ~ meal.slot %}
+        <div class="zeile" id="slot-{{ meal.datum }}-{{ meal.slot }}"
+             data-platz="{{ platz }}" data-name="{{ meal.recipe_name }}">
+          {% if tauschkarte.get(platz) %}
+            <span class="griff" title="Auf einen anderen Tag ziehen" aria-hidden="true">⠿</span>
+          {% endif %}
           <div class="tag">
             {{ config.slot_kochtag(meal.slot)[:2] }} {{ meal.datum | datum_kurz }}
           </div>
@@ -82,5 +140,132 @@
       {{ "%.0f" | format(statistik.protein_min) }} g
     </p>
   {% endif %}
+
+  <script id="tauschdaten" type="application/json">{{ tauschkarte | tojson }}</script>
+  <form id="verschiebeform" method="post" hidden
+        data-basis="{{ url_for('monat_ansehen', monat=monat) }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="ziel" value="">
+  </form>
+
+  <script>
+  /* Ziehen und Ablegen auf dem Monatsplan.
+   *
+   * Abgelegt wird ueber dasselbe Formular, das auch der Knopf "Aendern"
+   * benutzt: ein POST, dann laedt die Seite neu und sagt, was passiert ist.
+   * Kein eigener Zustand im Browser, der mit dem Plan auseinanderlaufen
+   * koennte - und der Server prueft die Aenderung ohnehin noch einmal.
+   *
+   * Pointer-Events statt HTML5-Drag-and-Drop, weil letzteres auf dem
+   * Telefon nicht ausgeloest wird. Der Plan wird meist unterwegs angesehen.
+   */
+  (function () {
+    var daten = document.getElementById("tauschdaten");
+    var formular = document.getElementById("verschiebeform");
+    if (!daten || !formular || !window.PointerEvent) { return; }
+
+    var karte;
+    try { karte = JSON.parse(daten.textContent); } catch (fehler) { return; }
+
+    var zeilen = Array.prototype.slice.call(
+      document.querySelectorAll(".zeile[data-platz]")
+    );
+    if (!zeilen.length) { return; }
+    document.body.classList.add("ziehen-an");
+
+    var zieht = null, ziel = null, marke = null, start = null, laeuft = false;
+
+    function zeileFuer(platz) {
+      return document.querySelector('.zeile[data-platz="' + platz + '"]');
+    }
+
+    function aufraeumen() {
+      zeilen.forEach(function (z) {
+        z.classList.remove("zieht", "ziel-moeglich", "ziel-aktiv");
+      });
+      if (marke) { marke.remove(); }
+      zieht = null; ziel = null; marke = null; start = null; laeuft = false;
+    }
+
+    function beginnen() {
+      laeuft = true;
+      zieht.classList.add("zieht");
+      (karte[zieht.dataset.platz] || []).forEach(function (platz) {
+        var z = zeileFuer(platz);
+        if (z) { z.classList.add("ziel-moeglich"); }
+      });
+      marke = document.createElement("div");
+      marke.className = "schwebe";
+      marke.textContent = zieht.dataset.name;
+      document.body.appendChild(marke);
+    }
+
+    function bewegen(x, y) {
+      marke.style.left = x + "px";
+      marke.style.top = y + "px";
+
+      var unten = document.elementFromPoint(x, y);
+      var treffer = unten ? unten.closest(".zeile[data-platz]") : null;
+      var gueltig = treffer && treffer.classList.contains("ziel-moeglich") ? treffer : null;
+      if (gueltig !== ziel) {
+        if (ziel) { ziel.classList.remove("ziel-aktiv"); }
+        ziel = gueltig;
+        if (ziel) { ziel.classList.add("ziel-aktiv"); }
+      }
+
+      // Am Rand mitscrollen, sonst ist eine andere Woche nicht erreichbar.
+      if (y < 80) { window.scrollBy(0, -14); }
+      else if (y > window.innerHeight - 80) { window.scrollBy(0, 14); }
+    }
+
+    function ablegen() {
+      if (!ziel) { aufraeumen(); return; }
+      var platz = zieht.dataset.platz.replace("_", "/");
+      formular.action = formular.dataset.basis + "/" + platz + "/verschieben";
+      formular.elements.ziel.value = ziel.dataset.platz;
+      formular.submit();
+    }
+
+    zeilen.forEach(function (zeile) {
+      var griff = zeile.querySelector(".griff");
+      if (!griff) { return; }
+
+      griff.addEventListener("pointerdown", function (e) {
+        if (e.pointerType === "mouse" && e.button !== 0) { return; }
+        zieht = zeile;
+        start = { x: e.clientX, y: e.clientY };
+        griff.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+
+      griff.addEventListener("pointermove", function (e) {
+        if (!zieht) { return; }
+        if (!laeuft) {
+          if (Math.abs(e.clientX - start.x) + Math.abs(e.clientY - start.y) < 6) { return; }
+          beginnen();
+        }
+        bewegen(e.clientX, e.clientY);
+        e.preventDefault();
+      });
+
+      griff.addEventListener("pointerup", function (e) {
+        if (!zieht) { return; }
+        if (laeuft) { ablegen(); } else { aufraeumen(); }
+        e.preventDefault();
+      });
+
+      griff.addEventListener("pointercancel", aufraeumen);
+    });
+
+    window.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { aufraeumen(); }
+    });
+  })();
+  </script>
 {% endif %}
+{% endblock %}
+
+{% block fuss %}
+  Jede Änderung wird geprüft wie ein frisch gewürfelter Plan. Scheitert sie,
+  bleibt alles, wie es war.
 {% endblock %}
