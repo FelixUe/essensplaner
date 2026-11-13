@@ -246,16 +246,21 @@ def _zu_items(
         pack_text = ""
 
         if mit_packungen:
-            packungs_zahl = units.packungen(gerundet, einheit, zutat.pack_qty, zutat.pack_unit)
+            packungs_zahl = units.packungen(
+                gerundet, einheit, zutat.pack_qty, zutat.pack_unit, zutat.stk_gewicht_g
+            )
             if packungs_zahl is not None and packungs_zahl > 0:
                 # Auf ganze Packungen aufrunden – so steht es im Regal.
-                pack_basis, _ = units.in_basis(zutat.pack_qty, zutat.pack_unit)
+                pack_basis, pack_basis_einheit = units.in_basis(zutat.pack_qty, zutat.pack_unit)
                 gerundet = packungs_zahl * pack_basis
+                einheit = pack_basis_einheit
                 pack_text = units.packung_text(packungs_zahl, zutat.pack_qty, zutat.pack_unit)
-            else:
-                # Packungsgröße und Rezepteinheit passen nicht zusammen –
-                # dann lieber ehrlich auf den Vorrat verweisen.
+            elif zutat.is_pantry:
+                # Haltbares ohne passende Packungsgröße: lieber ehrlich auf
+                # den Vorrat verweisen, als eine Menge zu erfinden.
                 pack_text = VORRAT_PRUEFEN
+            # Frischware ohne Packungsgröße bleibt bei der blanken Menge:
+            # "Vorrat prüfen" wäre bei einer Gurke Unsinn.
 
         items.append(
             ShoppingItem(
@@ -296,7 +301,7 @@ def frischeliste(
         art="fresh",
         von=woche.start,
         bis=woche.ende,
-        items=_zu_items(posten, zutaten, mit_packungen=False),
+        items=_zu_items(posten, zutaten, mit_packungen=True),
     )
 
 

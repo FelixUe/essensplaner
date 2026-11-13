@@ -82,7 +82,10 @@ def test_mengen_sind_ueber_alle_gerichte_aufaddiert(plan, rezepte, zutaten, conf
             erwartet[(zutat.slug, basis)] += menge
 
     liste = shopping.frischeliste(woche, rezepte, zutaten, config)
-    tatsaechlich = {(i.slug, i.einheit): i.menge for i in liste.items}
+    # Verglichen wird gegen "bedarf": die Liste rundet auf kaufbare Mengen
+    # auf und wechselt dabei die Einheit (3 Stk Möhren -> 1 kg Beutel).
+    # Der aufsummierte Bedarf bleibt in der Rezepteinheit stehen.
+    tatsaechlich = {(i.slug, i.bedarf_einheit): i.bedarf for i in liste.items}
     assert set(tatsaechlich) == {k for k, v in erwartet.items() if v > 0}
     for schluessel, soll in erwartet.items():
         if soll <= 0:
@@ -244,3 +247,77 @@ def test_portionen_aus_der_truhe_werden_nicht_doppelt_eingekauft(plan, rezepte, 
     liste_ohne = shopping.frischeliste(kopie, rezepte, zutaten, config)
     assert liste_mit.anzahl <= liste_ohne.anzahl
     MonthPlan(monat=plan.monat, weeks=[kopie])  # Modell bleibt konsistent
+
+
+# ------------------------------------------- Frischware in kaufbaren Mengen
+
+
+def test_packungen_rechnet_stueck_in_gewicht_um():
+    """Rezepte zählen Möhren in Stück, der Laden verkauft sie im Kilobeutel."""
+    assert units.packungen(3, "Stk", 1, "kg", 80) == 1
+    assert units.packungen(20, "Stk", 1, "kg", 80) == 2
+    assert units.packungen(800, "g", 1, "Stk", 1000) == 1
+    assert units.packungen(1200, "g", 1, "Stk", 1000) == 2
+
+
+def test_packungen_ohne_stueckgewicht_bleibt_unbestimmt():
+    assert units.packungen(3, "Stk", 1, "kg") is None
+
+
+@pytest.mark.parametrize("monat", TEST_MONATE[:4])
+def test_frischeliste_nennt_nur_kaufbare_mengen(mach_plan, rezepte, zutaten, config, monat):
+    """Niemand kauft 20 g Ingwer.
+
+    Jede Zeile der Frischeliste muss eine Menge nennen, die es so im Laden
+    gibt: entweder ganze Packungen oder ganze Stück.
+    """
+    plan = mach_plan(monat)
+    for woche in plan.weeks:
+        liste = shopping.frischeliste(woche, rezepte, zutaten, config)
+        for item in liste.items:
+            if item.packungen is not None:
+                assert item.packungen == int(item.packungen), item.anzeige
+                assert item.packungen >= 1, item.anzeige
+            else:
+                assert item.menge == int(item.menge), (
+                    f"{item.anzeige} ist weder eine Packung noch ein ganzes Stück"
+                )
+
+
+@pytest.mark.parametrize("monat", TEST_MONATE[:4])
+def test_frischeliste_deckt_den_bedarf(mach_plan, rezepte, zutaten, config, monat):
+    """Aufrunden heißt aufrunden – gekauft wird nie weniger als gebraucht."""
+    plan = mach_plan(monat)
+    for woche in plan.weeks:
+        for item in shopping.frischeliste(woche, rezepte, zutaten, config).items:
+            if item.bedarf_einheit == item.einheit:
+                assert item.menge >= item.bedarf - 1e-6, item.anzeige
+
+
+def test_frischeliste_verweist_nicht_auf_den_vorrat(plan, rezepte, zutaten, config):
+    """ "Vorrat prüfen" passt zu Mehl, nicht zu einer Gurke."""
+    for woche in plan.weeks:
+        for item in shopping.frischeliste(woche, rezepte, zutaten, config).items:
+            assert item.pack_text != shopping.VORRAT_PRUEFEN, item.anzeige
+
+
+def test_jede_frischware_laesst_sich_in_eine_packung_umrechnen(rezepte, zutaten):
+    """Sonst stünde irgendwann wieder eine unkaufbare Menge auf dem Zettel."""
+    offen = []
+    for zutat in zutaten.values():
+        if not zutat.is_fresh:
+            continue
+        einheiten = {
+            zeile.unit
+            for rezept in rezepte.values()
+            for variante in (None, *rezept.variants)
+            for zeile in rezept.zutaten_fuer(variante)
+            if zeile.item == zutat.slug and not units.ist_kleinmenge(zeile.unit)
+        }
+        for einheit in einheiten:
+            if (
+                units.packungen(1.0, einheit, zutat.pack_qty, zutat.pack_unit, zutat.stk_gewicht_g)
+                is None
+            ):
+                offen.append(f"{zutat.name} ({einheit} vs. {zutat.pack_qty} {zutat.pack_unit})")
+    assert offen == []

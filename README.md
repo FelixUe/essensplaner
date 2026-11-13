@@ -92,9 +92,12 @@ stehen. Ein von Hand geänderter Plan ist damit genauso regelkonform wie ein
 gewürfelter.
 
 Je Woche gibt es dort auch den **Einkaufszettel**: Frischware für den
-Einkaufstag und die haltbaren Zutaten dieser Woche, auf Packungsgrößen
-aufgerundet. Er wird bei jedem Aufruf neu gerechnet, stimmt nach einem Tausch
-also sofort.
+Einkaufstag und die haltbaren Zutaten dieser Woche. Beide Listen nennen
+kaufbare Mengen – 20 g Ingwer bekommt man nirgends, also steht dort die
+100-g-Knolle und daneben der tatsächliche Bedarf. Wo Rezept und Regal
+verschiedene Einheiten sprechen (drei Möhren, ein Kilobeutel), rechnet das
+hinterlegte Stückgewicht um. Der Zettel wird bei jedem Aufruf neu gerechnet,
+stimmt nach einem Tausch also sofort.
 
 **Mailversand ist optional.** Bleibt `SMTP_HOST` leer, erzeugt der Scheduler
 weiterhin die Monatspläne und verschickt nur nichts – alles steht in der

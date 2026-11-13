@@ -212,15 +212,34 @@ def packung_text(anzahl: float, pack_qty: float, pack_unit: str) -> str:
     return f"{_zahl(anzahl)} × {formatiere(pack_qty, pack_unit)}"
 
 
-def packungen(menge: float, einheit: str, pack_qty: float, pack_unit: str) -> float | None:
+def packungen(
+    menge: float,
+    einheit: str,
+    pack_qty: float,
+    pack_unit: str,
+    stk_gewicht_g: float | None = None,
+) -> float | None:
     """Wie viele Packungen für diese Menge nötig sind, aufgerundet.
 
-    None, wenn Menge und Packungsgröße nicht in derselben Einheit stehen.
+    Rezept und Regal sprechen oft verschiedene Einheiten: Möhren stehen im
+    Rezept als "3 Stk", im Laden liegen sie im Kilobeutel. Mit
+    ``stk_gewicht_g`` lässt sich zwischen Stück und Gewicht umrechnen, sonst
+    bliebe die Hälfte der Frischware ohne kaufbare Menge.
+
+    None, wenn sich Menge und Packungsgröße nicht ineinander umrechnen lassen.
     """
     if pack_qty <= 0:
         return None
     menge_basis, basis = in_basis(menge, einheit)
     pack_basis, pack_b = in_basis(pack_qty, pack_unit)
+
+    if basis != pack_b and stk_gewicht_g:
+        # Stück in Gramm umrechnen, je nachdem welche Seite stückweise zählt.
+        if basis in _STUECK and pack_b == "g":
+            menge_basis, basis = menge_basis * stk_gewicht_g, "g"
+        elif basis == "g" and pack_b in _STUECK:
+            pack_basis, pack_b = pack_basis * stk_gewicht_g, "g"
+
     if basis != pack_b or pack_basis <= 0:
         return None
     return float(math.ceil(menge_basis / pack_basis - 1e-9))
