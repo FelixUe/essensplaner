@@ -40,7 +40,17 @@ essensplaner serve --once                 # Scheduler einmal prüfen lassen
 
 pytest -q
 ruff check . && ruff format --check .     # genau das prüft auch die CI
+
+python tools/devserver.py                 # Oberfläche zum Entwickeln, Port 5001
 ```
+
+**Zum Entwickeln an der Oberfläche `tools/devserver.py` nehmen, nicht
+`essensplaner serve`.** Der Dauerbetrieb läuft unter waitress ohne Reload, mit
+Scheduler und auf den echten Plänen. Das Skript startet dieselbe App mit
+Reload — auch auf `config.yaml` und die Rezept-YAMLs, weil das Verhalten zur
+Hälfte in den Daten steckt —, ohne Scheduler und auf einer Kopie der Pläne
+unter `.preview/`. Die nötigen Umgebungsvariablen setzt es selbst, die beiden
+Stolpersteine unten entfallen damit.
 
 Der README-Schnellstart nutzt `python -m venv` und `pip`; `uv` tut dasselbe und
 ist auf beiden Entwicklungsmaschinen vorhanden. Auf Windows ist `python` oft nur
@@ -72,9 +82,16 @@ diesem Rauchtest noch scheitern, wenn eine Datei nicht ins Image kommt.
 - **Deutsche Benennung ist Absicht** — Domänenbegriffe, Funktionsnamen,
   Kommentare und Commit-Messages. Beibehalten. Commit-Betreffs tragen kein
   Präfix wie `feat:` oder `fix:`, sie sagen schlicht, was die Änderung tut.
-- **Laufzeitdaten gehören nicht ins Repo.** `plans/*.json` und die
+- **Laufzeitdaten gehören nicht ins Repo.** `plans/*.json`, die
   Katalogänderungen aus `katalog.py` (eigene Rezepte, gestrichene Gerichte)
-  liegen im Volume. Rezept im Repo ändern = Commit; Gericht streichen = Volume.
+  und der Einkaufsstand (`grundeinkauf.json`, `einkauf-abwahl.json`,
+  `einkauf-extra.json`) liegen im Volume. Rezept im Repo ändern = Commit;
+  Gericht streichen = Volume.
+- **Der Grundeinkauf bleibt eine Zeilenliste.** Die Oberfläche verwaltet ihn
+  postenweise, gespeichert werden aber weiter Zeilen mit `Abteilung:` als
+  Überschrift — Mail, Zettel und das Textfeld lesen dasselbe Format. Deshalb
+  darf ein Posten nicht auf einen Doppelpunkt enden: er würde beim nächsten
+  Laden zur Abteilung und alles darunter verschieben.
 - **Weboberfläche lokal:** startet nur, wenn `ESSENSPLANER_WEB_PASSWORT`
   gesetzt ist. Über `http://` zusätzlich `ESSENSPLANER_WEB_UNSICHER=true`,
   sonst ist das Sitzungs-Cookie secure-only und die Anmeldung scheitert
