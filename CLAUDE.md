@@ -40,11 +40,32 @@ essensplaner serve --once                 # Scheduler einmal prüfen lassen
 
 pytest -q
 ruff check . && ruff format --check .     # genau das prüft auch die CI
+
+python tools/devserver.py                 # Oberfläche zum Entwickeln, Port 5001
 ```
+
+**Zum Entwickeln an der Oberfläche `tools/devserver.py` nehmen, nicht
+`essensplaner serve`.** Der Dauerbetrieb läuft unter waitress ohne Reload, mit
+Scheduler und auf den echten Plänen. Das Skript startet dieselbe App mit
+Reload — auch auf `config.yaml` und die Rezept-YAMLs, weil das Verhalten zur
+Hälfte in den Daten steckt —, ohne Scheduler und auf einer Kopie der Pläne
+unter `.preview/`. Die nötigen Umgebungsvariablen setzt es selbst, die beiden
+Stolpersteine unten entfallen damit.
 
 Der README-Schnellstart nutzt `python -m venv` und `pip`; `uv` tut dasselbe und
 ist auf beiden Entwicklungsmaschinen vorhanden. Auf Windows ist `python` oft nur
 der Store-Platzhalter — `uv` bringt die 3.12 selbst mit.
+
+Liegt schon ein `.venv`, bricht `uv venv` mit „already exists" ab. Das ist kein
+Fehler, dann genügt `uv pip install -e ".[dev]"`. `--clear` nur bewusst setzen,
+es wirft das vorhandene Environment weg. Ohne Aktivierung gehen die Befehle
+auch direkt: `.\.venv\Scripts\pytest.exe -q`.
+
+`ruff check` und `ruff format --check` sind in der CI **zwei getrennte
+Schritte** — reine Formatierung bricht den Build unabhängig vom Lint. Die CI
+baut darüber hinaus das Image und fährt darin `validate`,
+`generate-month --dry-run` und `serve --once`; was lokal grün ist, kann an
+diesem Rauchtest noch scheitern, wenn eine Datei nicht ins Image kommt.
 
 ## Gotchas
 
@@ -59,14 +80,32 @@ der Store-Platzhalter — `uv` bringt die 3.12 selbst mit.
   ist der verbindliche Wert, `nutrition.py` rechnet ihn aus den Zutaten nach,
   `tools/protein_sync.py` gleicht beides ab.
 - **Deutsche Benennung ist Absicht** — Domänenbegriffe, Funktionsnamen,
-  Kommentare und Commit-Messages. Beibehalten.
-- **Laufzeitdaten gehören nicht ins Repo.** `plans/*.json` und die
+  Kommentare und Commit-Messages. Beibehalten. Commit-Betreffs tragen kein
+  Präfix wie `feat:` oder `fix:`, sie sagen schlicht, was die Änderung tut.
+- **Laufzeitdaten gehören nicht ins Repo.** `plans/*.json`, die
   Katalogänderungen aus `katalog.py` (eigene Rezepte, gestrichene Gerichte)
-  liegen im Volume. Rezept im Repo ändern = Commit; Gericht streichen = Volume.
+  und der Einkaufsstand (`grundeinkauf.json`, `einkauf-abwahl.json`,
+  `einkauf-extra.json`) liegen im Volume. Rezept im Repo ändern = Commit;
+  Gericht streichen = Volume.
+- **Der Grundeinkauf bleibt eine Zeilenliste.** Die Oberfläche verwaltet ihn
+  postenweise, gespeichert werden aber weiter Zeilen mit `Abteilung:` als
+  Überschrift — Mail, Zettel und das Textfeld lesen dasselbe Format. Deshalb
+  darf ein Posten nicht auf einen Doppelpunkt enden: er würde beim nächsten
+  Laden zur Abteilung und alles darunter verschieben.
 - **Weboberfläche lokal:** startet nur, wenn `ESSENSPLANER_WEB_PASSWORT`
   gesetzt ist. Über `http://` zusätzlich `ESSENSPLANER_WEB_UNSICHER=true`,
   sonst ist das Sitzungs-Cookie secure-only und die Anmeldung scheitert
   stillschweigend. Hinter einem Reverse Proxy mit TLS auf `false` lassen.
+  `ESSENSPLANER_WEB_SECRET` fest setzen, sonst meldet jeder Neustart ab.
+  Die Oberfläche hört auf Port 8080 (`ESSENSPLANER_WEB_PORT`).
+- **Es gibt keinen dotenv-Loader.** Nur docker-compose liest `.env`; der nackte
+  Prozess sieht ausschließlich, was in der Shell steht. Eine `.env` anzulegen
+  und `essensplaner serve` zu starten, reicht also nicht.
+- **Neue Abhängigkeiten müssen auf ARM ohne Übersetzen laufen.** Das Image
+  entsteht für `linux/amd64` **und** `linux/arm64` — deshalb `waitress` statt
+  eines Servers mit C-Erweiterung.
+- **Mailversand ist optional.** Ohne `SMTP_HOST` erzeugt der Scheduler weiter
+  Pläne und verschickt nur nichts. Diesen Pfad funktionsfähig halten.
 - **LF ist erzwungen** (`.gitattributes`), das Image läuft unter Linux. CRLF in
   Konfigurationen oder Skripten führt dort zu schwer auffindbaren Fehlern.
 - **`tzdata` ist Pflichtabhängigkeit**, nicht Ballast: ohne sie kennt
