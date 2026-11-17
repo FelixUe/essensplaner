@@ -462,3 +462,88 @@ def test_mengenklammer_stoert_den_abgleich_nicht(mach_plan, rezepte, zutaten, co
     assert name, "die Woche braucht Einkäufe, sonst prüft der Test nichts"
     zeile = f"{name} (2 l)"
     assert shopping.grundeinkauf_doppelt([zeile], frisch, vorrat) == {zeile}
+
+
+# ---------------------------------------------------- Ein Zettel statt drei
+
+
+def _posten(gruppen, key):
+    for _, liste in gruppen:
+        for p in liste:
+            if p.key == key:
+                return p
+    return None
+
+
+def test_zettel_sortiert_nach_ladenweg(config, rezepte, zutaten, plan):
+    """Die Gruppen stehen in Ladenreihenfolge, nicht nach Herkunft."""
+    woche = plan.weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    vorrat = shopping.wochen_pantry_liste(woche, rezepte, zutaten, config)
+    gruppen = shopping.zettel_posten(frisch, vorrat, [])
+
+    namen = [name for name, _ in gruppen]
+    assert namen == sorted(namen, key=shopping.abteilung_sortierung)
+
+
+def test_zettel_nimmt_alle_drei_quellen_auf(config, rezepte, zutaten, plan):
+    woche = plan.weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    vorrat = shopping.wochen_pantry_liste(woche, rezepte, zutaten, config)
+    gruppen = shopping.zettel_posten(frisch, vorrat, ["Haushalt:", "Klopapier"])
+
+    quellen = {p.quelle for _, liste in gruppen for p in liste}
+    assert quellen == {"frisch", "vorrat", "grund"}
+    assert _posten(gruppen, "grund:Klopapier") is not None
+
+
+def test_grundeinkauf_landet_in_der_passenden_abteilung(config):
+    """'Kühlschrank' im Textfeld meint dasselbe Regal wie 'Kühlregal' in den Stammdaten."""
+    leer = shopping.ShoppingList(titel="", art="fresh")
+    gruppen = shopping.zettel_posten(leer, leer, ["Kühlschrank:", "Butter"])
+
+    assert _posten(gruppen, "grund:Butter").abteilung == "Kühlregal"
+
+
+def test_eigene_ueberschrift_bleibt_eine_eigene_gruppe(config):
+    leer = shopping.ShoppingList(titel="", art="fresh")
+    gruppen = shopping.zettel_posten(leer, leer, ["Drogerie:", "Zahnpasta"])
+    assert _posten(gruppen, "grund:Zahnpasta").abteilung == "Drogerie"
+
+
+def test_abgewaehltes_steht_unten_und_ist_markiert(config, rezepte, zutaten, plan):
+    """Oben steht, was noch zu holen ist – das ist der Sinn des Zettels."""
+    woche = plan.weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    erster = frisch.items[0]
+    key = f"frisch:{erster.slug}"
+    gruppen = shopping.zettel_posten(frisch, frisch, [], abgewaehlt={key})
+
+    posten = _posten(gruppen, key)
+    assert posten.abgewaehlt is True
+    for _, liste in gruppen:
+        abgewaehlt = [i for i, p in enumerate(liste) if p.abgewaehlt]
+        offen = [i for i, p in enumerate(liste) if not p.abgewaehlt]
+        if abgewaehlt and offen:
+            assert min(abgewaehlt) > max(offen), "Abgewähltes gehört ans Ende"
+
+
+def test_abwahl_ueberlebt_das_speichern(config, tmp_path, monkeypatch):
+    monkeypatch.setenv("ESSENSPLANER_PLANS_DIR", str(tmp_path))
+    shopping.speichere_abwahl(config, "2026-12-04", {"grund:Milch", "frisch:butter"})
+    assert shopping.lade_abwahl(config, "2026-12-04") == {"grund:Milch", "frisch:butter"}
+    assert shopping.lade_abwahl(config, "2026-12-11") == set()
+
+
+def test_kaputte_abwahl_blockiert_den_einkauf_nicht(config, tmp_path, monkeypatch):
+    """Im Zweifel steht alles auf dem Zettel: das ist die harmlose Seite."""
+    monkeypatch.setenv("ESSENSPLANER_PLANS_DIR", str(tmp_path))
+    shopping.abwahl_pfad(config).write_text("{kein json", encoding="utf-8")
+    assert shopping.lade_abwahl(config, "2026-12-04") == set()
+
+
+def test_anker_ueberlebt_umlaute_und_klammern():
+    """Die Sprungmarke muss in eine URL passen, der Schlüssel darf alles enthalten."""
+    assert shopping.anker("grund:Milch (2 l)") == "grund-milch--2-l"
+    assert shopping.anker("frisch:gemüse") == "frisch-gem-se"
+    assert shopping.anker(":::") == "posten"
