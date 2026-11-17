@@ -29,7 +29,7 @@ Tests. Ein neues Rezept ist nur eine YAML-Datei plus `essensplaner validate`.
 ## Befehle
 
 ```bash
-uv venv --python 3.12                     # Windows: uv venv --python 3.12
+uv venv --python 3.12                     # holt sich die 3.12 selbst, falls nötig
 uv pip install -e ".[dev]"
 source .venv/bin/activate                 # Windows: .venv\Scripts\activate
 
