@@ -39,6 +39,13 @@
   }
   .weg { color: var(--ink-leise); text-decoration: line-through; }
   .quelle { color: var(--ink-leise); font-size: 12px; }
+  form.ergaenzen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
 </style>
 
 {% for abteilung, posten in gruppen %}
@@ -72,6 +79,14 @@
                 <span class="quelle">&middot; {{ p.hinweis }}</span>
               {%- endif %}
             </span>
+            {% if p.quelle == 'extra' %}
+              <form method="post" style="margin-left: auto;"
+                    action="{{ url_for('einkauf_streichen', monat=monat, freitag=woche.start.isoformat()) }}">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                <input type="hidden" name="text" value="{{ p.text }}">
+                <button class="knopf" type="submit" title="Vom Zettel nehmen">&times;</button>
+              </form>
+            {% endif %}
           </li>
         {% endfor %}
       </ul>
@@ -83,9 +98,35 @@
   </section>
 {% endfor %}
 
+<section class="karte">
+  <div class="kopf">
+    <h2>Noch etwas dazu</h2>
+  </div>
+  <div class="zeile" style="display: block;">
+    <form method="post" class="ergaenzen"
+          action="{{ url_for('einkauf_ergaenzen', monat=monat, freitag=woche.start.isoformat()) }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="text" name="text" placeholder="Grillkohle" required
+             maxlength="120" style="flex: 1 1 200px;">
+      <select name="abteilung">
+        {% for a in abteilungen %}
+          <option value="{{ a }}">{{ a }}</option>
+        {% endfor %}
+      </select>
+      <button class="knopf haupt" type="submit" name="dauerhaft" value="0">Nur diese Woche</button>
+      <button class="knopf" type="submit" name="dauerhaft" value="1">Immer dabei</button>
+    </form>
+    <p class="leise" style="font-size: 12.5px; margin-bottom: 0;">
+      „Nur diese Woche“ steht auf diesem Zettel und sonst nirgends.
+      „Immer dabei“ legt den Posten in den Speicher – dann steht er auf
+      jedem Zettel, bis du ihn dort herausnimmst.
+    </p>
+  </div>
+</section>
+
 <p>
   <a class="knopf" href="{{ url_for('woche_ansehen', monat=monat, freitag=woche.start.isoformat()) }}">Zurück zur Woche</a>
-  <a class="knopf" href="{{ url_for('grundeinkauf') }}">Grundeinkauf bearbeiten</a>
+  <a class="knopf" href="{{ url_for('grundeinkauf') }}">Speicher verwalten</a>
   {% if abgewaehlt %}
     <form method="post" style="display: inline;"
           action="{{ url_for('einkauf_zuruecksetzen', monat=monat, freitag=woche.start.isoformat()) }}">

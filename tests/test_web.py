@@ -955,3 +955,154 @@ def test_abwaehlen_verlangt_anmeldung(client, plan):
     antwort = client.post(pfad, data={"key": "grund:Milch"})
     assert antwort.status_code == 302
     assert "/anmelden" in antwort.headers["Location"]
+
+
+# -------------------------------------- Ergaenzen und der Speicher im Web
+
+
+def test_posten_nur_fuer_diese_woche_ergaenzen(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    antwort = angemeldet.post(
+        pfad + "/ergaenzen",
+        data={"csrf": _token(seite.data), "text": "Grillkohle", "abteilung": "Sonstiges"},
+        follow_redirects=True,
+    )
+    text = antwort.get_data(as_text=True)
+    assert "Grillkohle" in text
+    assert "nur diese Woche" in text
+    assert [e["text"] for e in shopping.lade_extra(config, woche.start.isoformat())] == [
+        "Grillkohle"
+    ]
+    # Der Speicher bleibt unberuehrt: das war ausdruecklich die andere Taste.
+    assert "Grillkohle" not in shopping.lade_grundeinkauf(config)[0]
+
+
+def test_posten_dauerhaft_in_den_speicher(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    antwort = angemeldet.post(
+        pfad + "/ergaenzen",
+        data={
+            "csrf": _token(seite.data),
+            "text": "Haferflocken",
+            "abteilung": "Trockenware",
+            "dauerhaft": "1",
+        },
+        follow_redirects=True,
+    )
+    assert "Haferflocken" in antwort.get_data(as_text=True)
+    assert "Haferflocken" in shopping.lade_grundeinkauf(config)[0]
+    assert shopping.lade_extra(config, woche.start.isoformat()) == []
+
+
+def test_dauerhafter_posten_steht_auch_auf_der_naechsten_woche(angemeldet, plan, config):
+    """Das ist der Unterschied zu 'nur diese Woche'."""
+    erste, zweite = plan.weeks[0], plan.weeks[1]
+    pfad = f"/monat/{MONAT}/woche/{erste.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    angemeldet.post(
+        pfad + "/ergaenzen",
+        data={
+            "csrf": _token(seite.data),
+            "text": "Haferflocken",
+            "abteilung": "Trockenware",
+            "dauerhaft": "1",
+        },
+    )
+    spaeter = angemeldet.get(f"/monat/{MONAT}/woche/{zweite.start.isoformat()}/einkauf").get_data(
+        as_text=True
+    )
+    assert "Haferflocken" in spaeter
+
+
+def test_ergaenzter_posten_laesst_sich_streichen(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    angemeldet.post(
+        pfad + "/ergaenzen",
+        data={"csrf": _token(seite.data), "text": "Grillkohle", "abteilung": "Sonstiges"},
+    )
+    seite = angemeldet.get(pfad)
+    angemeldet.post(pfad + "/streichen", data={"csrf": _token(seite.data), "text": "Grillkohle"})
+    assert shopping.lade_extra(config, woche.start.isoformat()) == []
+
+
+def test_ergaenzen_ohne_token_wird_abgewiesen(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf/ergaenzen"
+    assert angemeldet.post(pfad, data={"text": "Grillkohle"}).status_code == 400
+    assert shopping.lade_extra(config, woche.start.isoformat()) == []
+
+
+def test_leerer_posten_wird_mit_meldung_abgelehnt(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    antwort = angemeldet.post(
+        pfad + "/ergaenzen",
+        data={"csrf": _token(seite.data), "text": "   ", "abteilung": "Sonstiges"},
+        follow_redirects=True,
+    )
+    assert "Ohne Namen" in antwort.get_data(as_text=True)
+
+
+def test_speicherseite_zeigt_posten_einzeln(angemeldet, config):
+    seite = angemeldet.get("/grundeinkauf")
+    text = seite.data
+    angemeldet.post(
+        "/grundeinkauf/hinzufuegen",
+        data={"csrf": _token(text), "text": "Haferflocken", "abteilung": "Trockenware"},
+    )
+    nachher = angemeldet.get("/grundeinkauf").get_data(as_text=True)
+    assert "Haferflocken" in nachher
+    assert 'name="alt"' in nachher, "Jeder Posten braucht sein eigenes Formular"
+
+
+def test_speicherposten_umbenennen_ueber_das_web(angemeldet, config):
+    seite = angemeldet.get("/grundeinkauf")
+    angemeldet.post(
+        "/grundeinkauf/hinzufuegen",
+        data={"csrf": _token(seite.data), "text": "Haferflocken", "abteilung": "Trockenware"},
+    )
+    seite = angemeldet.get("/grundeinkauf")
+    angemeldet.post(
+        "/grundeinkauf/aendern",
+        data={
+            "csrf": _token(seite.data),
+            "alt": "Haferflocken",
+            "text": "Grobe Haferflocken",
+            "abteilung": "Trockenware",
+        },
+    )
+    zeilen = shopping.lade_grundeinkauf(config)[0]
+    assert "Grobe Haferflocken" in zeilen
+    assert "Haferflocken" not in zeilen
+
+
+def test_speicherposten_entfernen_ueber_das_web(angemeldet, config):
+    seite = angemeldet.get("/grundeinkauf")
+    angemeldet.post(
+        "/grundeinkauf/hinzufuegen",
+        data={"csrf": _token(seite.data), "text": "Haferflocken", "abteilung": "Trockenware"},
+    )
+    seite = angemeldet.get("/grundeinkauf")
+    angemeldet.post(
+        "/grundeinkauf/entfernen", data={"csrf": _token(seite.data), "text": "Haferflocken"}
+    )
+    assert "Haferflocken" not in shopping.lade_grundeinkauf(config)[0]
+
+
+def test_speicher_aendern_ohne_token_wird_abgewiesen(angemeldet):
+    assert angemeldet.post("/grundeinkauf/hinzufuegen", data={"text": "X"}).status_code == 400
+    assert angemeldet.post("/grundeinkauf/entfernen", data={"text": "X"}).status_code == 400
+    assert angemeldet.post("/grundeinkauf/aendern", data={"alt": "X"}).status_code == 400
+
+
+def test_speicher_aendern_verlangt_anmeldung(client):
+    antwort = client.post("/grundeinkauf/hinzufuegen", data={"text": "X"})
+    assert antwort.status_code == 302
+    assert "/anmelden" in antwort.headers["Location"]

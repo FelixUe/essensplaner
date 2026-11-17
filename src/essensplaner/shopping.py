@@ -633,6 +633,7 @@ def zettel_posten(
     vorrat: ShoppingList,
     grund_zeilen: list[str],
     abgewaehlt: set[str] | None = None,
+    extra: list[dict[str, str]] | None = None,
 ) -> list[tuple[str, list[ZettelPosten]]]:
     """Alle drei Quellen zu einem Zettel in Ladenreihenfolge zusammenführen.
 
@@ -673,6 +674,20 @@ def zettel_posten(
                     abgewaehlt=key in gewaehlt,
                 )
             )
+
+    for eintrag in extra or []:
+        key = f"extra:{eintrag['text']}"
+        abteilung = _zettel_abteilung(eintrag.get("abteilung", ""))
+        gruppen[abteilung].append(
+            ZettelPosten(
+                key=key,
+                text=eintrag["text"],
+                abteilung=abteilung,
+                quelle="extra",
+                hinweis="nur diese Woche",
+                abgewaehlt=key in gewaehlt,
+            )
+        )
 
     for posten in gruppen.values():
         # Abgewähltes nach unten, der Rest alphabetisch: der Zettel soll
@@ -729,3 +744,186 @@ def speichere_abwahl(config: Config, woche: str, keys: set[str]) -> None:
         bestand.pop(woche, None)
     pfad.parent.mkdir(parents=True, exist_ok=True)
     data.schreibe_json(pfad, bestand)
+
+
+# ------------------------------------- Grundeinkauf als verwalteter Speicher
+
+
+def _ist_ueberschrift(zeile: str) -> bool:
+    return zeile.endswith(":") and len(zeile) > 1
+
+
+def grundeinkauf_posten(zeilen: list[str]) -> list[dict[str, str]]:
+    """Die Zeilen als einzelne Posten mit ihrer Abteilung.
+
+    Gespeichert bleibt die Zeilenliste: sie ist das Format, das die Mail,
+    der Zettel und das Textfeld schon lesen. Für die Verwaltung ist eine
+    flache Liste aus Posten und Abteilung aber das, womit man arbeitet –
+    niemand will eine Überschrift verschieben, um Butter umzubenennen.
+    """
+    posten: list[dict[str, str]] = []
+    titel = ""
+    for zeile in zeilen:
+        if _ist_ueberschrift(zeile):
+            titel = zeile[:-1].strip()
+            continue
+        posten.append({"text": zeile, "abteilung": titel or GRUNDEINKAUF_REST})
+    return posten
+
+
+def grundeinkauf_abteilungen(zeilen: list[str]) -> list[str]:
+    """Abteilungen zur Auswahl: die bekannten und die selbst erfundenen."""
+    eigene = [z[:-1].strip() for z in zeilen if _ist_ueberschrift(z)]
+    bekannt = list(ABTEILUNG_REIHENFOLGE)
+    alle = bekannt + [e for e in eigene if e and e not in bekannt]
+    return sorted(alle, key=abteilung_sortierung)
+
+
+def _zeilen_aus_posten(posten: list[dict[str, str]]) -> list[str]:
+    """Aus der flachen Liste wieder Überschriften und Zeilen machen."""
+    nach_abteilung: dict[str, list[str]] = defaultdict(list)
+    for p in posten:
+        nach_abteilung[p["abteilung"] or GRUNDEINKAUF_REST].append(p["text"])
+    zeilen: list[str] = []
+    for abteilung in sorted(nach_abteilung, key=abteilung_sortierung):
+        zeilen.append(f"{abteilung}:")
+        zeilen.extend(nach_abteilung[abteilung])
+    return zeilen
+
+
+def _grundeinkauf_schreiben(config: Config, posten: list[dict[str, str]]) -> list[str]:
+    zeilen = pruefe_grundeinkauf(chr(10).join(_zeilen_aus_posten(posten)))
+    data.schreibe_json(
+        grundeinkauf_pfad(config),
+        {"zeilen": zeilen, "geaendert": date.today().isoformat()},
+    )
+    return zeilen
+
+
+def pruefe_posten(text: str) -> str:
+    """Einen einzelnen Posten annehmen – oder sagen, was nicht geht."""
+    sauber = " ".join(text.split())
+    if not sauber:
+        raise EinkaufFehler("Ohne Namen lässt sich nichts hinzufügen.")
+    if len(sauber) > GRUNDEINKAUF_MAX_LAENGE:
+        raise EinkaufFehler(f"Der Posten ist zu lang (mehr als {GRUNDEINKAUF_MAX_LAENGE} Zeichen).")
+    if _ist_ueberschrift(sauber):
+        # Sonst legt ein Posten namens "Backwaren:" beim nächsten Laden eine
+        # Abteilung an und verschiebt alles, was darunter steht.
+        raise EinkaufFehler("Ein Posten darf nicht auf einen Doppelpunkt enden.")
+    return sauber
+
+
+def grundeinkauf_hinzufuegen(config: Config, text: str, abteilung: str) -> list[str]:
+    """Einen Posten in den Speicher legen."""
+    sauber = pruefe_posten(text)
+    zeilen, _ = lade_grundeinkauf(config)
+    posten = grundeinkauf_posten(zeilen)
+    if any(p["text"].casefold() == sauber.casefold() for p in posten):
+        raise EinkaufFehler(f"„{sauber}“ steht schon im Speicher.")
+    ziel = " ".join(abteilung.split()) or GRUNDEINKAUF_REST
+    posten.append({"text": sauber, "abteilung": ziel})
+    return _grundeinkauf_schreiben(config, posten)
+
+
+def grundeinkauf_entfernen(config: Config, text: str) -> list[str]:
+    """Einen Posten aus dem Speicher nehmen."""
+    zeilen, _ = lade_grundeinkauf(config)
+    posten = [p for p in grundeinkauf_posten(zeilen) if p["text"] != text]
+    return _grundeinkauf_schreiben(config, posten)
+
+
+def grundeinkauf_aendern(config: Config, alt: str, neu: str, abteilung: str) -> list[str]:
+    """Einen Posten umbenennen oder in eine andere Abteilung legen."""
+    sauber = pruefe_posten(neu)
+    zeilen, _ = lade_grundeinkauf(config)
+    posten = grundeinkauf_posten(zeilen)
+    if not any(p["text"] == alt for p in posten):
+        raise EinkaufFehler(f"„{alt}“ steht nicht im Speicher.")
+    if sauber.casefold() != alt.casefold() and any(
+        p["text"].casefold() == sauber.casefold() for p in posten
+    ):
+        raise EinkaufFehler(f"„{sauber}“ steht schon im Speicher.")
+    ziel = " ".join(abteilung.split()) or GRUNDEINKAUF_REST
+    for p in posten:
+        if p["text"] == alt:
+            p["text"] = sauber
+            p["abteilung"] = ziel
+    return _grundeinkauf_schreiben(config, posten)
+
+
+# --------------------------------------------- Zusätzliche Posten je Woche
+
+
+def extra_pfad(config: Config) -> Path:
+    return config.plans_dir / "einkauf-extra.json"
+
+
+def lade_extra(config: Config, woche: str) -> list[dict[str, str]]:
+    """Was für diese eine Woche von Hand auf den Zettel geschrieben wurde."""
+    pfad = extra_pfad(config)
+    if not pfad.exists():
+        return []
+    try:
+        with pfad.open(encoding="utf-8") as fh:
+            roh = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        log.warning("einkauf-extra.json nicht lesbar (%s) – es gilt nichts", exc)
+        return []
+    if not isinstance(roh, dict):
+        return []
+    eintraege = roh.get(woche, [])
+    if not isinstance(eintraege, list):
+        return []
+    sauber: list[dict[str, str]] = []
+    for e in eintraege:
+        if isinstance(e, dict) and isinstance(e.get("text"), str):
+            sauber.append(
+                {
+                    "text": e["text"],
+                    "abteilung": str(e.get("abteilung") or GRUNDEINKAUF_REST),
+                }
+            )
+    return sauber
+
+
+def _extra_schreiben(config: Config, woche: str, eintraege: list[dict[str, str]]) -> None:
+    pfad = extra_pfad(config)
+    bestand: dict[str, list[dict[str, str]]] = {}
+    if pfad.exists():
+        try:
+            with pfad.open(encoding="utf-8") as fh:
+                roh = json.load(fh)
+            if isinstance(roh, dict):
+                bestand = {str(k): v for k, v in roh.items() if isinstance(v, list)}
+        except (OSError, json.JSONDecodeError) as exc:
+            log.warning("einkauf-extra.json nicht lesbar (%s) – wird neu geschrieben", exc)
+    if eintraege:
+        bestand[woche] = eintraege
+    else:
+        bestand.pop(woche, None)
+    pfad.parent.mkdir(parents=True, exist_ok=True)
+    data.schreibe_json(pfad, bestand)
+
+
+def extra_hinzufuegen(
+    config: Config, woche: str, text: str, abteilung: str
+) -> list[dict[str, str]]:
+    """Einen Posten nur für diese Woche auf den Zettel schreiben."""
+    sauber = pruefe_posten(text)
+    eintraege = lade_extra(config, woche)
+    if any(e["text"].casefold() == sauber.casefold() for e in eintraege):
+        raise EinkaufFehler(f"„{sauber}“ steht schon auf diesem Zettel.")
+    if len(eintraege) >= GRUNDEINKAUF_MAX_ZEILEN:
+        raise EinkaufFehler("Für diese Woche sind schon genug Posten ergänzt.")
+    eintraege.append(
+        {"text": sauber, "abteilung": " ".join(abteilung.split()) or GRUNDEINKAUF_REST}
+    )
+    _extra_schreiben(config, woche, eintraege)
+    return eintraege
+
+
+def extra_entfernen(config: Config, woche: str, text: str) -> list[dict[str, str]]:
+    eintraege = [e for e in lade_extra(config, woche) if e["text"] != text]
+    _extra_schreiben(config, woche, eintraege)
+    return eintraege

@@ -439,7 +439,8 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             woche, kat.rezepte, ctx.zutaten, ctx.config, ctx.bestand
         )
         abgewaehlt = shopping.lade_abwahl(ctx.config, woche.start.isoformat())
-        gruppen = shopping.zettel_posten(frisch, vorrat, zeilen, abgewaehlt)
+        extra = shopping.lade_extra(ctx.config, woche.start.isoformat())
+        gruppen = shopping.zettel_posten(frisch, vorrat, zeilen, abgewaehlt, extra)
         offen = sum(1 for _, posten in gruppen for p in posten if not p.abgewaehlt)
         return render_template(
             "einkauf.html.j2",
@@ -449,8 +450,53 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             offen=offen,
             abgewaehlt=len(abgewaehlt),
             grundeinkauf_eigen=eigen,
+            abteilungen=shopping.grundeinkauf_abteilungen(zeilen),
             config=ctx.config,
         )
+
+    @app.post("/monat/<monat>/woche/<freitag>/einkauf/ergaenzen")
+    def einkauf_ergaenzen(monat: str, freitag: str):
+        """Etwas von Hand auf den Zettel schreiben.
+
+        Zwei Wege, weil es zwei Fälle sind: die Grillkohle für dieses eine
+        Wochenende gehört auf diesen Zettel, das Klopapier in den Speicher.
+        Wer alles in den Speicher legt, hat dort nach drei Monaten eine
+        Liste, die niemand mehr liest.
+        """
+        csrf_pruefen()
+        _, woche = _woche_holen(monat, freitag)
+        text = request.form.get("text", "")
+        abteilung = request.form.get("abteilung", "")
+        dauerhaft = request.form.get("dauerhaft") == "1"
+        ziel = url_for("einkauf", monat=monat, freitag=freitag)
+        try:
+            with data.PLAN_SPERRE:
+                if dauerhaft:
+                    shopping.grundeinkauf_hinzufuegen(ctx.config, text, abteilung)
+                else:
+                    shopping.extra_hinzufuegen(ctx.config, woche.start.isoformat(), text, abteilung)
+        except shopping.EinkaufFehler as exc:
+            flash(str(exc), "fehler")
+            return redirect(ziel)
+        name = " ".join(text.split())
+        if dauerhaft:
+            flash(f"{name} steht jetzt im Speicher und auf jedem Zettel.", "erfolg")
+        else:
+            flash(f"{name} steht auf dem Zettel dieser Woche.", "erfolg")
+        return redirect(
+            f"{ziel}#posten-{shopping.anker(('grund:' if dauerhaft else 'extra:') + name)}"
+        )
+
+    @app.post("/monat/<monat>/woche/<freitag>/einkauf/streichen")
+    def einkauf_streichen(monat: str, freitag: str):
+        """Einen selbst ergänzten Posten wieder vom Zettel nehmen."""
+        csrf_pruefen()
+        _, woche = _woche_holen(monat, freitag)
+        text = request.form.get("text", "")
+        with data.PLAN_SPERRE:
+            shopping.extra_entfernen(ctx.config, woche.start.isoformat(), text)
+        flash(f"{text} steht nicht mehr auf dem Zettel.", "hinweis")
+        return redirect(url_for("einkauf", monat=monat, freitag=freitag))
 
     @app.post("/monat/<monat>/woche/<freitag>/einkauf/umschalten")
     def einkauf_umschalten(monat: str, freitag: str):
@@ -672,10 +718,53 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             "grundeinkauf.html.j2",
             text=text,
             gruppen=shopping.grundeinkauf_gruppen(zeilen),
+            posten=shopping.grundeinkauf_posten(zeilen),
+            abteilungen=shopping.grundeinkauf_abteilungen(zeilen),
             eigen=eigen,
             vorschlag=vorschlag,
             config=ctx.config,
         )
+
+    @app.post("/grundeinkauf/hinzufuegen")
+    def grundeinkauf_hinzufuegen():
+        """Einen einzelnen Posten in den Speicher legen."""
+        csrf_pruefen()
+        try:
+            with data.PLAN_SPERRE:
+                shopping.grundeinkauf_hinzufuegen(
+                    ctx.config, request.form.get("text", ""), request.form.get("abteilung", "")
+                )
+        except shopping.EinkaufFehler as exc:
+            flash(str(exc), "fehler")
+        else:
+            flash(f"{' '.join(request.form.get('text', '').split())} liegt im Speicher.", "erfolg")
+        return redirect(url_for("grundeinkauf"))
+
+    @app.post("/grundeinkauf/aendern")
+    def grundeinkauf_aendern():
+        """Einen Posten umbenennen oder in eine andere Abteilung legen."""
+        csrf_pruefen()
+        alt = request.form.get("alt", "")
+        try:
+            with data.PLAN_SPERRE:
+                shopping.grundeinkauf_aendern(
+                    ctx.config, alt, request.form.get("text", ""), request.form.get("abteilung", "")
+                )
+        except shopping.EinkaufFehler as exc:
+            flash(str(exc), "fehler")
+        else:
+            flash("Gespeichert.", "erfolg")
+        return redirect(url_for("grundeinkauf"))
+
+    @app.post("/grundeinkauf/entfernen")
+    def grundeinkauf_entfernen():
+        """Einen Posten aus dem Speicher nehmen."""
+        csrf_pruefen()
+        text = request.form.get("text", "")
+        with data.PLAN_SPERRE:
+            shopping.grundeinkauf_entfernen(ctx.config, text)
+        flash(f"{text} ist nicht mehr im Speicher.", "hinweis")
+        return redirect(url_for("grundeinkauf"))
 
     # ---------------------------------------------------------- Rezepte
 
