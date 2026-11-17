@@ -462,3 +462,182 @@ def test_mengenklammer_stoert_den_abgleich_nicht(mach_plan, rezepte, zutaten, co
     assert name, "die Woche braucht Einkäufe, sonst prüft der Test nichts"
     zeile = f"{name} (2 l)"
     assert shopping.grundeinkauf_doppelt([zeile], frisch, vorrat) == {zeile}
+
+
+# ---------------------------------------------------- Ein Zettel statt drei
+
+
+def _posten(gruppen, key):
+    for _, liste in gruppen:
+        for p in liste:
+            if p.key == key:
+                return p
+    return None
+
+
+def test_zettel_sortiert_nach_ladenweg(config, rezepte, zutaten, plan):
+    """Die Gruppen stehen in Ladenreihenfolge, nicht nach Herkunft."""
+    woche = plan.weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    vorrat = shopping.wochen_pantry_liste(woche, rezepte, zutaten, config)
+    gruppen = shopping.zettel_posten(frisch, vorrat, [])
+
+    namen = [name for name, _ in gruppen]
+    assert namen == sorted(namen, key=shopping.abteilung_sortierung)
+
+
+def test_zettel_nimmt_alle_drei_quellen_auf(config, rezepte, zutaten, plan):
+    woche = plan.weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    vorrat = shopping.wochen_pantry_liste(woche, rezepte, zutaten, config)
+    gruppen = shopping.zettel_posten(frisch, vorrat, ["Haushalt:", "Klopapier"])
+
+    quellen = {p.quelle for _, liste in gruppen for p in liste}
+    assert quellen == {"frisch", "vorrat", "grund"}
+    assert _posten(gruppen, "grund:Klopapier") is not None
+
+
+def test_grundeinkauf_landet_in_der_passenden_abteilung(config):
+    """'Kühlschrank' im Textfeld meint dasselbe Regal wie 'Kühlregal' in den Stammdaten."""
+    leer = shopping.ShoppingList(titel="", art="fresh")
+    gruppen = shopping.zettel_posten(leer, leer, ["Kühlschrank:", "Butter"])
+
+    assert _posten(gruppen, "grund:Butter").abteilung == "Kühlregal"
+
+
+def test_eigene_ueberschrift_bleibt_eine_eigene_gruppe(config):
+    leer = shopping.ShoppingList(titel="", art="fresh")
+    gruppen = shopping.zettel_posten(leer, leer, ["Drogerie:", "Zahnpasta"])
+    assert _posten(gruppen, "grund:Zahnpasta").abteilung == "Drogerie"
+
+
+def test_abgewaehltes_steht_unten_und_ist_markiert(config, rezepte, zutaten, plan):
+    """Oben steht, was noch zu holen ist – das ist der Sinn des Zettels."""
+    woche = plan.weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    erster = frisch.items[0]
+    key = f"frisch:{erster.slug}"
+    gruppen = shopping.zettel_posten(frisch, frisch, [], abgewaehlt={key})
+
+    posten = _posten(gruppen, key)
+    assert posten.abgewaehlt is True
+    for _, liste in gruppen:
+        abgewaehlt = [i for i, p in enumerate(liste) if p.abgewaehlt]
+        offen = [i for i, p in enumerate(liste) if not p.abgewaehlt]
+        if abgewaehlt and offen:
+            assert min(abgewaehlt) > max(offen), "Abgewähltes gehört ans Ende"
+
+
+def test_abwahl_ueberlebt_das_speichern(config, tmp_path, monkeypatch):
+    monkeypatch.setenv("ESSENSPLANER_PLANS_DIR", str(tmp_path))
+    shopping.speichere_abwahl(config, "2026-12-04", {"grund:Milch", "frisch:butter"})
+    assert shopping.lade_abwahl(config, "2026-12-04") == {"grund:Milch", "frisch:butter"}
+    assert shopping.lade_abwahl(config, "2026-12-11") == set()
+
+
+def test_kaputte_abwahl_blockiert_den_einkauf_nicht(config, tmp_path, monkeypatch):
+    """Im Zweifel steht alles auf dem Zettel: das ist die harmlose Seite."""
+    monkeypatch.setenv("ESSENSPLANER_PLANS_DIR", str(tmp_path))
+    shopping.abwahl_pfad(config).write_text("{kein json", encoding="utf-8")
+    assert shopping.lade_abwahl(config, "2026-12-04") == set()
+
+
+def test_anker_ueberlebt_umlaute_und_klammern():
+    """Die Sprungmarke muss in eine URL passen, der Schlüssel darf alles enthalten."""
+    assert shopping.anker("grund:Milch (2 l)") == "grund-milch--2-l"
+    assert shopping.anker("frisch:gemüse") == "frisch-gem-se"
+    assert shopping.anker(":::") == "posten"
+
+
+# ------------------------------------------- Speicher und eigene Ergaenzungen
+
+
+@pytest.fixture
+def speicher(config, tmp_path, monkeypatch):
+    """Ein eigener Speicher, damit der Vorschlag die Tests nicht faerbt."""
+    monkeypatch.setenv("ESSENSPLANER_PLANS_DIR", str(tmp_path))
+    shopping.speichere_grundeinkauf(config, "Kühlregal:" + NL + "Butter")
+    return config
+
+
+def test_posten_anlegen_landet_in_seiner_abteilung(speicher):
+    shopping.grundeinkauf_hinzufuegen(speicher, "Haferflocken", "Trockenware")
+    posten = shopping.grundeinkauf_posten(shopping.lade_grundeinkauf(speicher)[0])
+    treffer = [p for p in posten if p["text"] == "Haferflocken"]
+    assert treffer and treffer[0]["abteilung"] == "Trockenware"
+
+
+def test_posten_doppelt_anlegen_wird_abgelehnt(speicher):
+    with pytest.raises(shopping.EinkaufFehler, match="steht schon"):
+        shopping.grundeinkauf_hinzufuegen(speicher, "butter", "Kühlregal")
+
+
+def test_posten_darf_keine_ueberschrift_werden(speicher):
+    """Sonst legt ein Posten beim naechsten Laden eine Abteilung an."""
+    with pytest.raises(shopping.EinkaufFehler, match="Doppelpunkt"):
+        shopping.grundeinkauf_hinzufuegen(speicher, "Backwaren:", "Backwaren")
+
+
+def test_posten_ohne_namen_wird_abgelehnt(speicher):
+    with pytest.raises(shopping.EinkaufFehler, match="Ohne Namen"):
+        shopping.grundeinkauf_hinzufuegen(speicher, "   ", "Backwaren")
+
+
+def test_posten_umbenennen_und_umsortieren(speicher):
+    shopping.grundeinkauf_aendern(speicher, "Butter", "Gute Butter", "Trockenware")
+    posten = shopping.grundeinkauf_posten(shopping.lade_grundeinkauf(speicher)[0])
+    assert [p["text"] for p in posten] == ["Gute Butter"]
+    assert posten[0]["abteilung"] == "Trockenware"
+
+
+def test_unbekannten_posten_aendern_wird_abgelehnt(speicher):
+    with pytest.raises(shopping.EinkaufFehler, match="steht nicht"):
+        shopping.grundeinkauf_aendern(speicher, "Gibtsnicht", "Egal", "Backwaren")
+
+
+def test_posten_entfernen(speicher):
+    shopping.grundeinkauf_entfernen(speicher, "Butter")
+    assert shopping.grundeinkauf_posten(shopping.lade_grundeinkauf(speicher)[0]) == []
+
+
+def test_speicher_bleibt_im_zeilenformat(speicher):
+    """Mail, Zettel und Textfeld lesen weiter dieselbe Zeilenliste."""
+    shopping.grundeinkauf_hinzufuegen(speicher, "Toast", "Backwaren")
+    zeilen, eigen = shopping.lade_grundeinkauf(speicher)
+    assert eigen is True
+    assert "Backwaren:" in zeilen
+    assert "Toast" in zeilen
+    # Die Abteilungen stehen in Ladenreihenfolge, Backwaren vor Kühlregal.
+    assert zeilen.index("Backwaren:") < zeilen.index("Kühlregal:")
+
+
+def test_extra_gilt_nur_fuer_seine_woche(config, tmp_path, monkeypatch):
+    monkeypatch.setenv("ESSENSPLANER_PLANS_DIR", str(tmp_path))
+    shopping.extra_hinzufuegen(config, "2026-12-04", "Grillkohle", "Sonstiges")
+    assert [e["text"] for e in shopping.lade_extra(config, "2026-12-04")] == ["Grillkohle"]
+    assert shopping.lade_extra(config, "2026-12-11") == []
+
+
+def test_extra_doppelt_wird_abgelehnt(config, tmp_path, monkeypatch):
+    monkeypatch.setenv("ESSENSPLANER_PLANS_DIR", str(tmp_path))
+    shopping.extra_hinzufuegen(config, "2026-12-04", "Grillkohle", "Sonstiges")
+    with pytest.raises(shopping.EinkaufFehler, match="steht schon"):
+        shopping.extra_hinzufuegen(config, "2026-12-04", "grillkohle", "Sonstiges")
+
+
+def test_extra_entfernen(config, tmp_path, monkeypatch):
+    monkeypatch.setenv("ESSENSPLANER_PLANS_DIR", str(tmp_path))
+    shopping.extra_hinzufuegen(config, "2026-12-04", "Grillkohle", "Sonstiges")
+    shopping.extra_entfernen(config, "2026-12-04", "Grillkohle")
+    assert shopping.lade_extra(config, "2026-12-04") == []
+
+
+def test_extra_steht_mit_auf_dem_zettel(config):
+    leer = shopping.ShoppingList(titel="", art="fresh")
+    gruppen = shopping.zettel_posten(
+        leer, leer, [], extra=[{"text": "Grillkohle", "abteilung": "Sonstiges"}]
+    )
+    posten = _posten(gruppen, "extra:Grillkohle")
+    assert posten is not None
+    assert posten.quelle == "extra"
+    assert posten.hinweis == "nur diese Woche"

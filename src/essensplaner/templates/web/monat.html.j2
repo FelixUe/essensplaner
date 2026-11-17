@@ -81,9 +81,14 @@
   {% for woche in plan.weeks %}
     <section class="karte">
       <div class="kopf">
-        <h2>Woche ab {{ woche.start | datum_kurz }}</h2>
+        <h2>
+          <a href="{{ url_for('woche_ansehen', monat=monat, freitag=woche.start) }}"
+             style="color: inherit;">Woche ab {{ woche.start | datum_kurz }}</a>
+        </h2>
         <span class="spanne">bis {{ woche.ende | datum_kurz }}</span>
         <a class="knopf" style="margin-left: auto;"
+           href="{{ url_for('woche_ansehen', monat=monat, freitag=woche.start) }}">Woche</a>
+        <a class="knopf"
            href="{{ url_for('einkauf', monat=monat, freitag=woche.start) }}">Einkauf</a>
       </div>
 

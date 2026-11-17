@@ -362,15 +362,8 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
         flash(f"Plan für {_monat_titel(monat)} erzeugt.", "erfolg")
         return redirect(url_for("monat_ansehen", monat=monat))
 
-    @app.get("/monat/<monat>/woche/<freitag>/einkauf")
-    def einkauf(monat: str, freitag: str):
-        """Was für eine Woche eingekauft werden muss.
-
-        Frischware und Vorratszutaten getrennt: die Frischware wird am
-        Freitag gekauft, die Vorratszutaten kann man vorziehen. Beide
-        Listen stehen hier zusammen, weil ohne Monatsmail niemand sonst
-        die Vorratszutaten nennt.
-        """
+    def _woche_holen(monat: str, freitag: str):
+        """Plan und Woche zu einer Freitags-URL, sonst 404."""
         plan = plan_holen(monat)
         if plan is None:
             abort(404)
@@ -381,22 +374,155 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
         woche = plan.woche_ab(start) or plan.woche_fuer(start)
         if woche is None:
             abort(404)
+        return plan, woche
+
+    @app.get("/monat/<monat>/woche/<freitag>")
+    def woche_ansehen(monat: str, freitag: str):
+        """Eine einzelne Woche als Arbeitsfläche.
+
+        Die Monatsseite zeigt vier bis fünf Wochen untereinander – gut für
+        den Überblick, unhandlich, wenn man an einer Woche arbeitet. Hier
+        steht nur diese eine, dafür mit allem, was dazugehört: was auf der
+        Merkliste liegt und wohin es passt, und der Weg zum Einkaufszettel.
+        """
+        plan, woche = _woche_holen(monat, freitag)
+        wochen = plan.weeks
+        nummer = next((i for i, w in enumerate(wochen) if w.start == woche.start), 0)
+
+        # Zu jedem vorgemerkten Gericht die Tage dieser Woche, an denen es
+        # erlaubt ist. Ohne das muss man jeden Tag einzeln aufmachen, um zu
+        # sehen, wo das Gericht aus dem Backlog überhaupt hinkann.
+        vorgemerkt = []
+        for slug in katalog.lade_merkliste(ctx.config):
+            rezept = kat.rezepte.get(slug)
+            if rezept is None:
+                continue
+            plaetze = [
+                m
+                for m in woche.meals
+                if any(r.slug == slug for r in kat.planner.alternativen(plan, m.datum, m.slot))
+            ]
+            vorgemerkt.append({"rezept": rezept, "plaetze": plaetze})
+
+        return render_template(
+            "woche.html.j2",
+            monat=monat,
+            plan=plan,
+            woche=woche,
+            nummer=nummer + 1,
+            anzahl=len(wochen),
+            voriges=wochen[nummer - 1].start if nummer > 0 else None,
+            naechstes=wochen[nummer + 1].start if nummer + 1 < len(wochen) else None,
+            rezepte=kat.rezepte,
+            vorgemerkt=vorgemerkt,
+            config=ctx.config,
+            heute=date.today(),
+        )
+
+    @app.get("/monat/<monat>/woche/<freitag>/einkauf")
+    def einkauf(monat: str, freitag: str):
+        """Ein Einkaufszettel für diese Woche.
+
+        Früher standen hier drei Listen: Frischware, Vorratszutaten und
+        Grundeinkauf. Im Laden läuft man aber einen Weg, nicht drei –
+        deshalb jetzt ein Zettel in Ladenreihenfolge. Woher ein Posten
+        kommt, steht an der Zeile.
+
+        Was noch zu Hause ist, lässt sich abwählen. Das gilt nur für diesen
+        Zettel und wird nicht zum Vorrat: ein Haken, den man einmal setzt,
+        soll nicht stillschweigend künftige Einkäufe kürzen.
+        """
+        _, woche = _woche_holen(monat, freitag)
         zeilen, eigen = shopping.lade_grundeinkauf(ctx.config)
         frisch = shopping.frischeliste(woche, kat.rezepte, ctx.zutaten, ctx.config, ctx.bestand)
         vorrat = shopping.wochen_pantry_liste(
             woche, kat.rezepte, ctx.zutaten, ctx.config, ctx.bestand
         )
+        abgewaehlt = shopping.lade_abwahl(ctx.config, woche.start.isoformat())
+        extra = shopping.lade_extra(ctx.config, woche.start.isoformat())
+        gruppen = shopping.zettel_posten(frisch, vorrat, zeilen, abgewaehlt, extra)
+        offen = sum(1 for _, posten in gruppen for p in posten if not p.abgewaehlt)
         return render_template(
             "einkauf.html.j2",
             monat=monat,
             woche=woche,
-            frisch=frisch,
-            vorrat=vorrat,
-            grundeinkauf=shopping.grundeinkauf_gruppen(zeilen),
+            gruppen=gruppen,
+            offen=offen,
+            abgewaehlt=len(abgewaehlt),
             grundeinkauf_eigen=eigen,
-            grundeinkauf_doppelt=shopping.grundeinkauf_doppelt(zeilen, frisch, vorrat),
+            abteilungen=shopping.grundeinkauf_abteilungen(zeilen),
             config=ctx.config,
         )
+
+    @app.post("/monat/<monat>/woche/<freitag>/einkauf/ergaenzen")
+    def einkauf_ergaenzen(monat: str, freitag: str):
+        """Etwas von Hand auf den Zettel schreiben.
+
+        Zwei Wege, weil es zwei Fälle sind: die Grillkohle für dieses eine
+        Wochenende gehört auf diesen Zettel, das Klopapier in den Speicher.
+        Wer alles in den Speicher legt, hat dort nach drei Monaten eine
+        Liste, die niemand mehr liest.
+        """
+        csrf_pruefen()
+        _, woche = _woche_holen(monat, freitag)
+        text = request.form.get("text", "")
+        abteilung = request.form.get("abteilung", "")
+        dauerhaft = request.form.get("dauerhaft") == "1"
+        ziel = url_for("einkauf", monat=monat, freitag=freitag)
+        try:
+            with data.PLAN_SPERRE:
+                if dauerhaft:
+                    shopping.grundeinkauf_hinzufuegen(ctx.config, text, abteilung)
+                else:
+                    shopping.extra_hinzufuegen(ctx.config, woche.start.isoformat(), text, abteilung)
+        except shopping.EinkaufFehler as exc:
+            flash(str(exc), "fehler")
+            return redirect(ziel)
+        name = " ".join(text.split())
+        if dauerhaft:
+            flash(f"{name} steht jetzt im Speicher und auf jedem Zettel.", "erfolg")
+        else:
+            flash(f"{name} steht auf dem Zettel dieser Woche.", "erfolg")
+        return redirect(
+            f"{ziel}#posten-{shopping.anker(('grund:' if dauerhaft else 'extra:') + name)}"
+        )
+
+    @app.post("/monat/<monat>/woche/<freitag>/einkauf/streichen")
+    def einkauf_streichen(monat: str, freitag: str):
+        """Einen selbst ergänzten Posten wieder vom Zettel nehmen."""
+        csrf_pruefen()
+        _, woche = _woche_holen(monat, freitag)
+        text = request.form.get("text", "")
+        with data.PLAN_SPERRE:
+            shopping.extra_entfernen(ctx.config, woche.start.isoformat(), text)
+        flash(f"{text} steht nicht mehr auf dem Zettel.", "hinweis")
+        return redirect(url_for("einkauf", monat=monat, freitag=freitag))
+
+    @app.post("/monat/<monat>/woche/<freitag>/einkauf/umschalten")
+    def einkauf_umschalten(monat: str, freitag: str):
+        """Einen Posten ab- oder wieder anwählen."""
+        csrf_pruefen()
+        _, woche = _woche_holen(monat, freitag)
+        key = request.form.get("key", "").strip()
+        if not key:
+            abort(400)
+        schluessel = woche.start.isoformat()
+        with data.PLAN_SPERRE:
+            abgewaehlt = shopping.lade_abwahl(ctx.config, schluessel)
+            abgewaehlt.symmetric_difference_update({key})
+            shopping.speichere_abwahl(ctx.config, schluessel, abgewaehlt)
+        ziel = url_for("einkauf", monat=monat, freitag=freitag)
+        return redirect(f"{ziel}#posten-{shopping.anker(key)}")
+
+    @app.post("/monat/<monat>/woche/<freitag>/einkauf/zuruecksetzen")
+    def einkauf_zuruecksetzen(monat: str, freitag: str):
+        """Alles wieder auf den Zettel."""
+        csrf_pruefen()
+        _, woche = _woche_holen(monat, freitag)
+        with data.PLAN_SPERRE:
+            shopping.speichere_abwahl(ctx.config, woche.start.isoformat(), set())
+        flash("Alle Posten stehen wieder auf dem Zettel.", "hinweis")
+        return redirect(url_for("einkauf", monat=monat, freitag=freitag))
 
     @app.get("/monat/<monat>/<datum>/<slot>")
     def tauschen_zeigen(monat: str, datum: str, slot: str):
@@ -592,10 +718,53 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             "grundeinkauf.html.j2",
             text=text,
             gruppen=shopping.grundeinkauf_gruppen(zeilen),
+            posten=shopping.grundeinkauf_posten(zeilen),
+            abteilungen=shopping.grundeinkauf_abteilungen(zeilen),
             eigen=eigen,
             vorschlag=vorschlag,
             config=ctx.config,
         )
+
+    @app.post("/grundeinkauf/hinzufuegen")
+    def grundeinkauf_hinzufuegen():
+        """Einen einzelnen Posten in den Speicher legen."""
+        csrf_pruefen()
+        try:
+            with data.PLAN_SPERRE:
+                shopping.grundeinkauf_hinzufuegen(
+                    ctx.config, request.form.get("text", ""), request.form.get("abteilung", "")
+                )
+        except shopping.EinkaufFehler as exc:
+            flash(str(exc), "fehler")
+        else:
+            flash(f"{' '.join(request.form.get('text', '').split())} liegt im Speicher.", "erfolg")
+        return redirect(url_for("grundeinkauf"))
+
+    @app.post("/grundeinkauf/aendern")
+    def grundeinkauf_aendern():
+        """Einen Posten umbenennen oder in eine andere Abteilung legen."""
+        csrf_pruefen()
+        alt = request.form.get("alt", "")
+        try:
+            with data.PLAN_SPERRE:
+                shopping.grundeinkauf_aendern(
+                    ctx.config, alt, request.form.get("text", ""), request.form.get("abteilung", "")
+                )
+        except shopping.EinkaufFehler as exc:
+            flash(str(exc), "fehler")
+        else:
+            flash("Gespeichert.", "erfolg")
+        return redirect(url_for("grundeinkauf"))
+
+    @app.post("/grundeinkauf/entfernen")
+    def grundeinkauf_entfernen():
+        """Einen Posten aus dem Speicher nehmen."""
+        csrf_pruefen()
+        text = request.form.get("text", "")
+        with data.PLAN_SPERRE:
+            shopping.grundeinkauf_entfernen(ctx.config, text)
+        flash(f"{text} ist nicht mehr im Speicher.", "hinweis")
+        return redirect(url_for("grundeinkauf"))
 
     # ---------------------------------------------------------- Rezepte
 
