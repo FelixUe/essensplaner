@@ -1,23 +1,23 @@
 {% extends "basis.html.j2" %}
-{% block titel %}Grundeinkauf – Essensplaner{% endblock %}
+{% block titel %}Speicher – Essensplaner{% endblock %}
 
 {% block inhalt %}
-<h1>Grundeinkauf</h1>
+<h1>Speicher</h1>
 <p class="leise">
-  Was unabhängig vom Plan sowieso mit soll: Milch, Brot, Kaffee. Die Liste ist
-  zum Durchgehen gedacht – Kühlschrank auf, Vorratsschrank auf, und was fehlt,
-  kommt mit. Sie wird nicht gerechnet, sondern von dir gepflegt, und steht auf
-  jedem Wocheneinkauf unter den beiden anderen Listen.
+  Was unabhängig vom Plan sowieso mit soll: Milch, Brot, Kaffee. Diese Posten
+  stehen auf jedem Wocheneinkauf – zwischen den gerechneten Zutaten, einsortiert
+  nach Abteilung. Sie werden nicht gerechnet, sondern hier gepflegt.
 </p>
 
 {% if vorschlag %}
   <p class="meldung hinweis">
-    Das sind die Grundnahrungsmittel zum Durchgehen. Deine bisherige Liste
-    bleibt stehen, bis du hier speicherst.
+    Das sind die Grundnahrungsmittel zum Durchgehen. Dein bisheriger Speicher
+    bleibt stehen, bis du unten speicherst.
   </p>
 {% elif not eigen %}
   <p class="meldung hinweis">
-    Das ist bisher nur ein Vorschlag. Speichern macht daraus deine Liste.
+    Das ist bisher nur ein Vorschlag. Die erste Änderung macht daraus deinen
+    Speicher.
   </p>
 {% endif %}
 
@@ -27,7 +27,7 @@
   .feld .hilfe { color: var(--ink-leise); font-size: 12.5px; }
   .feld textarea {
     width: 100%;
-    min-height: 16em;
+    min-height: 12em;
     padding: 9px 11px;
     border: 1px solid var(--rand-stark);
     border-radius: var(--radius);
@@ -37,49 +37,110 @@
     font-family: ui-monospace, monospace;
     font-size: 13px;
   }
+  form.posten-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+  }
+  form.posten-form input[type="text"] { flex: 1 1 180px; }
+  .posten-zeile {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .posten-zeile form.posten-form { flex: 1 1 320px; width: auto; }
+  .abteilung {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-leise);
+  }
 </style>
 
-<form method="post">
-  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-  <div class="feld">
-    <label for="zeilen">Ein Posten je Zeile</label>
-    <span class="hilfe">
-      Eine Zeile mit Doppelpunkt am Ende wird eine Überschrift, etwa
-      <code>Kühlschrank:</code> – alles darunter gehört dazu. Mengen kannst du
-      dahinterschreiben, sie werden nicht gerechnet. Ein leeres Feld löscht die
-      Liste.
-    </span>
-    <textarea id="zeilen" name="zeilen" spellcheck="false">{{ text }}</textarea>
+<section class="karte">
+  <div class="kopf">
+    <h2>Neuen Posten anlegen</h2>
   </div>
-  <button class="knopf haupt" type="submit">Speichern</button>
+  <div class="zeile" style="display: block;">
+    <form class="posten-form" method="post" action="{{ url_for('grundeinkauf_hinzufuegen') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="text" name="text" placeholder="Haferflocken" required maxlength="120">
+      <select name="abteilung">
+        {% for a in abteilungen %}
+          <option value="{{ a }}">{{ a }}</option>
+        {% endfor %}
+      </select>
+      <button class="knopf haupt" type="submit">Hinzufügen</button>
+    </form>
+  </div>
+</section>
+
+<section class="karte">
+  <div class="kopf">
+    <h2>Im Speicher</h2>
+    <span class="spanne">{{ posten | length }} Posten</span>
+  </div>
+
+  {% for p in posten %}
+    <div class="zeile posten-zeile">
+      {# Zwei Formulare nebeneinander: HTML laesst keine verschachtelten zu,
+         und ein Posten je Zeile bleibt bei vierzig Eintraegen lesbar. #}
+      <form class="posten-form" method="post" action="{{ url_for('grundeinkauf_aendern') }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="alt" value="{{ p.text }}">
+        <input type="text" name="text" value="{{ p.text }}" required maxlength="120"
+               aria-label="Posten">
+        <select name="abteilung" aria-label="Abteilung">
+          {% for a in abteilungen %}
+            <option value="{{ a }}" {% if a == p.abteilung %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+          {% if p.abteilung not in abteilungen %}
+            <option value="{{ p.abteilung }}" selected>{{ p.abteilung }}</option>
+          {% endif %}
+        </select>
+        <button class="knopf" type="submit">Speichern</button>
+      </form>
+      <form method="post" action="{{ url_for('grundeinkauf_entfernen') }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="text" value="{{ p.text }}">
+        <button class="knopf" type="submit" title="Aus dem Speicher nehmen">Entfernen</button>
+      </form>
+    </div>
+  {% else %}
+    <div class="zeile"><span class="gericht">Der Speicher ist leer.</span></div>
+  {% endfor %}
+</section>
+
+<p>
   {% if eigen %}
     <a class="knopf" href="{{ url_for('grundeinkauf', vorschlag=1) }}">
-      Grundnahrungsmittel einsetzen
+      Grundnahrungsmittel ansehen
     </a>
   {% endif %}
   <a class="knopf" href="{{ url_for('start') }}">Zum Monatsplan</a>
-</form>
+</p>
 
-{% if gruppen %}
-  <h2 style="margin: 26px 0 10px;">So steht es auf dem Einkaufszettel</h2>
-  <section class="karte">
-    {% for titel, posten in gruppen %}
-      <div class="zeile" style="display: block;">
-        {% if titel %}
-          <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-                      color: var(--ink-leise); margin-bottom: 4px;">{{ titel }}</div>
-        {% endif %}
-        <ul style="margin: 0; padding-left: 1.1em; columns: 2 200px; column-gap: 24px;">
-          {% for eintrag in posten %}
-            <li style="padding: 1px 0; break-inside: avoid;">{{ eintrag }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endfor %}
-  </section>
-{% endif %}
+<details style="margin-top: 20px;">
+  <summary class="leise" style="cursor: pointer;">Alle Zeilen auf einmal bearbeiten</summary>
+  <p class="leise" style="font-size: 12.5px;">
+    Für größere Umbauten: hier steht der Speicher als Text. Eine Zeile mit
+    Doppelpunkt am Ende ist eine Abteilung, alles darunter gehört dazu. Ein
+    leeres Feld löscht den Speicher.
+  </p>
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="feld">
+      <label for="zeilen">Ein Posten je Zeile</label>
+      <textarea id="zeilen" name="zeilen" spellcheck="false">{{ text }}</textarea>
+    </div>
+    <button class="knopf" type="submit">Alles ersetzen</button>
+  </form>
+</details>
 {% endblock %}
 
 {% block fuss %}
-  Die Liste liegt im Volume und übersteht jeden Rollout.
+  Der Speicher liegt im Volume und übersteht jeden Rollout.
 {% endblock %}

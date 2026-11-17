@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import timedelta
 
 import pytest
 
@@ -254,12 +255,24 @@ def test_monatsseite_verlinkt_den_einkauf_je_woche(angemeldet, plan):
     assert {w.start.isoformat() for w in plan.weeks} == {x.decode() for x in links}
 
 
-def test_einkaufsseite_zeigt_beide_listen(angemeldet):
+def test_einkaufsseite_fuehrt_alles_auf_einem_zettel(angemeldet, config, rezepte, zutaten, plan):
+    """Frischware und Vorrat stehen zusammen, nach Abteilung statt nach Herkunft.
+
+    Früher waren das zwei Überschriften auf einer Seite. Im Laden läuft man
+    aber einen Weg: deshalb ein Zettel, sortiert wie die Regale.
+    """
+    woche = plan.weeks[0]
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    vorrat = shopping.wochen_pantry_liste(woche, rezepte, zutaten, config)
+
     antwort = angemeldet.get(_einkaufspfad(angemeldet))
     text = antwort.get_data(as_text=True)
     assert antwort.status_code == 200
-    assert "Frischeliste" in text
-    assert "Vorrat diese Woche" in text
+    assert "Frischeliste" not in text
+    assert "Vorrat diese Woche" not in text
+    assert frisch.items and vorrat.items, "Die Testwoche braucht beide Arten"
+    assert frisch.items[0].name in text
+    assert vorrat.items[0].name in text
 
 
 def test_einkaufsseite_nennt_die_zutaten_der_woche(angemeldet, config, rezepte, zutaten, plan):
@@ -663,9 +676,11 @@ def test_grundeinkauf_speichern_wirkt_auf_den_einkaufszettel(angemeldet, config)
     assert shopping.lade_grundeinkauf(config) == (["Haushalt:", "Kaffeefilter"], True)
 
     einkauf = angemeldet.get(_einkaufspfad(angemeldet)).get_data(as_text=True)
-    assert "Immer dabei" in einkauf
     assert "Kaffeefilter" in einkauf
+    # Die eigene Überschrift bleibt als Gruppe stehen, statt in "Sonstiges"
+    # zu verschwinden: wer sie hinschreibt, will sie auf dem Zettel sehen.
     assert "Haushalt" in einkauf
+    assert "immer dabei" in einkauf
 
 
 def test_grundeinkauf_ohne_token_wird_abgewiesen(angemeldet, config):
@@ -702,7 +717,7 @@ def test_doppeltes_im_grundeinkauf_wird_angemerkt(angemeldet, plan, rezepte, zut
     )
     text = angemeldet.get(f"/monat/{MONAT}/woche/{woche.start}/einkauf").get_data(as_text=True)
     assert "Klopapier" in text
-    assert "steht schon oben" in text
+    assert "steht schon als Rezeptmenge drauf" in text
 
 
 # ----------------------------------------------------- Ziehen und Ablegen
@@ -816,3 +831,278 @@ def test_das_wochenende_blockiert_das_verschieben_nicht(angemeldet, planner, pla
         if geprueft:
             break
     assert geprueft, "Der Plan hat keinen solchen Tausch - der Test prüft nichts"
+
+
+# ------------------------------------------------- Wochenansicht und Abwahl
+
+
+def _wochenpfad(plan) -> str:
+    return f"/monat/{MONAT}/woche/{plan.weeks[0].start.isoformat()}"
+
+
+def test_wochenseite_zeigt_nur_diese_woche(angemeldet, plan):
+    """Die Arbeitsfläche für eine Woche: alle Gerichte dieser Woche, keine fremden."""
+    woche = plan.weeks[0]
+    text = angemeldet.get(_wochenpfad(plan)).get_data(as_text=True)
+    for meal in woche.meals:
+        assert meal.recipe_name in text, f"{meal.recipe_name} fehlt in der Woche"
+    spaeter = {m.recipe_name for w in plan.weeks[1:] for m in w.meals}
+    diese = {m.recipe_name for m in woche.meals}
+    for name in spaeter - diese:
+        assert name not in text, f"{name} gehört in eine andere Woche"
+
+
+def test_wochenseite_verlinkt_nachbarn_und_einkauf(angemeldet, plan):
+    text = angemeldet.get(_wochenpfad(plan)).get_data(as_text=True)
+    zweite = plan.weeks[1].start.isoformat()
+    assert f"/monat/{MONAT}/woche/{zweite}" in text
+    assert f"/monat/{MONAT}/woche/{plan.weeks[0].start.isoformat()}/einkauf" in text
+
+
+def test_wochenseite_sagt_wohin_vorgemerktes_passt(angemeldet, plan, config, rezepte):
+    """Der Backlog nützt nur, wenn man sieht, wo das Gericht hinkann."""
+    woche = plan.weeks[0]
+    gericht = rezepte[woche.meals[0].recipe_slug]
+    katalog.merken(config, gericht.slug)
+
+    text = angemeldet.get(_wochenpfad(plan)).get_data(as_text=True)
+    assert gericht.name in text
+    assert "passt diese Woche auf" in text or "passt diese Woche auf keinen Tag" in text
+
+
+def test_wochenseite_nimmt_jeden_tag_der_woche(angemeldet, plan):
+    """Ein Tag mitten in der Woche öffnet dieselbe Woche wie ihr Freitag.
+
+    Dasselbe Verhalten wie beim Einkaufszettel: wer ein Datum aus der URL
+    abschreibt, soll nicht auf einer Fehlerseite landen, nur weil es kein
+    Freitag war.
+    """
+    woche = plan.weeks[0]
+    mittendrin = woche.start + timedelta(days=3)
+    text = angemeldet.get(f"/monat/{MONAT}/woche/{mittendrin.isoformat()}").get_data(as_text=True)
+    assert f"Woche ab {woche.start.day}" in text or woche.meals[0].recipe_name in text
+
+
+def test_wochenseite_kennt_keine_erfundene_woche(angemeldet):
+    assert angemeldet.get(f"/monat/{MONAT}/woche/2099-01-01").status_code == 404
+    assert angemeldet.get(f"/monat/{MONAT}/woche/kein-datum").status_code == 404
+
+
+def test_wochenseite_verlangt_anmeldung(client, plan):
+    antwort = client.get(_wochenpfad(plan))
+    assert antwort.status_code == 302
+    assert "/anmelden" in antwort.headers["Location"]
+
+
+def test_posten_abwaehlen_und_wieder_anwaehlen(angemeldet, plan, config, rezepte, zutaten):
+    """Was noch zu Hause ist, verschwindet vom Zettel – und kommt zurück."""
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    frisch = shopping.frischeliste(woche, rezepte, zutaten, config)
+    key = f"frisch:{frisch.items[0].slug}"
+
+    seite = angemeldet.get(pfad)
+    assert (
+        angemeldet.post(
+            pfad + "/umschalten", data={"csrf": _token(seite.data), "key": key}
+        ).status_code
+        == 302
+    )
+    assert shopping.lade_abwahl(config, woche.start.isoformat()) == {key}
+    assert "abgewählt" in angemeldet.get(pfad).get_data(as_text=True)
+
+    seite = angemeldet.get(pfad)
+    angemeldet.post(pfad + "/umschalten", data={"csrf": _token(seite.data), "key": key})
+    assert shopping.lade_abwahl(config, woche.start.isoformat()) == set()
+
+
+def test_abwahl_gilt_nur_fuer_ihre_woche(angemeldet, plan, config):
+    """Zwei Wochen, zwei Zettel: der Haken der einen gilt der anderen nicht."""
+    erste, zweite = plan.weeks[0], plan.weeks[1]
+    pfad = f"/monat/{MONAT}/woche/{erste.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    angemeldet.post(pfad + "/umschalten", data={"csrf": _token(seite.data), "key": "grund:Milch"})
+
+    assert shopping.lade_abwahl(config, erste.start.isoformat()) == {"grund:Milch"}
+    assert shopping.lade_abwahl(config, zweite.start.isoformat()) == set()
+
+
+def test_abwahl_zuruecksetzen_raeumt_nur_diese_woche(angemeldet, plan, config):
+    erste, zweite = plan.weeks[0], plan.weeks[1]
+    shopping.speichere_abwahl(config, erste.start.isoformat(), {"grund:Milch"})
+    shopping.speichere_abwahl(config, zweite.start.isoformat(), {"grund:Butter"})
+
+    pfad = f"/monat/{MONAT}/woche/{erste.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    antwort = angemeldet.post(
+        pfad + "/zuruecksetzen", data={"csrf": _token(seite.data)}, follow_redirects=True
+    )
+    assert antwort.status_code == 200
+    assert shopping.lade_abwahl(config, erste.start.isoformat()) == set()
+    assert shopping.lade_abwahl(config, zweite.start.isoformat()) == {"grund:Butter"}
+
+
+def test_abwaehlen_ohne_token_wird_abgewiesen(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf/umschalten"
+    assert angemeldet.post(pfad, data={"key": "grund:Milch"}).status_code == 400
+    assert shopping.lade_abwahl(config, woche.start.isoformat()) == set()
+
+
+def test_abwaehlen_verlangt_anmeldung(client, plan):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf/umschalten"
+    antwort = client.post(pfad, data={"key": "grund:Milch"})
+    assert antwort.status_code == 302
+    assert "/anmelden" in antwort.headers["Location"]
+
+
+# -------------------------------------- Ergaenzen und der Speicher im Web
+
+
+def test_posten_nur_fuer_diese_woche_ergaenzen(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    antwort = angemeldet.post(
+        pfad + "/ergaenzen",
+        data={"csrf": _token(seite.data), "text": "Grillkohle", "abteilung": "Sonstiges"},
+        follow_redirects=True,
+    )
+    text = antwort.get_data(as_text=True)
+    assert "Grillkohle" in text
+    assert "nur diese Woche" in text
+    assert [e["text"] for e in shopping.lade_extra(config, woche.start.isoformat())] == [
+        "Grillkohle"
+    ]
+    # Der Speicher bleibt unberuehrt: das war ausdruecklich die andere Taste.
+    assert "Grillkohle" not in shopping.lade_grundeinkauf(config)[0]
+
+
+def test_posten_dauerhaft_in_den_speicher(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    antwort = angemeldet.post(
+        pfad + "/ergaenzen",
+        data={
+            "csrf": _token(seite.data),
+            "text": "Haferflocken",
+            "abteilung": "Trockenware",
+            "dauerhaft": "1",
+        },
+        follow_redirects=True,
+    )
+    assert "Haferflocken" in antwort.get_data(as_text=True)
+    assert "Haferflocken" in shopping.lade_grundeinkauf(config)[0]
+    assert shopping.lade_extra(config, woche.start.isoformat()) == []
+
+
+def test_dauerhafter_posten_steht_auch_auf_der_naechsten_woche(angemeldet, plan, config):
+    """Das ist der Unterschied zu 'nur diese Woche'."""
+    erste, zweite = plan.weeks[0], plan.weeks[1]
+    pfad = f"/monat/{MONAT}/woche/{erste.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    angemeldet.post(
+        pfad + "/ergaenzen",
+        data={
+            "csrf": _token(seite.data),
+            "text": "Haferflocken",
+            "abteilung": "Trockenware",
+            "dauerhaft": "1",
+        },
+    )
+    spaeter = angemeldet.get(f"/monat/{MONAT}/woche/{zweite.start.isoformat()}/einkauf").get_data(
+        as_text=True
+    )
+    assert "Haferflocken" in spaeter
+
+
+def test_ergaenzter_posten_laesst_sich_streichen(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    angemeldet.post(
+        pfad + "/ergaenzen",
+        data={"csrf": _token(seite.data), "text": "Grillkohle", "abteilung": "Sonstiges"},
+    )
+    seite = angemeldet.get(pfad)
+    angemeldet.post(pfad + "/streichen", data={"csrf": _token(seite.data), "text": "Grillkohle"})
+    assert shopping.lade_extra(config, woche.start.isoformat()) == []
+
+
+def test_ergaenzen_ohne_token_wird_abgewiesen(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf/ergaenzen"
+    assert angemeldet.post(pfad, data={"text": "Grillkohle"}).status_code == 400
+    assert shopping.lade_extra(config, woche.start.isoformat()) == []
+
+
+def test_leerer_posten_wird_mit_meldung_abgelehnt(angemeldet, plan, config):
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    seite = angemeldet.get(pfad)
+    antwort = angemeldet.post(
+        pfad + "/ergaenzen",
+        data={"csrf": _token(seite.data), "text": "   ", "abteilung": "Sonstiges"},
+        follow_redirects=True,
+    )
+    assert "Ohne Namen" in antwort.get_data(as_text=True)
+
+
+def test_speicherseite_zeigt_posten_einzeln(angemeldet, config):
+    seite = angemeldet.get("/grundeinkauf")
+    text = seite.data
+    angemeldet.post(
+        "/grundeinkauf/hinzufuegen",
+        data={"csrf": _token(text), "text": "Haferflocken", "abteilung": "Trockenware"},
+    )
+    nachher = angemeldet.get("/grundeinkauf").get_data(as_text=True)
+    assert "Haferflocken" in nachher
+    assert 'name="alt"' in nachher, "Jeder Posten braucht sein eigenes Formular"
+
+
+def test_speicherposten_umbenennen_ueber_das_web(angemeldet, config):
+    seite = angemeldet.get("/grundeinkauf")
+    angemeldet.post(
+        "/grundeinkauf/hinzufuegen",
+        data={"csrf": _token(seite.data), "text": "Haferflocken", "abteilung": "Trockenware"},
+    )
+    seite = angemeldet.get("/grundeinkauf")
+    angemeldet.post(
+        "/grundeinkauf/aendern",
+        data={
+            "csrf": _token(seite.data),
+            "alt": "Haferflocken",
+            "text": "Grobe Haferflocken",
+            "abteilung": "Trockenware",
+        },
+    )
+    zeilen = shopping.lade_grundeinkauf(config)[0]
+    assert "Grobe Haferflocken" in zeilen
+    assert "Haferflocken" not in zeilen
+
+
+def test_speicherposten_entfernen_ueber_das_web(angemeldet, config):
+    seite = angemeldet.get("/grundeinkauf")
+    angemeldet.post(
+        "/grundeinkauf/hinzufuegen",
+        data={"csrf": _token(seite.data), "text": "Haferflocken", "abteilung": "Trockenware"},
+    )
+    seite = angemeldet.get("/grundeinkauf")
+    angemeldet.post(
+        "/grundeinkauf/entfernen", data={"csrf": _token(seite.data), "text": "Haferflocken"}
+    )
+    assert "Haferflocken" not in shopping.lade_grundeinkauf(config)[0]
+
+
+def test_speicher_aendern_ohne_token_wird_abgewiesen(angemeldet):
+    assert angemeldet.post("/grundeinkauf/hinzufuegen", data={"text": "X"}).status_code == 400
+    assert angemeldet.post("/grundeinkauf/entfernen", data={"text": "X"}).status_code == 400
+    assert angemeldet.post("/grundeinkauf/aendern", data={"alt": "X"}).status_code == 400
+
+
+def test_speicher_aendern_verlangt_anmeldung(client):
+    antwort = client.post("/grundeinkauf/hinzufuegen", data={"text": "X"})
+    assert antwort.status_code == 302
+    assert "/anmelden" in antwort.headers["Location"]

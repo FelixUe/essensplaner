@@ -1,0 +1,115 @@
+{% extends "basis.html.j2" %}
+{% block titel %}Woche ab {{ woche.start | datum_kurz }} – Essensplaner{% endblock %}
+
+{% block inhalt %}
+<h1>Woche ab {{ woche.start | datum_kurz }}</h1>
+
+<p class="leise">
+  {{ woche.start | datum_lang }} bis {{ woche.ende | datum_lang }} &middot;
+  Woche {{ nummer }} von {{ anzahl }} im {{ monat_titel(monat) }}
+</p>
+
+<p class="leise" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+  {% if voriges %}
+    <a class="knopf" href="{{ url_for('woche_ansehen', monat=monat, freitag=voriges.isoformat()) }}">&larr; Woche davor</a>
+  {% endif %}
+  {% if naechstes %}
+    <a class="knopf" href="{{ url_for('woche_ansehen', monat=monat, freitag=naechstes.isoformat()) }}">Woche danach &rarr;</a>
+  {% endif %}
+  <a class="knopf" href="{{ url_for('monat_ansehen', monat=monat) }}">Ganzer Monat</a>
+  <a class="knopf haupt" href="{{ url_for('einkauf', monat=monat, freitag=woche.start.isoformat()) }}">Einkaufszettel</a>
+</p>
+
+<section class="karte">
+  <div class="kopf">
+    <h2>Was gekocht wird</h2>
+    <span class="spanne">{{ woche.meals | length }} Mahlzeiten</span>
+  </div>
+
+  {% for meal in woche.meals %}
+    {% set rezept = rezepte.get(meal.recipe_slug) %}
+    <div class="zeile" id="slot-{{ meal.datum }}-{{ meal.slot }}">
+      <div class="tag">
+        {{ config.slot_kochtag(meal.slot)[:2] }} {{ meal.datum | datum_kurz }}
+      </div>
+      <div class="gericht">
+        <div class="name">
+          {% if rezept %}
+            <a href="{{ url_for('rezept_ansehen', slug=meal.recipe_slug) }}"
+               style="color: inherit;">{{ meal.recipe_name }}</a>
+          {% else %}{{ meal.recipe_name }}{% endif %}
+        </div>
+        <div class="unten">
+          {% if meal.tage > 1 %}
+            <span class="marke zwei">{{ meal.tage }} Tage</span>
+          {% else %}
+            <span class="marke">1 Tag</span>
+          {% endif %}
+          {{ meal.deckt_ab }}
+          {% if rezept %}
+            &middot; {{ rezept.prep_minutes }} min
+            &middot; {{ "%.0f" | format(rezept.protein_fuer(meal.variant)) }} g Protein
+          {% endif %}
+          {% if meal.aus_gefriertruhe %}&middot; aus der Gefriertruhe{% endif %}
+          {% if meal.batch_cook %}&middot; doppelte Menge{% endif %}
+        </div>
+      </div>
+      <div>
+        <a class="knopf"
+           href="{{ url_for('tauschen_zeigen', monat=monat, datum=meal.datum, slot=meal.slot) }}">
+          Ändern
+        </a>
+      </div>
+    </div>
+  {% else %}
+    <div class="zeile"><span class="gericht">Diese Woche steht nichts.</span></div>
+  {% endfor %}
+</section>
+
+<p class="leise" style="font-size: 12.5px; margin-top: -6px;">
+  „Ändern" tauscht das Gericht oder schiebt es auf einen anderen Tag – beide
+  Tage wechseln dabei die Plätze, damit kein Platz leer bleibt. Zum Ziehen
+  mit der Maus über mehrere Wochen hinweg geht es im ganzen Monat.
+</p>
+
+<section class="karte">
+  <div class="kopf">
+    <h2>Merkliste</h2>
+    <span class="spanne">{{ vorgemerkt | length }} vorgemerkt</span>
+    <a class="knopf" style="margin-left: auto;" href="{{ url_for('merkliste') }}">Verwalten</a>
+  </div>
+
+  {% for eintrag in vorgemerkt %}
+    <div class="zeile">
+      <div class="gericht">
+        <div class="name">
+          <a href="{{ url_for('rezept_ansehen', slug=eintrag.rezept.slug) }}"
+             style="color: inherit;">{{ eintrag.rezept.name }}</a>
+        </div>
+        <div class="unten">
+          {% if eintrag.plaetze %}
+            passt diese Woche auf
+            {% for m in eintrag.plaetze %}
+              <a href="{{ url_for('tauschen_zeigen', monat=monat, datum=m.datum, slot=m.slot) }}">{{ config.slot_kochtag(m.slot)[:2] }} {{ m.datum | datum_kurz }}</a>{% if not loop.last %},{% endif %}
+            {% endfor %}
+          {% else %}
+            passt diese Woche auf keinen Tag – in einer anderen Woche nachsehen
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="zeile">
+      <span class="gericht">
+        Nichts vorgemerkt. Beim Ändern eines Tages lässt sich das bisherige
+        Gericht hier ablegen, statt es zu verlieren.
+      </span>
+    </div>
+  {% endfor %}
+</section>
+{% endblock %}
+
+{% block fuss %}
+  Eine Woche als Arbeitsfläche: tauschen, verschieben, vormerken – und wenn
+  es steht, der Einkaufszettel.
+{% endblock %}

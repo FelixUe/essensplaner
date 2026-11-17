@@ -1,35 +1,13 @@
 {% extends "basis.html.j2" %}
 {% block titel %}Einkauf {{ woche.start | datum_kurz }} – Essensplaner{% endblock %}
 
-{% macro liste(sl, erklaerung) %}
-  <section class="karte">
-    <div class="kopf">
-      <h2>{{ sl.titel }}</h2>
-      <span class="spanne">{{ sl.items | length }} Posten</span>
-    </div>
-    {% if not sl.items %}
-      <div class="zeile"><span class="gericht">Nichts nötig.</span></div>
-    {% else %}
-      {% for abteilung, posten in sl.abteilungen %}
-        <div class="zeile" style="display: block;">
-          <div class="abteilung">{{ abteilung }}</div>
-          <ul class="posten">
-            {% for p in posten %}
-              <li>{{ p.anzeige }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endfor %}
-    {% endif %}
-  </section>
-  <p class="leise" style="font-size: 12.5px; margin-top: -6px;">{{ erklaerung }}</p>
-{% endmacro %}
-
 {% block inhalt %}
-<h1>Einkauf</h1>
+<h1>Einkaufszettel</h1>
 <p class="leise">
   Woche vom {{ woche.start | datum_lang }} bis {{ woche.ende | datum_lang }} &middot;
-  {{ woche.meals | length }} Mahlzeiten
+  {{ woche.meals | length }} Mahlzeiten &middot;
+  {{ offen }} {% if offen == 1 %}Posten{% else %}Posten{% endif %} zu holen
+  {%- if abgewaehlt %} &middot; {{ abgewaehlt }} abgewählt{% endif %}
 </p>
 
 <style>
@@ -40,62 +18,128 @@
     color: var(--ink-leise);
     margin-bottom: 4px;
   }
-  ul.posten {
-    margin: 0;
-    padding-left: 1.1em;
-    columns: 2 200px;
-    column-gap: 24px;
-  }
+  ul.posten { margin: 0; padding: 0; list-style: none; }
   ul.posten li {
-    padding: 1px 0;
-    break-inside: avoid;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 2px 0;
+  }
+  ul.posten form { display: inline; }
+  .haken {
+    background: none;
+    border: 1px solid var(--linie, #555);
+    border-radius: 4px;
+    width: 20px;
+    height: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+    flex: none;
+  }
+  .weg { color: var(--ink-leise); text-decoration: line-through; }
+  .quelle { color: var(--ink-leise); font-size: 12px; }
+  form.ergaenzen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
   }
 </style>
 
-{{ liste(frisch, "Am Einkaufstag kaufen. Über alle Gerichte zusammengefasst und auf kaufbare Mengen aufgerundet – in Klammern steht, wie viel davon tatsächlich gebraucht wird.") }}
-
-{{ liste(vorrat, "Haltbares – ebenfalls auf Packungsgrößen aufgerundet. Was im Schrank steht, kannst du streichen.") }}
+{% for abteilung, posten in gruppen %}
+  <section class="karte">
+    <div class="kopf">
+      <h2>{{ abteilung }}</h2>
+      <span class="spanne">{{ posten | rejectattr('abgewaehlt') | list | length }} offen</span>
+    </div>
+    <div class="zeile" style="display: block;">
+      <ul class="posten">
+        {% for p in posten %}
+          <li id="posten-{{ p.anker }}">
+            <form method="post"
+                  action="{{ url_for('einkauf_umschalten', monat=monat, freitag=woche.start.isoformat()) }}">
+              <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="key" value="{{ p.key }}">
+              <button class="haken" type="submit"
+                      title="{% if p.abgewaehlt %}Wieder auf den Zettel{% else %}Hab ich noch{% endif %}"
+                      aria-label="{% if p.abgewaehlt %}Wieder auf den Zettel{% else %}Hab ich noch{% endif %}">
+                {%- if p.abgewaehlt %}&check;{% endif -%}
+              </button>
+            </form>
+            <span class="{% if p.abgewaehlt %}weg{% endif %}">
+              {{ p.text }}
+              {%- if p.quelle == 'grund' %}
+                <span class="quelle">&middot; immer dabei</span>
+              {%- elif p.gerichte %}
+                <span class="quelle">&middot; {{ p.gerichte | join(', ') }}</span>
+              {%- endif %}
+              {%- if p.hinweis %}
+                <span class="quelle">&middot; {{ p.hinweis }}</span>
+              {%- endif %}
+            </span>
+            {% if p.quelle == 'extra' %}
+              <form method="post" style="margin-left: auto;"
+                    action="{{ url_for('einkauf_streichen', monat=monat, freitag=woche.start.isoformat()) }}">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                <input type="hidden" name="text" value="{{ p.text }}">
+                <button class="knopf" type="submit" title="Vom Zettel nehmen">&times;</button>
+              </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+{% else %}
+  <section class="karte">
+    <div class="zeile"><span class="gericht">Nichts nötig.</span></div>
+  </section>
+{% endfor %}
 
 <section class="karte">
   <div class="kopf">
-    <h2>Immer dabei</h2>
-    <span class="spanne">
-      {% if grundeinkauf_eigen %}dein Grundeinkauf{% else %}Vorschlag{% endif %}
-    </span>
-    <a class="knopf" style="margin-left: auto;"
-       href="{{ url_for('grundeinkauf') }}">Bearbeiten</a>
+    <h2>Noch etwas dazu</h2>
   </div>
-  {% if not grundeinkauf %}
-    <div class="zeile"><span class="gericht">Nichts hinterlegt.</span></div>
-  {% else %}
-    {% for titel, posten in grundeinkauf %}
-      <div class="zeile" style="display: block;">
-        {% if titel %}<div class="abteilung">{{ titel }}</div>{% endif %}
-        <ul class="posten">
-          {% for eintrag in posten %}
-            <li>
-              {{ eintrag }}
-              {%- if eintrag in grundeinkauf_doppelt %}
-                <span style="color: var(--ink-leise); font-size: 12px;">&middot; steht schon oben</span>
-              {%- endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endfor %}
-  {% endif %}
+  <div class="zeile" style="display: block;">
+    <form method="post" class="ergaenzen"
+          action="{{ url_for('einkauf_ergaenzen', monat=monat, freitag=woche.start.isoformat()) }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="text" name="text" placeholder="Grillkohle" required
+             maxlength="120" style="flex: 1 1 200px;">
+      <select name="abteilung">
+        {% for a in abteilungen %}
+          <option value="{{ a }}">{{ a }}</option>
+        {% endfor %}
+      </select>
+      <button class="knopf haupt" type="submit" name="dauerhaft" value="0">Nur diese Woche</button>
+      <button class="knopf" type="submit" name="dauerhaft" value="1">Immer dabei</button>
+    </form>
+    <p class="leise" style="font-size: 12.5px; margin-bottom: 0;">
+      „Nur diese Woche“ steht auf diesem Zettel und sonst nirgends.
+      „Immer dabei“ legt den Posten in den Speicher – dann steht er auf
+      jedem Zettel, bis du ihn dort herausnimmst.
+    </p>
+  </div>
 </section>
-<p class="leise" style="font-size: 12.5px; margin-top: -6px;">
-  Hängt an keinem Rezept: Milch, Brot, Kaffee. Die Liste pflegst du selbst,
-  sie steht auf jedem Wocheneinkauf.
-</p>
 
 <p>
-  <a class="knopf" href="{{ url_for('monat_ansehen', monat=monat) }}">Zurück zum Monat</a>
+  <a class="knopf" href="{{ url_for('woche_ansehen', monat=monat, freitag=woche.start.isoformat()) }}">Zurück zur Woche</a>
+  <a class="knopf" href="{{ url_for('grundeinkauf') }}">Speicher verwalten</a>
+  {% if abgewaehlt %}
+    <form method="post" style="display: inline;"
+          action="{{ url_for('einkauf_zuruecksetzen', monat=monat, freitag=woche.start.isoformat()) }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="knopf" type="submit">Alles wieder anwählen</button>
+    </form>
+  {% endif %}
 </p>
 {% endblock %}
 
 {% block fuss %}
-  Die Liste wird bei jedem Aufruf neu gerechnet. Tauschst du ein Gericht,
-  stimmt sie sofort.
+  Ein Zettel in Ladenreihenfolge: Frischware, Vorrat und Grundeinkauf
+  zusammen. Abgewähltes gilt nur für diesen Zettel – beim nächsten Plan
+  steht es wieder drauf.
+  {% if not grundeinkauf_eigen %}Der Grundeinkauf ist noch der Vorschlag.{% endif %}
 {% endblock %}
