@@ -270,6 +270,26 @@ class Config:
             self.raw.get("mail", {}).get("betreff_monat", "Monatsplan {monat} + Vorratsliste")
         )
 
+    @property
+    def erinnerung_tag(self) -> str:
+        """Wochentag der Erinnerung, leer heißt: keine Erinnerung.
+
+        Als Name und nicht als Zahl, weil in einer Konfiguration "Donnerstag"
+        steht und nicht "3" – und weil man beim Lesen sofort sieht, ob der
+        Tag zum Einkaufsrhythmus passt.
+        """
+        return str(self.raw.get("mail", {}).get("erinnerung_tag", "Donnerstag")).strip()
+
+    @property
+    def erinnerung_uhrzeit(self) -> str:
+        return str(self.raw.get("mail", {}).get("erinnerung_uhrzeit", "18:00"))
+
+    @property
+    def betreff_erinnerung(self) -> str:
+        return str(
+            self.raw.get("mail", {}).get("betreff_erinnerung", "Morgen einkaufen: {von}–{bis}")
+        )
+
     # ------------------------------------------------------------------ AI
     @property
     def ai_aktiv(self) -> bool:

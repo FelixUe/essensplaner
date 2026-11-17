@@ -185,3 +185,17 @@ def test_monats_label():
 def test_datumsformate_sind_deutsch():
     assert kalender.formatiere_datum(date(2026, 12, 4)) == "Freitag, 04.12.2026"
     assert kalender.formatiere_kurz(date(2026, 12, 4)) == "04.12."
+
+
+def test_wochentag_nummer_kennt_die_deutschen_namen():
+    assert kalender.wochentag_nummer("Montag") == 0
+    assert kalender.wochentag_nummer("Donnerstag") == 3
+    assert kalender.wochentag_nummer("  donnerstag ") == 3
+    assert kalender.wochentag_nummer("Sonntag") == 6
+
+
+def test_wochentag_nummer_gibt_bei_unsinn_none():
+    """Der Aufrufer entscheidet, ob das ein Fehler ist oder 'abgeschaltet'."""
+    assert kalender.wochentag_nummer("") is None
+    assert kalender.wochentag_nummer("Donnerstagabend") is None
+    assert kalender.wochentag_nummer("3") is None

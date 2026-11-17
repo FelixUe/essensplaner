@@ -28,6 +28,7 @@ from .runner import (
     Kontext,
     generate_month,
     lade_state,
+    send_reminder,
     send_weekly,
     speichere_state,
 )
@@ -56,14 +57,17 @@ def _zone(config: Config) -> tzinfo:
         return UTC
 
 
-def _uhrzeit(config: Config) -> tuple[int, int]:
-    roh = config.wochenmail_uhrzeit
+def _parse_uhrzeit(roh: str, fallback: tuple[int, int], was: str) -> tuple[int, int]:
     try:
         stunde, minute = roh.split(":")
         return int(stunde), int(minute)
     except (ValueError, AttributeError):
-        log.warning("Uhrzeit %r unlesbar, nutze 07:00", roh)
-        return 7, 0
+        log.warning("%s %r unlesbar, nutze %02d:%02d", was, roh, *fallback)
+        return fallback
+
+
+def _uhrzeit(config: Config) -> tuple[int, int]:
+    return _parse_uhrzeit(config.wochenmail_uhrzeit, (7, 0), "Uhrzeit")
 
 
 class Scheduler:
@@ -73,6 +77,18 @@ class Scheduler:
         self.config = config
         self.zone = _zone(config)
         self.stunde, self.minute = _uhrzeit(config)
+        # None heißt: keine Erinnerung. Ein leerer oder unbekannter Tag in der
+        # Konfiguration schaltet sie ab, statt den Scheduler scheitern zu
+        # lassen – die Wochenmail ist wichtiger als die Erinnerung.
+        self.erinnerung_tag = kalender.wochentag_nummer(self.config.erinnerung_tag)
+        if self.erinnerung_tag is None and self.config.erinnerung_tag:
+            log.warning(
+                "erinnerung_tag %r ist kein Wochentag – die Erinnerung bleibt aus.",
+                self.config.erinnerung_tag,
+            )
+        self.erinnerung_stunde, self.erinnerung_minute = _parse_uhrzeit(
+            self.config.erinnerung_uhrzeit, (18, 0), "Erinnerungszeit"
+        )
 
     # ------------------------------------------------------------ Fälligkeit
 
@@ -93,6 +109,29 @@ class Scheduler:
         if state.get("send-weekly") == heute.isoformat():
             return None
         return heute
+
+    def erinnerung_faellig(self, jetzt: datetime, state: dict[str, str]) -> date | None:
+        """Der Freitag, dessen Einkauf die Erinnerung ankündigt – oder ``None``.
+
+        Die Erinnerung läuft am Abend davor und meint deshalb die Woche, die
+        erst beginnt. Sie hat eine eigene Uhrzeit, weil sie abends kommt und
+        nicht zum Frühstück: deshalb ein eigenes Zeitfenster statt des
+        Versatzes, mit dem die Monatsmail an der Wochenmail hängt.
+        """
+        if self.erinnerung_tag is None:
+            return None
+        heute = jetzt.date()
+        if heute.weekday() != self.erinnerung_tag:
+            return None
+        termin = jetzt.replace(
+            hour=self.erinnerung_stunde, minute=self.erinnerung_minute, second=0, microsecond=0
+        )
+        if not termin <= jetzt < termin + timedelta(hours=2):
+            return None
+        freitag = kalender.naechster_freitag(heute, inklusiv=False)
+        if state.get("erinnerung") == freitag.isoformat():
+            return None
+        return freitag
 
     def monatsplan_faellig(self, jetzt: datetime, state: dict[str, str]) -> str | None:
         heute = jetzt.date()
@@ -150,6 +189,22 @@ class Scheduler:
             except Exception as exc:  # noqa: BLE001
                 log.exception("send-weekly für %s fehlgeschlagen: %s", tag, exc)
 
+        freitag = self.erinnerung_faellig(jetzt, state)
+        if freitag:
+            try:
+                ctx = Kontext.laden(self.config)
+                ergebnis = send_reminder(
+                    ctx, freitag=freitag, mail_senden=self.config.smtp.konfiguriert
+                )
+                log.info("%s", ergebnis)
+                state["erinnerung"] = freitag.isoformat()
+                speichere_state(self.config, state)
+                erledigt.append(str(ergebnis))
+            except Exception as exc:  # noqa: BLE001
+                # Wie oben: ein Fehler hier darf den Scheduler nicht beenden.
+                # Die Erinnerung ist Beiwerk, die Freitagsmail ist es nicht.
+                log.exception("Erinnerung für %s fehlgeschlagen: %s", freitag, exc)
+
         return erledigt
 
     def run(self, einmal: bool = False) -> None:
@@ -169,6 +224,15 @@ class Scheduler:
             (self.minute + MONATS_VERSATZ_MINUTEN) % 60,
             jetzt.strftime("%Y-%m-%d %H:%M %Z"),
         )
+        if self.erinnerung_tag is None:
+            log.info("Erinnerung aus (erinnerung_tag ist nicht gesetzt).")
+        else:
+            log.info(
+                "Erinnerung %s %02d:%02d für den Einkauf am Folgetag.",
+                kalender.WOCHENTAGE[self.erinnerung_tag],
+                self.erinnerung_stunde,
+                self.erinnerung_minute,
+            )
         if self.config.smtp.konfiguriert:
             log.info("Empfänger: %s", ", ".join(self.config.mail_empfaenger) or "(keine)")
         else:

@@ -1,0 +1,44 @@
+{% extends "_layout.html.j2" %}
+{% import "_macros.html.j2" as m %}
+
+{% block vorschautext %}
+Morgen ist Einkaufstag – {{ frisch.anzahl }} Posten Frischware für {{ von }} bis {{ bis }}.
+{% endblock %}
+
+{% block titel %}Morgen einkaufen: {{ woche.start | kurz }} – {{ woche.ende | kurz }}{% endblock %}
+
+{% block untertitel %}
+Einkauf am {{ von }} &middot; {{ meals | length }} Gerichte in der Woche
+{% endblock %}
+
+{% block inhalt %}
+
+{{ m.abschnitt('Einkaufszettel Frischware', frisch.anzahl ~ ' Posten, sortiert nach Abteilung') }}
+{{ m.einkaufsliste(frisch) }}
+
+{% if vorrat and vorrat.items %}
+{{ m.abschnitt('Zusätzlich aus dem Vorrat', 'Diese haltbaren Zutaten standen nicht auf der Monatsliste.') }}
+{{ m.einkaufsliste(vorrat) }}
+{% endif %}
+
+{% if grundeinkauf %}
+{{ m.abschnitt('Immer dabei', 'Vor dem Losgehen durchgehen – was noch da ist, bleibt stehen.') }}
+{% for titel, posten in grundeinkauf %}
+{% if titel %}
+<p style="margin: 10px 0 4px; font-size: 11px; letter-spacing: 0.08em;
+          text-transform: uppercase; color: #6b7280;">{{ titel }}</p>
+{% endif %}
+<ul style="margin: 0 0 8px; padding-left: 18px;">
+{% for eintrag in posten %}
+  <li style="padding: 1px 0;">{{ eintrag }}</li>
+{% endfor %}
+</ul>
+{% endfor %}
+{% endif %}
+
+{{ m.abschnitt('Was damit gekocht wird', 'Die Rezepte stehen in der Freitagsmail.') }}
+{% for meal in meals %}
+{{ m.gerichtkarte(meal) }}
+{% endfor %}
+
+{% endblock %}

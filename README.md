@@ -216,6 +216,7 @@ pytest
 | `essensplaner validate` | Zutaten und Rezepte gegen alle harten Regeln prüfen, Proteinangaben nachrechnen, Slotdeckung zeigen |
 | `essensplaner generate-month [MONAT]` | Monatsplan erzeugen und Vorschau mailen. Ohne Monat: der Folgemonat |
 | `essensplaner send-weekly` | Die Freitagsmail verschicken |
+| `essensplaner send-reminder` | Die Erinnerung an den Einkauf von morgen verschicken |
 | `essensplaner show MONAT` | Einen gespeicherten Plan im Terminal ansehen |
 | `essensplaner shopping MONAT` | Einkaufslisten im Terminal |
 | `essensplaner preview weekly\|monthly` | Eine Mail als HTML-Datei schreiben, ohne zu verschicken |
@@ -385,6 +386,13 @@ die Wochenmail freitags um 07:00 und erzeugt am vorletzten Freitag des Monats
 den Plan für den Folgemonat. Jede Aufgabe läuft pro Termin höchstens einmal;
 der Zustand liegt in `/data/plans/state.json`, ein Neustart löst also keine
 zweite Mail aus.
+
+Dazu kommt die Erinnerung am Abend vor dem Einkauf – per Vorgabe donnerstags
+um 18:00, mit dem fertigen Einkaufszettel der Woche, die am Freitag beginnt.
+Tag und Uhrzeit stehen in `config.yaml` unter `mail.erinnerung_tag` und
+`mail.erinnerung_uhrzeit`; ein leerer Tag schaltet sie ab. Sie erzeugt
+bewusst keinen Plan: fehlt er, bleibt die Erinnerung aus und die Wochenmail
+legt ihn am Freitag an.
 
 Wer die Coolify-Scheduled-Tasks bevorzugt, überschreibt das Kommando und legt
 zwei Tasks an:

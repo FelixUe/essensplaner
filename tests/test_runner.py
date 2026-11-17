@@ -359,3 +359,86 @@ def test_hinweistext_als_smtp_host_gilt_nicht_als_konfiguriert():
     assert not SmtpConfig(host="").konfiguriert
     assert SmtpConfig(host="smtp.example.com").konfiguriert
     assert SmtpConfig(host="localhost").konfiguriert
+
+
+# -------------------------------------------------- Erinnerung am Vorabend
+
+
+def _abend(tag: date, stunde: int = 18, minute: int = 5) -> datetime:
+    return datetime(tag.year, tag.month, tag.day, stunde, minute, tzinfo=ZoneInfo("Europe/Berlin"))
+
+
+def test_erinnerung_ist_donnerstagabend_faellig(sched):
+    """Donnerstag abends, und gemeint ist der Freitag danach."""
+    donnerstag = date(2026, 12, 3)
+    assert sched.erinnerung_faellig(_abend(donnerstag), {}) == date(2026, 12, 4)
+
+
+def test_erinnerung_ist_vor_der_uhrzeit_nicht_faellig(sched):
+    jetzt = _abend(date(2026, 12, 3), stunde=17, minute=30)
+    assert sched.erinnerung_faellig(jetzt, {}) is None
+
+
+def test_erinnerung_ist_an_anderen_tagen_nicht_faellig(sched):
+    for tag in (date(2026, 12, 2), date(2026, 12, 4), date(2026, 12, 6)):
+        assert sched.erinnerung_faellig(_abend(tag), {}) is None
+
+
+def test_erinnerung_kommt_nur_einmal_pro_woche(sched):
+    donnerstag = date(2026, 12, 3)
+    state = {"erinnerung": "2026-12-04"}
+    assert sched.erinnerung_faellig(_abend(donnerstag), state) is None
+
+
+def test_erinnerung_laesst_sich_abschalten(tmp_config):
+    """Leerer Tag heisst aus - und der Scheduler laeuft trotzdem."""
+    import copy
+
+    cfg = copy.deepcopy(tmp_config)
+    cfg.raw["mail"]["erinnerung_tag"] = ""
+    s = Scheduler(cfg)
+    assert s.erinnerung_tag is None
+    assert s.erinnerung_faellig(_abend(date(2026, 12, 3)), {}) is None
+
+
+def test_unbekannter_wochentag_schaltet_die_erinnerung_ab(tmp_config):
+    """Ein Tippfehler darf den Scheduler nicht umbringen."""
+    import copy
+
+    cfg = copy.deepcopy(tmp_config)
+    cfg.raw["mail"]["erinnerung_tag"] = "Donnerstagabend"
+    s = Scheduler(cfg)
+    assert s.erinnerung_tag is None
+    # Die Wochenmail haengt nicht daran und bleibt faellig.
+    assert s.wochenmail_faellig(_freitag_morgen(date(2026, 12, 4)), {}) == date(2026, 12, 4)
+
+
+def test_erinnerung_laesst_sich_auf_einen_anderen_tag_legen(tmp_config):
+    import copy
+
+    cfg = copy.deepcopy(tmp_config)
+    cfg.raw["mail"]["erinnerung_tag"] = "Mittwoch"
+    cfg.raw["mail"]["erinnerung_uhrzeit"] = "20:30"
+    s = Scheduler(cfg)
+    mittwoch = date(2026, 12, 2)
+    assert s.erinnerung_faellig(_abend(mittwoch, stunde=20, minute=45), {}) == date(2026, 12, 4)
+    assert s.erinnerung_faellig(_abend(mittwoch, stunde=19), {}) is None
+
+
+def test_send_reminder_rendert_den_zettel(ctx):
+    freitag = date(2026, 12, 4)
+    runner.generate_month(ctx, monat="2026-12", mail_senden=False)
+    ergebnis = runner.send_reminder(ctx, freitag=freitag, mail_senden=False)
+    assert ergebnis.mails, "Die Erinnerung muss eine Mail erzeugen"
+    assert ergebnis.woche_start == freitag
+    assert ergebnis.versendet is False
+
+
+def test_send_reminder_erzeugt_keinen_plan(ctx):
+    """Ein Hinweis ist kein Anlass, abends einen Monatsplan zu wuerfeln."""
+    freitag = date(2026, 12, 4)
+    ergebnis = runner.send_reminder(ctx, freitag=freitag, mail_senden=False)
+    assert ergebnis.mails == []
+    assert ergebnis.plan_erzeugt is False
+    assert any("keinen Plan" in h for h in ergebnis.hinweise)
+    assert not data.plan_vorhanden(ctx.config.plans_dir, "2026-12")

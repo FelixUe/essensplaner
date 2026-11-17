@@ -76,6 +76,22 @@ def letzter_freitag_bis(tag: date) -> date:
     return tag - timedelta(days=(tag.weekday() - FREITAG) % 7)
 
 
+def wochentag_nummer(name: str) -> int | None:
+    """Aus "Donnerstag" die 3 machen, wie ``date.weekday()`` sie zählt.
+
+    Gibt ``None`` zurück, wenn der Name nicht passt. Der Aufrufer entscheidet
+    dann, ob das ein Fehler ist oder schlicht "abgeschaltet" heißt – in der
+    Konfiguration ist ein leerer Tag genau das.
+    """
+    gesucht = name.strip().casefold()
+    if not gesucht:
+        return None
+    for nummer, tag in enumerate(WOCHENTAGE):
+        if tag.casefold() == gesucht:
+            return nummer
+    return None
+
+
 def naechster_freitag(tag: date, inklusiv: bool = True) -> date:
     """Der nächste Freitag ab ``tag``."""
     abstand = (FREITAG - tag.weekday()) % 7
