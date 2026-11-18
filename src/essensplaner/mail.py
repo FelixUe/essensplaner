@@ -250,6 +250,43 @@ class MailRenderer:
             empfaenger=self.config.mail_empfaenger,
         )
 
+    def erinnerungsmail(self, woche: WeekPlan, auch_vorrat: bool = False) -> RenderedMail:
+        """Der Abend vor dem Einkauf: was ansteht und was mit muss.
+
+        Inhaltlich dieselben Daten wie die Freitagsmail, nur anders gewichtet
+        – der Zettel steht oben, der Plan darunter. Wer abends liest, will
+        wissen, was er morgen mitnehmen muss, nicht was am Mittwoch gekocht
+        wird.
+        """
+        frisch = shopping.frischeliste(woche, self.rezepte, self.zutaten, self.config, self.bestand)
+        vorrat = None
+        if auch_vorrat:
+            vorrat = shopping.wochen_pantry_liste(
+                woche, self.rezepte, self.zutaten, self.config, self.bestand
+            )
+        zeilen, _ = shopping.lade_grundeinkauf(self.config)
+        meals = _meal_views(woche, self.rezepte, self.zutaten, self.config, mit_rezept=False)
+        betreff = self.config.betreff_erinnerung.format(
+            von=kalender.formatiere_kurz(woche.start),
+            bis=kalender.formatiere_kurz(woche.ende),
+        )
+        ctx = {
+            "betreff": betreff,
+            "woche": woche,
+            "von": kalender.formatiere_datum(woche.start),
+            "bis": kalender.formatiere_datum(woche.ende),
+            "meals": meals,
+            "frisch": frisch,
+            "vorrat": vorrat,
+            "grundeinkauf": shopping.grundeinkauf_gruppen(zeilen),
+        }
+        return RenderedMail(
+            betreff=betreff,
+            html=self.env.get_template("reminder.html.j2").render(**ctx),
+            text=self.env.get_template("reminder.txt.j2").render(**ctx),
+            empfaenger=self.config.mail_empfaenger,
+        )
+
     def monatsmail(self, plan: MonthPlan, vorschau: bool = False) -> RenderedMail:
         """Die Monatsmail mit Übersicht und Vorratsliste."""
         vorrat = shopping.vorratsliste(plan, self.rezepte, self.zutaten, self.config, self.bestand)

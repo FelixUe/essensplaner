@@ -108,6 +108,11 @@ mail:
   wochenmail_uhrzeit: "07:00"
   betreff_woche: "Essensplan & Einkaufsliste {von}–{bis}"
   betreff_monat: "Monatsplan {monat} + Vorratsliste"
+  # Erinnerung am Abend vor dem Einkauf, mit dem fertigen Zettel.
+  # Leerer Tag schaltet sie ab.
+  erinnerung_tag: "Donnerstag"
+  erinnerung_uhrzeit: "18:00"
+  betreff_erinnerung: "Morgen einkaufen: {von}–{bis}"
 
 ai:
   # Neue Rezeptvorschläge über die Claude API. Vorschläge landen in

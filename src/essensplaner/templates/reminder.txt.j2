@@ -1,0 +1,66 @@
+{{ betreff }}
+{{ '=' * betreff | length }}
+
+Morgen ist Einkaufstag: {{ von }}.
+Der Plan steht, der Zettel auch - hier ist er.
+
+
+EINKAUFSZETTEL FRISCHWARE ({{ frisch.anzahl }} Posten)
+{{ '-' * 52 }}
+{% for abteilung, items in frisch.abteilungen %}
+
+{{ abteilung }}:
+{% for item in items %}
+  [ ] {{ item.anzeige }}{% if item.optional %} (optional){% endif %}
+
+{% endfor %}
+{% endfor %}
+{% if not frisch.items %}
+  Nichts einzukaufen.
+{% endif %}
+{% if vorrat and vorrat.items %}
+
+
+ZUSAETZLICH AUS DEM VORRAT
+{{ '-' * 52 }}
+{% for abteilung, items in vorrat.abteilungen %}
+
+{{ abteilung }}:
+{% for item in items %}
+  [ ] {{ item.anzeige }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+{% if grundeinkauf %}
+
+
+IMMER DABEI
+{{ '-' * 52 }}
+Vor dem Losgehen durchgehen - was noch da ist, bleibt stehen.
+{% for titel, posten in grundeinkauf %}
+{% if titel %}
+
+{{ titel }}:
+{% endif %}
+{% for eintrag in posten %}
+  [ ] {{ eintrag }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+
+WAS DAMIT GEKOCHT WIRD
+{{ '-' * 52 }}
+{% for meal in meals %}
+{{ meal.kochtag }}, {{ meal.datum_kurz }} - {{ meal.name }} ({{ meal.prep_minutes }} Min)
+{% if meal.batch_hinweis %}
+  ! {{ meal.batch_hinweis }}
+{% endif %}
+{% endfor %}
+
+Die Rezepte stehen in der Freitagsmail und in der Weboberflaeche.
+
+
+--
+Automatisch erstellt vom Essensplaner, am Abend vor dem Einkauf.
+Aendern laesst sich der Plan bis zuletzt in der Weboberflaeche.

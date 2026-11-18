@@ -187,6 +187,49 @@ def generate_month(
 # --------------------------------------------------------- Wochenmail
 
 
+def send_reminder(
+    ctx: Kontext,
+    freitag: date | None = None,
+    mail_senden: bool = True,
+) -> LaufErgebnis:
+    """Die Erinnerung an den Einkauf von morgen, mit dem fertigen Zettel.
+
+    Anders als ``send_weekly`` erzeugt sie **keinen** Plan, wenn für den
+    Monat noch keiner da ist. Eine Erinnerung ist ein Hinweis, kein Anlass,
+    nachts um halb sieben einen Monatsplan zu würfeln – fehlt der Plan, sagt
+    das Ergebnis das, und am Freitag erzeugt ihn die Wochenmail.
+    """
+    freitag = freitag or kalender.naechster_freitag(date.today(), inklusiv=False)
+    monat = kalender.monat_der_woche(freitag)
+
+    ergebnis = LaufErgebnis(aktion="erinnerung", monat=monat, woche_start=freitag)
+
+    if not data.plan_vorhanden(ctx.config.plans_dir, monat):
+        ergebnis.hinweise.append(
+            f"Für {monat} gibt es noch keinen Plan – keine Erinnerung verschickt."
+        )
+        return ergebnis
+
+    plan = data.load_plan(ctx.config.plans_dir, monat)
+    woche = plan.woche_ab(freitag) or plan.woche_fuer(freitag)
+    if woche is None:
+        raise RunnerFehler(
+            f"Im Plan {monat} gibt es keine Woche ab {freitag}. "
+            f"Vorhandene Wochen: {', '.join(str(w.start) for w in plan.weeks)}"
+        )
+
+    # Dieselbe Entscheidung wie in der Wochenmail: beginnt mit dieser Woche
+    # ein Monat, kommt die Vorratsliste getrennt, sonst muss sie hier mit.
+    nachricht = ctx.renderer().erinnerungsmail(
+        woche, auch_vorrat=kalender.startet_monatswoche(freitag) is None
+    )
+    ergebnis.mails.append(nachricht.betreff)
+    if mail_senden:
+        mail.sende(nachricht, ctx.config)
+    ergebnis.versendet = mail_senden
+    return ergebnis
+
+
 def send_weekly(
     ctx: Kontext,
     tag: date | None = None,

@@ -26,7 +26,14 @@ from .config import Config, load_config
 from .mail import MailFehler
 from .nutrition import pruefe_angaben
 from .planner import PlanungsFehler
-from .runner import Kontext, RunnerFehler, generate_month, plan_laden_oder_erzeugen, send_weekly
+from .runner import (
+    Kontext,
+    RunnerFehler,
+    generate_month,
+    plan_laden_oder_erzeugen,
+    send_reminder,
+    send_weekly,
+)
 
 
 def _fehler(nachricht: str) -> None:
@@ -296,11 +303,37 @@ def shopping_cmd(ctx: click.Context, monat: str, woche_start: str | None) -> Non
             )
 
 
+# --------------------------------------------------------------- erinnerung
+
+
+@cli.command("send-reminder")
+@click.option("--freitag", default=None, help="Einkaufsfreitag JJJJ-MM-TT (Default: der nächste).")
+@click.option("--dry-run", is_flag=True, help="Nichts verschicken, nur rendern.")
+@click.pass_context
+def send_reminder_cmd(ctx: click.Context, freitag: str | None, dry_run: bool) -> None:
+    """Die Erinnerung an den Einkauf von morgen verschicken."""
+    config: Config = ctx.obj["config"]
+    kontext = _kontext(config)
+    try:
+        ergebnis = send_reminder(kontext, freitag=_parse_datum(freitag), mail_senden=not dry_run)
+    except (RunnerFehler, MailFehler, data.DataError) as exc:
+        _fehler(str(exc))
+        return
+
+    for hinweis in ergebnis.hinweise:
+        click.secho(hinweis, fg="yellow")
+    verb = "Versendet" if ergebnis.versendet else "Gerendert (dry-run)"
+    for betreff in ergebnis.mails:
+        click.echo(f"{verb}: {betreff}")
+    if ergebnis.mails:
+        click.echo(f"Empfänger: {', '.join(config.mail_empfaenger) or '(keine konfiguriert)'}")
+
+
 # ------------------------------------------------------------------- preview
 
 
 @cli.command("preview")
-@click.argument("art", type=click.Choice(["weekly", "monthly"]))
+@click.argument("art", type=click.Choice(["weekly", "monthly", "reminder"]))
 @click.option("--monat", default=None, help="Monat JJJJ-MM (Default: aktueller).")
 @click.option("--week", "woche_start", default=None, help="Freitag JJJJ-MM-TT.")
 @click.option(
@@ -333,9 +366,11 @@ def preview_cmd(
     else:
         tag = _parse_datum(woche_start) or heute
         woche = plan.woche_ab(kalender.letzter_freitag_bis(tag)) or plan.weeks[0]
-        nachricht = renderer.wochenmail(
-            woche, auch_vorrat=kalender.startet_monatswoche(woche.start) is None
-        )
+        auch_vorrat = kalender.startet_monatswoche(woche.start) is None
+        if art == "reminder":
+            nachricht = renderer.erinnerungsmail(woche, auch_vorrat=auch_vorrat)
+        else:
+            nachricht = renderer.wochenmail(woche, auch_vorrat=auch_vorrat)
 
     ziel = Path(out or f"preview-{art}.html")
     ziel.write_text(nachricht.html, encoding="utf-8")
