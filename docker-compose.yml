@@ -1,11 +1,12 @@
-# Essensplaner – für Coolify auf dem Hetzner-Server und unverändert
-# für die Homelab-Hardware.
-#
-# Coolify kann diese Datei direkt als "Docker Compose"-Ressource nutzen.
-# Lokal oder im Homelab reicht:
+# Essensplaner – läuft so auf einem Home-Server und unverändert
+# auf jeder anderen Maschine mit Docker.
 #
 #     cp .env.example .env     # und ausfüllen
 #     docker compose up -d
+#
+# Diese Datei bleibt bewusst frei von Rechner-Eigenheiten. Was nur für ein
+# bestimmtes Ziel gilt – etwa das Veröffentlichen von Port 8080 im LAN –
+# gehört in eine docker-compose.override.yml dort. Siehe docs/deployment.md.
 #
 # Das Image kommt aus der GitHub-Registry und wird von der Pipeline
 # gebaut. Wer selbst bauen will, kommentiert `build: .` ein.
@@ -16,17 +17,22 @@ services:
     # build: .
     restart: unless-stopped
 
-    # Bewusst kein container_name: Coolify vergibt eigene Namen. Ein fester
-    # Name blockiert dort den Rollout, weil der neue Container startet,
-    # solange der alte den Namen noch hält.
+    # Bewusst kein container_name: Ein fester Name blockiert den Rollout,
+    # weil der neue Container startet, solange der alte den Namen noch hält.
 
     environment:
       # Zeitzone bestimmt, wann "Freitag 07:00" ist.
       TZ: ${TZ:-Europe/Berlin}
 
+      # Eigene Konfiguration statt der Beispieldatei aus dem Image. Liegt sie
+      # im Volume, überlebt sie jeden Rollout und landet nie im Repository.
+      # Leer lassen, um die mitgelieferte config.yaml zu verwenden.
+      ESSENSPLANER_CONFIG: ${ESSENSPLANER_CONFIG:-}
+
       # Mailversand ist optional. Bleibt SMTP_HOST leer, erzeugt der
       # Scheduler weiterhin Pläne und verschickt nur nichts – die Übersicht
-      # steht dann in der Weboberfläche. Passwörter in Coolify als Secret.
+      # steht dann in der Weboberfläche. Passwörter gehören in die .env
+      # mit chmod 600, nie in diese Datei.
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -43,9 +49,12 @@ services:
       # Fester Wert, damit eine Anmeldung einen Rollout überlebt.
       ESSENSPLANER_WEB_SECRET: ${ESSENSPLANER_WEB_SECRET:-}
       ESSENSPLANER_WEB_PORT: ${ESSENSPLANER_WEB_PORT:-8080}
-      # Nur für den Betrieb ohne HTTPS, etwa lokal. In Coolify bleibt das aus.
+      # Nur für den Betrieb ohne HTTPS. Auf true wird das Sitzungs-Cookie
+      # auch unverschlüsselt gesendet – im LAN vertretbar, mit öffentlicher
+      # Domain nicht. Hinter einem TLS-Proxy bleibt es auf false.
       ESSENSPLANER_WEB_UNSICHER: ${ESSENSPLANER_WEB_UNSICHER:-false}
-      # Coolify trägt hier die vergebene Domain ein und leitet auf Port 8080.
+      # Trägt ein Proxy eine Domain ein, landet sie hier. Leer lassen, wenn
+      # der Dienst den Port direkt veröffentlicht.
       SERVICE_FQDN_ESSENSPLANER_8080: ${SERVICE_FQDN_ESSENSPLANER_8080:-}
 
       # Optional: Gefriertruhe vorhanden, fester Seed, Claude-API.
@@ -57,11 +66,12 @@ services:
     expose:
       - "8080"
 
-    # Lokal ohne Coolify: diese zwei Zeilen einkommentieren, dann liegt die
-    # Oberfläche auf http://localhost:8080. In Coolify bleiben sie weg, dort
-    # macht der eingebaute Proxy die Zuordnung über die Domain.
-    # ports:
-    #   - "8080:8080"
+    # Veröffentlicht wird der Port nicht hier, sondern in einer
+    # docker-compose.override.yml auf dem jeweiligen Rechner – damit liegt
+    # die Oberfläche etwa auf http://homeserver:8080. Für einen
+    # schnellen lokalen Versuch:
+    #
+    #     echo 'services: {essensplaner: {ports: ["8080:8080"]}}' > docker-compose.override.yml
 
     volumes:
       # Die erzeugten Monatspläne und der Lauf-Zustand. Ohne dieses

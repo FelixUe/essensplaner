@@ -1,18 +1,37 @@
-# Rollout auf den Hetzner-Server.
+# Rollout auf den Home-Server (Home-Server, Hostname `homeserver`).
 #
 # Ablauf: erst alle Prüfungen, dann das Image nach ghcr.io, dann der
-# Rollout in Coolify. Der Rollout läuft nur, wenn vorher alles grün war –
+# Rollout auf dem Home-Server. Der Rollout läuft nur, wenn vorher alles grün war –
 # so kommt kein Plan mit Fenchel oder zu wenig Protein auf den Server.
+#
+# Der Home-Server steht im Heimnetz und ist aus dem Internet nicht erreichbar.
+# Der Runner tritt deshalb als kurzlebiger Knoten dem Tailnet bei und
+# erreicht den Home-Server über dessen Tailscale-Adresse. Es ist kein Port am
+# Gateway offen und kein Dienst öffentlich erreichbar.
+#
+# Auf dem Home-Server liegt der Schlüssel mit
+#   restrict,command="/usr/local/bin/essensplaner-deploy"
+# in der authorized_keys. Die Pipeline kann damit ausschließlich diesen
+# einen Befehl ausführen – keine Shell, kein Forwarding. Was hier als
+# SSH-Kommando gesendet würde, ignoriert der Server.
 #
 # Benötigte Repository-Secrets (Settings → Secrets and variables → Actions):
 #
-#   COOLIFY_WEBHOOK   Deploy-URL der Coolify-Ressource,
-#                     Form: https://<coolify-host>/api/v1/deploy?uuid=<uuid>
-#   COOLIFY_TOKEN     Coolify-API-Token mit der Berechtigung "Deploy"
+#   TS_OAUTH_CLIENT_ID   Tailscale-OAuth-Client, Scope `auth_keys` (schreibend)
+#   TS_OAUTH_SECRET      zugehöriges Secret
+#   DEPLOY_SSH_KEY       privater SSH-Schlüssel (Gegenstück liegt auf dem Server)
+#   DEPLOY_SSH_ZIEL      z. B. benutzer@100.x.y.z (Tailscale-Adresse)
+#   DEPLOY_HOST_KEY      known_hosts-Zeile des Servers, gegen MITM
 #
-# Fehlen die Secrets, endet der Workflow nach dem Image-Push mit einem
-# Hinweis statt mit einem Fehler – praktisch, solange Coolify noch nicht
-# eingerichtet ist.
+# Adresse und Host-Key sind streng genommen keine Geheimnisse, liegen aber
+# bewusst als Secret und nicht als Variable: GitHub maskiert Secrets in den
+# Logs, Variables nicht – und bei einem öffentlichen Repo sind die Logs
+# öffentlich. Sonst stünden Benutzername und Adresse des Servers dort.
+#
+# Fehlt etwas davon, endet der Workflow nach dem Image-Push mit einem
+# Hinweis statt mit einem Fehler. Das Image liegt dann in der Registry
+# und lässt sich auf dem Home-Server von Hand ausrollen:
+#   ssh benutzer@homeserver /usr/local/bin/essensplaner-deploy
 
 name: Deploy
 
@@ -107,56 +126,95 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   rollout:
-    name: Coolify-Rollout
+    name: Rollout auf dem Home-Server
     needs: image
     # Bei einem Push gibt es keine Inputs – dann immer ausrollen.
     if: ${{ github.event_name != 'workflow_dispatch' || !inputs.ohne_rollout }}
     runs-on: ubuntu-latest
     environment:
-      name: hetzner
-    env:
-      COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
-      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      name: homelab
     steps:
-      - name: Secrets prüfen
+      - name: Zugangsdaten prüfen
         id: check
+        env:
+          TS_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          TS_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          ZIEL: ${{ secrets.DEPLOY_SSH_ZIEL }}
+          HOSTKEY: ${{ secrets.DEPLOY_HOST_KEY }}
         run: |
-          if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
+          fehlt=""
+          [ -z "$TS_ID" ]     && fehlt="$fehlt TS_OAUTH_CLIENT_ID"
+          [ -z "$TS_SECRET" ] && fehlt="$fehlt TS_OAUTH_SECRET"
+          [ -z "$KEY" ]       && fehlt="$fehlt DEPLOY_SSH_KEY"
+          [ -z "$ZIEL" ]      && fehlt="$fehlt DEPLOY_SSH_ZIEL"
+          [ -z "$HOSTKEY" ]   && fehlt="$fehlt DEPLOY_HOST_KEY"
+          if [ -n "$fehlt" ]; then
             echo "vorhanden=false" >> "$GITHUB_OUTPUT"
             {
               echo "## Rollout übersprungen"
               echo
-              echo "COOLIFY_WEBHOOK oder COOLIFY_TOKEN ist nicht gesetzt."
-              echo "Das Image liegt in der Registry und kann in Coolify"
-              echo "von Hand ausgerollt werden. Anleitung: docs/deployment.md"
+              echo "Nicht gesetzt:\`$fehlt\`"
+              echo
+              echo "Das Image liegt in der Registry. Rollout von Hand:"
+              echo '```'
+              echo "ssh benutzer@homeserver /usr/local/bin/essensplaner-deploy"
+              echo '```'
+              echo "Anleitung: docs/deployment.md"
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "vorhanden=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Dem Tailnet beitreten
+        if: steps.check.outputs.vorhanden == 'true'
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          # Der Knoten ist kurzlebig und verschwindet nach dem Lauf wieder.
+          # Der OAuth-Client muss denselben Tag tragen, sonst lehnt
+          # Tailscale den Beitritt ab.
+          tags: tag:ci
+          version: latest
+          hostname: github-actions-essensplaner
+
       - name: Rollout auslösen
         if: steps.check.outputs.vorhanden == 'true'
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          ZIEL: ${{ secrets.DEPLOY_SSH_ZIEL }}
+          HOSTKEY: ${{ secrets.DEPLOY_HOST_KEY }}
         run: |
-          # Coolify erwartet ein GET auf die Deploy-URL mit einem Token,
-          # das die Berechtigung "Deploy" hat. Der Accept-Header
-          # verhindert eine HTML-Antwort bei Authentifizierungsfehlern.
-          antwort=$(curl --silent --show-error --fail-with-body \
-            --max-time 60 \
-            --request GET "$COOLIFY_WEBHOOK" \
-            --header "Authorization: Bearer $COOLIFY_TOKEN" \
-            --header "Accept: application/json")
-          echo "Coolify-Antwort: $antwort"
-          {
-            echo "## Rollout ausgelöst"
-            echo
-            echo '```json'
-            echo "$antwort"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/nuc_deploy
+          chmod 600 ~/.ssh/nuc_deploy
+          # Host-Key festnagelt statt blind akzeptiert: Tailscale
+          # authentifiziert den Knoten, aber doppelt hält besser.
+          printf '%s\n' "$HOSTKEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
-      - name: Hinweis zum Nachschauen
-        if: steps.check.outputs.vorhanden == 'true'
+          # Das gesendete Kommando ist bewusst nur Dokumentation –
+          # die authorized_keys auf dem Home-Server erzwingt das Deploy-Skript.
+          set -o pipefail
+          ssh -i "$HOME/.ssh/nuc_deploy" \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              -o ConnectTimeout=30 \
+              -o BatchMode=yes \
+              "$ZIEL" "rollout" 2>&1 | tee /tmp/rollout.log
+
+      - name: Ergebnis notieren
+        if: always() && steps.check.outputs.vorhanden == 'true'
         run: |
-          echo "Coolify zieht das Image und startet den Container neu."
-          echo "Der Healthcheck im Container prüft Rezepte und Zutaten –"
-          echo "steht die Ressource auf healthy, stimmen die Stammdaten."
+          {
+            echo "## Rollout auf dem Home-Server"
+            echo
+            echo '```'
+            cat /tmp/rollout.log 2>/dev/null || echo "(keine Ausgabe)"
+            echo '```'
+            echo
+            echo "Das Deploy-Skript wartet auf den Healthcheck des Containers."
+            echo "Steht dort \`healthy\`, prüfen Rezepte und Zutaten durch."
+          } >> "$GITHUB_STEP_SUMMARY"

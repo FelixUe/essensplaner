@@ -4,8 +4,8 @@ Automatisierter Monatsessensplan für eine Familie mit zwei Erwachsenen und zwei
 Kindern. Einmal im Monat entsteht der komplette Plan für den Folgemonat, jeden
 Freitag kommt die Einkaufsliste für die Woche per Mail.
 
-Läuft als Container – zunächst unter Coolify auf einem Hetzner-Server, später
-unverändert auf eigener Homelab-Hardware.
+Läuft als Container mit Docker Compose auf dem Home-Server (Home-Server), und
+unverändert auf jeder anderen Hardware mit Docker.
 
 Die fachlichen Vorgaben stehen in [SPEC.md](SPEC.md).
 
@@ -353,31 +353,45 @@ als ein falscher.
 ## Deployment
 
 Die Pipeline baut bei jedem Push auf `main` ein Image, veröffentlicht es in der
-GitHub-Registry und löst den Rollout in Coolify aus. Der Rollout läuft nur,
-wenn vorher alle Prüfungen grün waren.
+GitHub-Registry und rollt es auf dem Home-Server aus. Der Rollout läuft nur, wenn
+vorher alle Prüfungen grün waren.
 
 Das Image entsteht für `linux/amd64` und `linux/arm64`. Derselbe Tag läuft
-damit auf einem x86-Server, auf Hetzners ARM-Reihe und auf einem Raspberry Pi
-mit 64-Bit-System; Docker wählt beim Ziehen die passende Fassung.
+damit auf dem x86-Server, auf ARM-Servern und auf einem Raspberry Pi mit
+64-Bit-System; Docker wählt beim Ziehen die passende Fassung.
 
-Die vollständige Anleitung samt Coolify-Einrichtung, Secrets und Mailversand
+Der Home-Server steht im Heimnetz und ist aus dem Internet nicht erreichbar. Ein
+Webhook ist deshalb nicht möglich: Der Runner tritt stattdessen als
+kurzlebiger, getaggter Knoten dem Tailnet bei und ruft über SSH ein Skript auf
+dem Home-Server. Der Schlüssel dafür ist mit `command=` auf genau diesen einen Befehl
+festgelegt – keine Shell, kein Forwarding. Am Gateway ist nichts offen.
+
+Die vollständige Anleitung samt Tailscale-Einrichtung, Secrets und Mailversand
 steht in [docs/deployment.md](docs/deployment.md).
 
 Kurzfassung:
 
-1. In Coolify eine Ressource vom Typ **Docker Image** anlegen, Image
-   `ghcr.io/<owner>/essensplaner:latest`.
-2. Ein Volume auf `/data/plans` legen, damit die Pläne einen Rollout überleben.
-3. Die SMTP- und Mail-Variablen setzen (siehe `.env.example`), Passwörter als
-   Secret.
-4. In Coolify ein API-Token mit der Berechtigung **Deploy** erzeugen und die
-   Deploy-URL der Ressource kopieren.
-5. Im GitHub-Repo die Secrets `COOLIFY_WEBHOOK` und `COOLIFY_TOKEN` setzen.
-6. Für die Oberfläche eine Domain auf Port 8080 legen und
-   `ESSENSPLANER_WEB_PASSWORT` setzen – ohne Passwort startet sie nicht.
+1. Auf dem Zielrechner `/opt/essensplaner` mit `docker-compose.yml`, einem
+   Override für den Port und einer `.env` (`chmod 600`) anlegen.
+2. `ESSENSPLANER_WEB_PASSWORT` setzen – ohne Passwort startet die Oberfläche
+   nicht. SMTP-Variablen nach `.env.example`; bleiben sie leer, entstehen
+   Pläne weiterhin und nur der Versand fällt aus.
+3. `docker compose up -d`. Die Oberfläche liegt dann auf Port 8080, die Pläne
+   im Volume auf `/data/plans`.
+4. Für den automatischen Rollout: Tailscale auf dem Zielrechner anmelden, das
+   Skript `/usr/local/bin/essensplaner-deploy` anlegen und einen SSH-Schlüssel
+   mit `restrict,command=…` in die `authorized_keys` eintragen.
+5. Im GitHub-Repo die Secrets `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET` und
+   `DEPLOY_SSH_KEY`, `DEPLOY_SSH_ZIEL` und `DEPLOY_HOST_KEY`
+   setzen.
 
-Ohne diese beiden Secrets läuft die Pipeline trotzdem durch: Das Image landet
-in der Registry, nur der Rollout wird mit einem Hinweis übersprungen.
+Fehlt einer dieser Werte, läuft die Pipeline trotzdem durch: Das Image landet
+in der Registry, nur der Rollout wird mit einem Hinweis übersprungen. Von Hand
+geht er jederzeit:
+
+```bash
+ssh benutzer@homeserver /usr/local/bin/essensplaner-deploy
+```
 
 ### Zeitsteuerung
 
@@ -394,17 +408,17 @@ Tag und Uhrzeit stehen in `config.yaml` unter `mail.erinnerung_tag` und
 bewusst keinen Plan: fehlt er, bleibt die Erinnerung aus und die Wochenmail
 legt ihn am Freitag an.
 
-Wer die Coolify-Scheduled-Tasks bevorzugt, überschreibt das Kommando und legt
-zwei Tasks an:
+Wer die Termine lieber auf dem Host sehen will, überschreibt das Kommando und
+legt zwei systemd-Timer oder Cron-Einträge an:
 
-| Task | Kommando | Zeitplan |
+| Aufgabe | Kommando | Zeitplan |
 |---|---|---|
 | `send-weekly` | `essensplaner send-weekly` | `0 7 * * 5` |
 | `generate-month` | `essensplaner generate-month` | `30 7 * * 5` (prüft selbst, ob der Termin passt) |
 
-### Umzug ins Homelab
+### Auf andere Hardware umziehen
 
-Das Image ist an nichts gebunden, was es nur bei Hetzner gibt. Auf der neuen
+Das Image ist an nichts gebunden, was es nur auf dem Home-Server gibt. Auf der neuen
 Hardware genügt:
 
 ```bash

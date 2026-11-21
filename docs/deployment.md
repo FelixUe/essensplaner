@@ -1,8 +1,14 @@
 # Deployment
 
-Ziel: Der Essensplaner läuft als Container unter Coolify auf dem
-Hetzner-Server, und jeder Push auf `main` rollt ihn automatisch aus. Später
-zieht derselbe Container ohne Änderung auf die Homelab-Hardware.
+Ziel: Der Essensplaner läuft als Container mit Docker Compose auf dem
+Home-Server (Home-Server, Hostname `homeserver`), und jeder Push auf `main` rollt
+ihn automatisch aus.
+
+> **Vorgeschichte.** Geplant war Coolify auf einem Hetzner-Server. Das wurde
+> aufgegeben: Der Server hatte 927 MB RAM, Coolify lief darauf nicht
+> brauchbar, und der Server existiert nicht mehr. Der Rollout über Coolify
+> ist deshalb hier nicht mehr beschrieben — die Deploy-Secrets waren ohnehin
+> nie gesetzt, der Rollout-Schritt wurde bei jedem Lauf übersprungen.
 
 ---
 
@@ -16,21 +22,39 @@ Push auf main
    ├─ Image          Build und Push nach ghcr.io/<owner>/essensplaner
    │                 Tags: latest, sha-<commit>, <zeitstempel>
    │
-   └─ Rollout        GET auf die Coolify-Deploy-URL
-                     Coolify zieht das Image und startet den Container neu
+   └─ Rollout        Runner tritt dem Tailnet bei
+                     → SSH auf den Home-Server
+                     → /usr/local/bin/essensplaner-deploy
+                     → docker compose pull && up -d, dann Healthcheck
 ```
 
 Der Rollout hängt an `needs: image`, und das Image hängt an den Prüfungen. Ein
 Rezept mit Fenchel oder ein Montagsgericht unter 30 g Protein lässt die
 Pipeline rot werden, bevor irgendetwas den Server erreicht.
 
+### Warum Tailscale und kein Webhook
+
+Der Home-Server steht im Heimnetz unter einer privaten Adresse. GitHub kann ihn nicht
+erreichen, ein Webhook im Wortsinn ist also nicht möglich, ohne einen Weg von
+außen hinein zu öffnen. Drei Wege wurden erwogen:
+
+| Weg | Preis |
+|---|---|
+| Portweiterleitung am Gateway | ein selbstgebauter Dienst im offenen Internet, plus DynDNS und TLS |
+| Cloudflare Tunnel | Cloudflare-Konto und dort verwaltete Domain, plus ein Webhook-Empfänger als Dienst |
+| **Tailscale** | Tailscale-Konto und ein OAuth-Client — kein offener Port |
+
+Gewählt wurde Tailscale: Der Runner tritt als kurzlebiger, getaggter Knoten
+dem Tailnet bei und verschwindet danach wieder. Am Gateway ist nichts offen,
+und der Home-Server ist nebenbei auch von unterwegs erreichbar.
+
 ### Architekturen
 
 Die Pipeline baut jedes Image für `linux/amd64` **und** `linux/arm64`. Unter
 einem Tag wie `latest` liegt deshalb keine einzelne Datei, sondern eine Liste,
 aus der Docker beim Ziehen die passende Fassung nimmt. Derselbe Tag läuft
-damit auf einem x86-Server, auf Hetzners ARM-Reihe (CAX) und auf einem
-Raspberry Pi mit 64-Bit-System – ohne dass irgendwo etwas umzustellen wäre.
+damit auf dem x86-Server, auf ARM-Servern und auf einem Raspberry Pi mit
+64-Bit-System – ohne dass irgendwo etwas umzustellen wäre.
 
 Prüfen lässt sich das ohne Docker:
 
@@ -47,136 +71,149 @@ In der Antwort steht je ein Eintrag mit `"architecture":"amd64"` und
 
 ---
 
-## 2. Coolify einrichten
+## 2. Der Home-Server als Ziel
 
-### 2.1 Ressource anlegen
+### 2.1 Verzeichnis und Dateien
 
-In Coolify auf dem Hetzner-Server:
+Alles liegt unter `/opt/essensplaner`, Eigentümer `benutzer`:
 
-1. Projekt auswählen oder neu anlegen, dann **+ New Resource**.
-2. **Docker Image** wählen.
-3. Als Image eintragen:
+| Datei | Herkunft | Zweck |
+|---|---|---|
+| `docker-compose.yml` | Kopie aus dem Repo | Dienst, Volume, Healthcheck |
+| `docker-compose.override.yml` | nur auf dem Home-Server | veröffentlicht Port 8080 im LAN |
+| `.env` | nur auf dem Home-Server, `chmod 600` | Konfiguration und Geheimnisse |
 
-   ```
-   ghcr.io/<owner>/essensplaner:latest
-   ```
+Die Repo-Datei bleibt bewusst unverändert. Der Override enthält allein das,
+was den Home-Server vom Betrieb hinter einem Proxy unterscheidet:
 
-   `<owner>` ist der GitHub-Account, komplett in Kleinbuchstaben – die
-   GitHub-Registry akzeptiert keine Großbuchstaben.
+```yaml
+services:
+  essensplaner:
+    ports:
+      - "8080:8080"
+```
 
-Alternativ lässt sich die mitgelieferte `docker-compose.yml` als
-**Docker Compose**-Ressource verwenden. Dann übernimmt Coolify Volume und
-Healthcheck direkt aus der Datei.
+Ändert sich `docker-compose.yml` im Repo, muss die Kopie von Hand
+nachgezogen werden — das Deploy-Skript aktualisiert nur das Image:
 
-### 2.2 Privates Image freischalten
+```bash
+scp docker-compose.yml benutzer@homeserver:/opt/essensplaner/
+```
 
-Ein neues GitHub-Paket ist zunächst privat. Zwei Wege:
+### 2.2 Image öffentlich oder privat
 
-- **Paket öffentlich machen**: Auf GitHub unter *Packages* das Paket öffnen,
-  *Package settings* → *Change visibility* → *Public*. Einfachster Weg, und bei
-  diesem Repo unkritisch, weil das Image keine Zugangsdaten enthält – die
-  kommen erst zur Laufzeit aus der Umgebung. Das Image enthält allerdings die
-  Rezepte und die Haushaltskonfiguration.
-- **Paket privat lassen** und Coolify anmelden: unter *Settings* → *Docker
-  Registries* einen Eintrag für `ghcr.io` mit GitHub-Benutzernamen und einem
-  Personal Access Token mit `read:packages` hinterlegen. Coolify führt damit
-  `docker login` auf dem Server aus.
+Das Paket `ghcr.io/<owner>/essensplaner` ist derzeit **öffentlich**. Dadurch
+braucht der Home-Server keine Registry-Zugangsdaten.
 
-Bleibt das Paket privat, ist der zweite Weg nötig – sonst scheitert der Pull.
+Zu bedenken: Das Repo ist privat, das Image enthält aber den Code samt
+Rezepten und Haushaltskonfiguration. Wer das Image zieht, kann beides lesen.
+Zugangsdaten sind nicht im Image — die kommen zur Laufzeit aus `.env`.
 
-### 2.3 Volume für die Pläne
+Soll das Paket privat werden, braucht der Home-Server einen Login:
 
-**Storage** → **+ Add**:
+```bash
+ssh benutzer@homeserver 'docker login ghcr.io -u <github-user>'
+```
 
-| Feld | Wert |
-|---|---|
-| Name | `essensplaner-plans` |
-| Destination Path | `/data/plans` |
+Als Passwort ein Personal Access Token mit `read:packages`. Der Login
+landet in `/home/benutzer/.docker/config.json` und überlebt Neustarts.
 
-Im Volume liegen außerdem die selbst angelegten Rezepte (`rezepte/*.yaml`)
-und die Liste der gestrichenen Gerichte (`gestrichen.json`). Ein Backup des
-Volumes sichert damit alles, was zur Laufzeit entstanden ist.
+### 2.3 Umgebungsvariablen
 
-Ohne dieses Volume wäre nach jedem Rollout der Monatsplan verschwunden. Die
-nächste Freitagsmail würde dann einen neuen Plan würfeln – mit anderen
-Gerichten als die, für die schon eingekauft wurde. Hier liegt auch
-`state.json`, das verhindert, dass ein Neustart eine zweite Mail auslöst.
+In `/opt/essensplaner/.env`, Rechte `600`:
 
-### 2.4 Umgebungsvariablen
-
-Unter **Environment Variables** eintragen. Alles, was ein Passwort oder Key
-ist, als **Secret** markieren.
-
-| Variable | Beispiel | Pflicht |
+| Variable | Wert auf dem Home-Server | Pflicht |
 |---|---|---|
 | `TZ` | `Europe/Berlin` | ja |
-| `SMTP_HOST` | `smtp.example.com` | nein, siehe unten |
+| `ESSENSPLANER_IMAGE` | `ghcr.io/<owner>/essensplaner:latest` | ja |
+| `SMTP_HOST` | derzeit leer | nein, siehe unten |
 | `SMTP_PORT` | `587` | – |
-| `SMTP_USER` | `essensplaner@example.com` | meist |
-| `SMTP_PASSWORD` | – | meist, **Secret** |
+| `SMTP_USER` | – | mit Mail |
+| `SMTP_PASSWORD` | – | mit Mail |
 | `SMTP_STARTTLS` | `true` | – |
 | `SMTP_SSL` | `false` | – |
-| `MAIL_FROM` | `essensplaner@example.com` | nur mit Mail |
-| `MAIL_TO` | `erste.person@example.com,zweite.person@example.com` | nur mit Mail |
+| `MAIL_FROM` / `MAIL_TO` | – | mit Mail |
+| `ESSENSPLANER_WEB_PASSWORT` | gesetzt (generiert) | für die Oberfläche |
+| `ESSENSPLANER_WEB_SECRET` | gesetzt (generiert) | empfohlen |
+| `ESSENSPLANER_WEB_PORT` | `8080` | – |
+| `ESSENSPLANER_WEB_UNSICHER` | `true` | siehe 2.4 |
 | `ESSENSPLANER_FREEZER` | `false` | – |
 | `ESSENSPLANER_SEED` | leer | – |
-| `ESSENSPLANER_WEB_PASSWORT` | – | für die Oberfläche, **Secret** |
-| `ESSENSPLANER_WEB_SECRET` | – | empfohlen, **Secret** |
-| `ESSENSPLANER_WEB_PORT` | `8080` | – |
 
 **Ohne Mailserver geht es auch.** Bleibt `SMTP_HOST` leer, erzeugt der
 Scheduler weiterhin die Monatspläne und verschickt nichts; Plan und
 Einkaufszettel stehen in der Weboberfläche. Dann ist `ESSENSPLANER_WEB_PASSWORT`
-die einzige Pflichtangabe. Die SMTP-Werte lassen sich jederzeit nachtragen.
-
-`MAIL_TO` nimmt mehrere Adressen, mit Komma getrennt. Die Werte überschreiben,
-was in `config.yaml` steht – dort stehen nur Platzhalter, damit nie eine echte
-Adresse im Repo landet.
+die einzige Pflichtangabe. Die SMTP-Werte lassen sich jederzeit nachtragen —
+danach `docker compose up -d`, damit der Container sie liest.
 
 Port 587 mit STARTTLS ist der Normalfall. Nutzt der Anbieter Port 465, dann
 `SMTP_PORT=465`, `SMTP_SSL=true` und `SMTP_STARTTLS=false`.
 
-### 2.5 Weboberfläche und Domain
-
-Die Oberfläche zeigt den Monatsplan und erlaubt, einzelne Gerichte zu
-tauschen. Sie lauscht im Container auf Port **8080**.
-
-Sie startet nur, wenn `ESSENSPLANER_WEB_PASSWORT` gesetzt ist. Ohne Passwort
-läuft allein der Scheduler weiter – eine offene Seite, auf der Fremde den
-Essensplan umbauen, wäre schlimmer als keine Seite.
-
-Zwei Werte gehören dazu, beide als **Secret**:
+Das Anmeldepasswort auslesen:
 
 ```bash
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+ssh benutzer@homeserver 'grep PASSWORT /opt/essensplaner/.env'
 ```
 
-- `ESSENSPLANER_WEB_PASSWORT` – was man beim Anmelden eintippt.
-- `ESSENSPLANER_WEB_SECRET` – signiert das Sitzungs-Cookie. Ohne festen Wert
-  erzeugt der Container bei jedem Start einen neuen, und alle müssen sich
-  nach jedem Rollout neu anmelden.
+### 2.4 Weboberfläche
 
-In Coolify bei der Ressource unter **Domains** eine Domain eintragen und als
-Port `8080` angeben. Coolify kümmert sich um Proxy und Zertifikat. Die
-mitgelieferte `docker-compose.yml` enthält dafür bereits
-`SERVICE_FQDN_ESSENSPLANER_8080`; trägt Coolify die Domain nicht von allein
-ein, geht es über das Feld in der Oberfläche.
+Erreichbar im Heimnetz unter **http://homeserver:8080**. Sie startet nur,
+wenn `ESSENSPLANER_WEB_PASSWORT` gesetzt ist — eine offene Seite, auf der
+Fremde den Essensplan umbauen, wäre schlimmer als keine Seite.
 
-Ohne Domain bleibt die Oberfläche unerreichbar, und das ist ein gültiger
-Zustand: Mails kommen trotzdem.
+`ESSENSPLANER_WEB_UNSICHER=true` ist hier nötig und ein bewusster Kompromiss:
+Ohne diesen Schalter markiert der Dienst das Sitzungs-Cookie als `Secure`, und
+die Anmeldung über `http://` schlägt fehl. Der Preis ist, dass Passwort und
+Cookie im LAN unverschlüsselt übertragen werden. Für einen Dienst, der das
+Heimnetz nicht verlässt, ist das vertretbar; mit einer öffentlichen Domain
+wäre es es nicht.
 
-**Nicht ohne HTTPS betreiben.** Das Sitzungs-Cookie wird nur über
-verschlüsselte Verbindungen gesendet. Wer die Oberfläche zum Ausprobieren
-ohne TLS aufruft, setzt `ESSENSPLANER_WEB_UNSICHER=true` – aber nur lokal,
-nie mit einer öffentlichen Domain.
+Soll das wegfallen, gehört ein Reverse Proxy mit TLS davor — Caddy mit einem
+Zertifikat aus dem Tailnet (`tailscale cert`) ist dafür der kürzeste Weg, dann
+`ESSENSPLANER_WEB_UNSICHER=false`.
+
+### 2.5 Erreichbarkeit und Firewall
+
+Auf dem Home-Server läuft `ufw` mit `deny incoming`; offen sind nur 22/tcp und
+5353/udp (mDNS). **Docker umgeht `ufw`** bei veröffentlichten Ports: Es
+schreibt eigene NAT-Regeln, die vor der `INPUT`-Kette greifen. Port 8080 ist
+daher im LAN erreichbar, obwohl keine `ufw`-Regel ihn erlaubt.
+
+Was den Zugriff begrenzt, ist nicht die Firewall des Home-Servers, sondern dass am
+Gateway keine Portweiterleitung existiert. Wer es strenger will, schränkt
+in der `DOCKER-USER`-Kette ein:
+
+```bash
+sudo iptables -I DOCKER-USER -p tcp --dport 8080 ! -s 192.168.1.0/24 -j DROP
+```
+
+(Nicht gesetzt — bewusst, solange nichts von außen hereinkommt.)
+
+### 2.6 Volume für die Pläne
+
+Das Volume `essensplaner_essensplaner-plans` wird von Compose angelegt und
+nach `/data/plans` gemountet. Darin liegen der Monatsplan, selbst angelegte
+Rezepte (`rezepte/*.yaml`), die Liste gestrichener Gerichte
+(`gestrichen.json`) und `state.json`.
+
+Ohne dieses Volume wäre nach jedem Rollout der Monatsplan verschwunden. Die
+nächste Freitagsmail würde dann einen neuen Plan würfeln – mit anderen
+Gerichten als die, für die schon eingekauft wurde. `state.json` verhindert,
+dass ein Neustart eine zweite Mail auslöst.
+
+Backup:
+
+```bash
+ssh benutzer@homeserver 'docker run --rm -v essensplaner_essensplaner-plans:/from -v /tmp:/to alpine tar czf /to/plans.tar.gz -C /from .'
+```
+
+```bash
+scp benutzer@homeserver:/tmp/plans.tar.gz .
+```
 
 ---
 
-## 3. Zeitsteuerung wählen
-
-Es gibt zwei Wege. Beide funktionieren, der erste ist der portablere.
-
-### Variante A: eingebauter Scheduler (Standard)
+## 3. Zeitsteuerung
 
 Der Container startet mit `essensplaner serve` und bringt seine Termine selbst
 mit:
@@ -191,80 +228,126 @@ Jede Aufgabe läuft pro Termin höchstens einmal. Der Zustand liegt in
 gelaufene Mail nach; ein Neustart am Abend tut das nicht mehr – das Zeitfenster
 ist zwei Stunden breit.
 
-Hier ist in Coolify nichts weiter zu tun.
-
-### Variante B: Coolify Scheduled Tasks
-
-Wer die Termine in Coolify sehen will: Das Kommando des Containers auf etwas
-Dauerhaftes setzen, das nichts tut (z. B. `sleep infinity`), und zwei
-Scheduled Tasks anlegen:
-
-| Name | Container Command | Frequency |
-|---|---|---|
-| `send-weekly` | `essensplaner send-weekly` | `0 7 * * 5` |
-| `generate-month` | `essensplaner generate-month` | `30 7 * * 5` |
-
-`generate-month` ohne Monatsangabe plant immer den Folgemonat und
-überschreibt einen vorhandenen Plan nicht. Es kann also jeden Freitag laufen;
-Wirkung hat es nur, solange für den Folgemonat noch kein Plan existiert.
-
-Variante A und B zugleich sind unnötig, aber harmlos – der Zustand in
-`state.json` und der Überschreibschutz verhindern doppelte Mails.
+Auf dem Home-Server ist dafür nichts weiter einzurichten. Wer die Termine lieber
+auf dem Host sehen will, kann stattdessen zwei systemd-Timer anlegen, die
+`docker compose exec essensplaner essensplaner send-weekly` bzw.
+`generate-month` aufrufen — nötig ist das nicht, und beides zugleich ist
+harmlos: `state.json` und der Überschreibschutz verhindern doppelte Mails.
 
 ---
 
-## 4. GitHub-Secrets für den Rollout
+## 4. Rollout einrichten
 
-Coolify braucht einen Anstoß, sobald ein neues Image bereitsteht.
+Vier Dinge gehören zusammen: der Tag im Tailnet, der OAuth-Client, der
+eingeschränkte SSH-Schlüssel und die Werte im Repo.
 
-### 4.1 API-Token in Coolify
+### 4.1 Tailscale-ACL: Tag anlegen
 
-1. In Coolify oben rechts auf das Profil → **Keys & Tokens** → **API tokens**.
-2. **Create New Token**, bei den Berechtigungen **Deploy** ankreuzen.
-3. Den Token kopieren – er wird nur einmal angezeigt.
+In der Tailscale-Konsole unter **Access controls**. Ein neues Tailnet erlaubt
+Mitgliedern standardmäßig alles; damit ein *getaggter* Knoten entstehen darf,
+muss der Tag einen Eigentümer haben:
 
-Ein Token ohne `Deploy`-Berechtigung kann keinen Rollout auslösen und
-antwortet mit einem Authentifizierungsfehler.
+```json
+{
+  "tagOwners": {
+    "tag:ci": ["autogroup:admin"]
+  },
+  "acls": [
+    {"action": "accept", "src": ["autogroup:member"], "dst": ["*:*"]},
+    {"action": "accept", "src": ["tag:ci"], "dst": ["<tailscale-ip-des-servers>:22"]}
+  ]
+}
+```
 
-### 4.2 Deploy-URL der Ressource
+Die zweite ACL-Regel ist der eigentliche Gewinn: Der CI-Knoten darf
+ausschließlich Port 22 des Home-Servers erreichen, nichts anderes im Tailnet.
 
-Bei der Ressource unter **Webhooks** steht die Deploy-URL. Sie hat die Form:
+### 4.2 OAuth-Client
+
+**Settings** → **OAuth clients** → **Generate OAuth client**:
+
+- Scope **`auth_keys`**, schreibend
+- Tag **`tag:ci`**
+
+Der Client-Tag muss mit dem `tags:`-Wert im Workflow übereinstimmen, sonst
+lehnt Tailscale den Beitritt ab. Das Secret wird nur einmal angezeigt.
+
+Ein OAuth-Client ist einem dauerhaften Auth-Key vorzuziehen: Er erzeugt pro
+Lauf einen kurzlebigen Schlüssel, und der Knoten verschwindet nach dem Lauf
+wieder aus dem Tailnet.
+
+### 4.3 Eingeschränkter SSH-Schlüssel auf dem Home-Server
+
+Erzeugt wird das Paar auf dem Home-Server, damit der private Teil die Maschine nie
+unverschlüsselt verlässt:
+
+```bash
+ssh benutzer@homeserver 'ssh-keygen -t ed25519 -N "" -f ~/.ssh/ci-deploy -C github-actions-essensplaner'
+```
+
+In `~/.ssh/authorized_keys` steht der öffentliche Teil mit Vorsatz:
 
 ```
-https://<coolify-host>/api/v1/deploy?uuid=<resource-uuid>
+restrict,command="/usr/local/bin/essensplaner-deploy" ssh-ed25519 AAAA… github-actions-essensplaner
 ```
 
-### 4.3 Secrets im Repo setzen
+- `command=` erzwingt genau diesen Befehl. Was die Gegenseite als
+  SSH-Kommando sendet, wird verworfen.
+- `restrict` schaltet Port-, Agent- und X11-Forwarding, PTY und `user-rc` ab.
 
-Im GitHub-Repo unter **Settings** → **Secrets and variables** → **Actions**:
+Geprüft: Ein Aufruf mit `id; cat /etc/shadow` führte das Deploy-Skript aus und
+sonst nichts; Daten durch einen `-L`-Tunnel kamen nicht durch.
+
+Der private Schlüssel wandert ohne Zwischenstation in das GitHub-Secret:
+
+```bash
+ssh benutzer@homeserver 'cat ~/.ssh/ci-deploy' | gh secret set DEPLOY_SSH_KEY --repo <owner>/essensplaner
+```
+
+### 4.4 Werte im Repo
+
+Alle fünf Werte gehören unter **Settings → Secrets and variables → Actions**
+als **Secrets**:
 
 | Secret | Wert |
 |---|---|
-| `COOLIFY_WEBHOOK` | die Deploy-URL von oben |
-| `COOLIFY_TOKEN` | der API-Token mit Deploy-Berechtigung |
+| `TS_OAUTH_CLIENT_ID` | Client-ID aus 4.2 |
+| `TS_OAUTH_SECRET` | Secret aus 4.2 |
+| `DEPLOY_SSH_KEY` | privater Schlüssel aus 4.3 |
+| `DEPLOY_SSH_ZIEL` | `benutzer@<tailscale-ip-des-servers>` |
+| `DEPLOY_HOST_KEY` | `known_hosts`-Zeile des Servers |
 
-Oder per CLI:
+Adresse und Host-Key sind streng genommen keine Geheimnisse. Sie liegen
+trotzdem als Secret und nicht als Variable, denn **GitHub maskiert Secrets in
+den Logs, Variables nicht** — und bei einem öffentlichen Repo sind die
+Workflow-Logs öffentlich. Als Variable stünden Benutzername und Adresse des
+Servers dort im Klartext.
+
+Die Host-Key-Zeile liefert:
 
 ```bash
-gh secret set COOLIFY_WEBHOOK --body "https://coolify.example.com/api/v1/deploy?uuid=abc123"
+ssh benutzer@homeserver 'ssh-keyscan -t ed25519 $(tailscale ip -4)'
 ```
+
+Sie festzunageln ist doppelter Boden: Tailscale authentifiziert den Knoten
+schon, aber `StrictHostKeyChecking=yes` schließt aus, dass die Pipeline sich
+stillschweigend mit einem anderen Host unterhält.
+
+Die Werte interaktiv setzen, damit sie nicht in der Shell-History landen:
 
 ```bash
-gh secret set COOLIFY_TOKEN
+gh secret set TS_OAUTH_SECRET --repo <owner>/essensplaner
 ```
 
-Der zweite Befehl fragt den Wert interaktiv ab, damit der Token nicht in der
-Shell-History landet.
+Fehlt einer der fünf Werte, überspringt der Workflow den Rollout mit einem
+Hinweis in der Zusammenfassung — das Image liegt dann trotzdem in der
+Registry und lässt sich von Hand ausrollen.
 
-Fehlt eines der beiden Secrets, überspringt der Workflow den Rollout mit einem
-Hinweis in der Zusammenfassung – das Image liegt dann trotzdem in der Registry
-und kann in Coolify von Hand ausgerollt werden.
+### 4.5 Optional: Freigabe vor dem Rollout
 
-### 4.4 Optional: Freigabe vor dem Rollout
-
-Der Rollout-Job läuft in der GitHub-Environment `hetzner`. Wer eine
+Der Rollout-Job läuft in der GitHub-Environment `homelab`. Wer eine
 ausdrückliche Bestätigung vor jedem Deployment möchte, hinterlegt unter
-**Settings** → **Environments** → `hetzner` einen *Required reviewer*. Dann
+**Settings** → **Environments** → `homelab` einen *Required reviewer*. Dann
 wartet der Rollout, bis jemand zustimmt.
 
 ---
@@ -275,34 +358,49 @@ wartet der Rollout, bis jemand zustimmt.
 git push origin main
 ```
 
-Dann unter *Actions* den Workflow **Deploy** beobachten. Nach dem Durchlauf:
+Dann unter *Actions* den Workflow **Deploy** beobachten. Die Zusammenfassung
+des Rollout-Jobs enthält die Ausgabe des Deploy-Skripts, inklusive
+`aktualisiert: <alt> -> <neu>` und am Ende `healthy`.
 
-1. In Coolify sollte die Ressource laufen und nach etwa einer Minute auf
-   **healthy** stehen. Der Healthcheck ruft `essensplaner validate` auf –
-   healthy heißt also, dass Rezepte und Zutaten in Ordnung sind.
-2. Den Mailversand einmal von Hand auslösen, statt bis Freitag zu warten. In
-   Coolify unter **Terminal** oder per SSH:
+Von Hand lässt sich derselbe Weg jederzeit auslösen:
 
-   ```bash
-   docker exec -it <container> essensplaner send-weekly --dry-run
-   ```
+```bash
+ssh benutzer@homeserver /usr/local/bin/essensplaner-deploy
+```
 
-   Das rendert die Mail und verschickt nichts. Sieht alles gut aus, dasselbe
-   ohne `--dry-run`:
+Danach einmal den Mailversand prüfen, statt bis Freitag zu warten:
 
-   ```bash
-   docker exec -it <container> essensplaner send-weekly
-   ```
+```bash
+ssh benutzer@homeserver 'cd /opt/essensplaner && docker compose exec -T essensplaner essensplaner send-weekly --dry-run'
+```
 
-3. Den Plan für den kommenden Monat anlegen, falls noch keiner existiert:
+Das rendert die Mail und verschickt nichts. Sieht alles gut aus, dasselbe ohne
+`--dry-run`. Und den Plan für den kommenden Monat anlegen, falls noch keiner
+existiert:
 
-   ```bash
-   docker exec -it <container> essensplaner generate-month
-   ```
+```bash
+ssh benutzer@homeserver 'cd /opt/essensplaner && docker compose exec -T essensplaner essensplaner generate-month'
+```
 
 ---
 
 ## 6. Betrieb
+
+### Das Deploy-Skript
+
+`/usr/local/bin/essensplaner-deploy` auf dem Home-Server:
+
+1. merkt sich die Image-ID,
+2. `docker compose pull` und `up -d --remove-orphans`,
+3. vergleicht die ID und räumt alte Schichten nur bei einer Änderung auf,
+4. wartet bis zu zwei Minuten auf `healthy` und endet sonst mit Fehler.
+
+Es ist idempotent: Hat sich nichts geändert, meldet es `unveraendert` und
+rührt den laufenden Container nicht an. Protokoll im Journal:
+
+```bash
+ssh benutzer@homeserver 'journalctl -t essensplaner-deploy -n 30 --no-pager'
+```
 
 ### Gericht im laufenden Monat tauschen
 
@@ -322,14 +420,19 @@ und rollt aus. Ein bereits erzeugter Monatsplan bleibt unberührt – er liegt i
 Volume. Soll er neu gewürfelt werden:
 
 ```bash
-docker exec -it <container> essensplaner generate-month 2027-01 --force
+ssh benutzer@homeserver 'cd /opt/essensplaner && docker compose exec -T essensplaner essensplaner generate-month 2027-01 --force'
 ```
 
 ### Logs ansehen
 
-In Coolify unter **Logs**. Der Scheduler schreibt beim Start seine Termine und
-Empfänger und protokolliert jeden Lauf. Ein fehlgeschlagener Versand wird
-geloggt, beendet den Dienst aber nicht – sonst fiele auch die nächste Mail aus.
+```bash
+ssh benutzer@homeserver 'cd /opt/essensplaner && docker compose logs -f --tail 50'
+```
+
+Der Scheduler schreibt beim Start seine Termine und Empfänger und
+protokolliert jeden Lauf. Ein fehlgeschlagener Versand wird geloggt, beendet
+den Dienst aber nicht – sonst fiele auch die nächste Mail aus. Compose
+begrenzt die Logs auf 3 × 10 MB.
 
 ### Was tun, wenn die Freitagsmail nicht kommt
 
@@ -339,39 +442,51 @@ geloggt, beendet den Dienst aber nicht – sonst fiele auch die nächste Mail au
    das durch, liegt es am Versand, nicht am Plan.
 3. **Zeitzone prüfen.** Ohne `TZ` rechnet der Container in UTC, dann kommt die
    Mail im Winter um 08:00 deutscher Zeit.
-4. **Zustand prüfen.** `cat /data/plans/state.json` zeigt, wann die Aufgaben
-   zuletzt gelaufen sind. Steht der aktuelle Freitag dort, hat der Scheduler
-   die Mail als erledigt verbucht – dann war der Versand selbst das Problem.
+4. **Zustand prüfen.** `state.json` im Volume zeigt, wann die Aufgaben zuletzt
+   gelaufen sind. Steht der aktuelle Freitag dort, hat der Scheduler die Mail
+   als erledigt verbucht – dann war der Versand selbst das Problem.
+
+### Was tun, wenn der Rollout scheitert
+
+| Symptom im Workflow | Ursache |
+|---|---|
+| `tailscale up` läuft in die Zeitüberschreitung | OAuth-Client fehlt, falsches Secret, oder `tag:ci` hat keinen Eigentümer in den ACLs |
+| `Permission denied (publickey)` | `DEPLOY_SSH_KEY` passt nicht zur `authorized_keys` auf dem Home-Server |
+| `Host key verification failed` | `DEPLOY_HOST_KEY` veraltet — nach einer Neuinstallation des Home-Servers neu setzen |
+| `connect: connection timed out` | Home-Server ist aus oder nicht im Tailnet: `tailscale status` prüfen |
+| `FEHLER: unhealthy` | Das neue Image startet nicht. Der alte Container ist schon ersetzt — Logs ansehen und notfalls ein älteres Tag in `.env` festnageln |
 
 ### Image-Version festnageln
 
 `latest` zieht beim Neustart, was gerade veröffentlicht ist. Wer eine
-bestimmte Version festhalten will, trägt in Coolify statt `latest` den
-Commit-Tag ein, etwa `sha-a1b2c3d…`, oder den Digest aus der
-Workflow-Zusammenfassung.
+bestimmte Version festhalten will, trägt in `/opt/essensplaner/.env` statt
+`latest` den Commit-Tag ein, etwa `sha-a1b2c3d…`, oder den Digest aus der
+Workflow-Zusammenfassung:
+
+```bash
+ESSENSPLANER_IMAGE=ghcr.io/<owner>/essensplaner@sha256:…
+```
+
+Danach `essensplaner-deploy`. Wichtig: Der nächste Push rollt dann nichts
+Neues aus, weil `.env` ein festes Image vorgibt.
 
 ---
 
-## 7. Umzug ins Homelab
+## 7. Auf andere Hardware umziehen
 
-Das Image ist an nichts gebunden, was es nur bei Hetzner gibt.
+Das Image ist an nichts gebunden, was es nur auf dem Home-Server gibt.
 
-1. Volume sichern:
-
-   ```bash
-   docker run --rm -v essensplaner-plans:/from -v "$PWD:/to" alpine tar czf /to/plans.tar.gz -C /from .
-   ```
-
-2. Auf der neuen Maschine `.env` aus `.env.example` anlegen und ausfüllen.
-
+1. Volume sichern (siehe 2.6).
+2. Auf der neuen Maschine `docker-compose.yml`, den Override und `.env`
+   anlegen, Letzteres mit `chmod 600`.
 3. Volume zurückspielen:
 
    ```bash
-   docker volume create essensplaner-plans
+   docker volume create essensplaner_essensplaner-plans
    ```
 
    ```bash
-   docker run --rm -v essensplaner-plans:/to -v "$PWD:/from" alpine tar xzf /from/plans.tar.gz -C /to
+   docker run --rm -v essensplaner_essensplaner-plans:/to -v "$PWD:/from" alpine tar xzf /from/plans.tar.gz -C /to
    ```
 
 4. Starten:
@@ -380,26 +495,20 @@ Das Image ist an nichts gebunden, was es nur bei Hetzner gibt.
    docker compose up -d
    ```
 
-Läuft dort wieder Coolify, bleibt es bei der Anleitung aus Abschnitt 2 – nur
-die Deploy-URL im Secret `COOLIFY_WEBHOOK` ändert sich.
+Für den automatischen Rollout auf der neuen Maschine: Tailscale installieren
+und anmelden, Deploy-Skript und eingeschränkten Schlüssel nach Abschnitt 4.3
+anlegen, dann `DEPLOY_SSH_ZIEL`, `DEPLOY_HOST_KEY` und `DEPLOY_SSH_KEY` im Repo
+aktualisieren. Die ACL-Regel aus 4.1 bekommt die neue Tailscale-Adresse.
 
-### Wechsel auf einen ARM-Server
-
-Bei Hetzner lässt sich ein x86-Server nicht in einen ARM-Server umwandeln; die
-CAX-Reihe ist eine eigene Maschine. Der Wechsel ist deshalb derselbe Weg wie
-oben: Volume sichern, neuen Server aufsetzen, Coolify installieren, Ressource
-nach Abschnitt 2 neu anlegen, Volume zurückspielen, neue Deploy-URL als Secret
-setzen.
-
-Am Image ändert sich nichts – es liegt ohnehin für beide Architekturen bereit.
-Was sich ändert, ist die Serveradresse in `COOLIFY_WEBHOOK` und der API-Token,
-denn der gehört zur Coolify-Installation, nicht zum Konto.
+Auf ARM-Hardware ändert sich am Image nichts – es liegt für `amd64` und
+`arm64` bereit, Docker nimmt beim Ziehen die passende Fassung.
 
 ---
 
 ## Quellen
 
-- [Coolify: Deploy webhooks](https://coolify.io/docs/core/automation/deploy-webhooks)
-- [Coolify: GitHub Actions](https://coolify.io/docs/applications/sources/github/actions)
-- [Coolify: Deploy a Docker image](https://coolify.io/docs/applications/deployments/docker-image)
-- [Coolify: Docker registries](https://coolify.io/docs/knowledge-base/docker/registry)
+- [Tailscale: GitHub Action](https://tailscale.com/kb/1276/tailscale-github-action)
+- [Tailscale: OAuth clients](https://tailscale.com/kb/1215/oauth-clients)
+- [Tailscale: ACL tags](https://tailscale.com/kb/1068/acl-tags)
+- [OpenSSH: `authorized_keys` options](https://man.openbsd.org/sshd.8#AUTHORIZED_KEYS_FILE_FORMAT)
+- [Docker und ufw](https://docs.docker.com/engine/network/packet-filtering-firewalls/)

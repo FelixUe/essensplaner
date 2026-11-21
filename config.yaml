@@ -1,5 +1,15 @@
-# Essensplaner – Konfiguration
-# Alle Werte hier sind fachliche Vorgaben. Zugangsdaten kommen aus Umgebungsvariablen (.env / Coolify Secrets).
+# Essensplaner – Beispielkonfiguration
+#
+# Alle Werte hier sind fachliche Vorgaben, keine Zugangsdaten – die kommen
+# aus Umgebungsvariablen (siehe .env.example).
+#
+# Diese Datei ist als Beispiel gedacht. Für den eigenen Haushalt entweder
+# hier anpassen oder eine eigene Datei anlegen und darauf zeigen:
+#
+#     ESSENSPLANER_CONFIG=/pfad/zu/meiner-config.yaml
+#
+# Im Container liegt sie sinnvoll im Volume, dann überlebt sie jeden Rollout
+# und landet nie im Repository.
 
 haushalt:
   erwachsene: 2

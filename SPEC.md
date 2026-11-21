@@ -1,6 +1,6 @@
 # Essensplaner – Spezifikation
 
-Automatisierter Monatsessensplan für einen Haushalt mit wöchentlicher Einkaufsliste per Mail. Läuft auf einem Hetzner-Server unter Coolify.
+Automatisierter Monatsessensplan für einen Haushalt mit wöchentlicher Einkaufsliste per Mail. Haushaltsgröße und Portionsfaktoren stehen in `config.yaml`. Läuft als Container mit Docker Compose.
 
 ---
 
@@ -181,8 +181,8 @@ kidneybohnen_dose:
 - **Sprache:** Python 3.12.
 - **Planer:** regelbasierter Scheduler (Constraint-Prüfung aus Abschnitt 3 und 4, gewichtete Zufallsauswahl, Favoriten-Gewichtung).
 - **Optional: Claude API** für neue Rezeptvorschläge. Neue Rezepte landen in einer Review-Warteschlange (`recipes/_pending/`) und werden erst nach Freigabe eingeplant. Jeder Vorschlag läuft durch den Ausschluss- und Protein-Check.
-- **Mail:** SMTP (Zugangsdaten als Secrets in Coolify), Empfänger konfigurierbar.
-- **Deployment:** Container in Coolify auf dem Hetzner-Server, zwei Scheduled Tasks:
+- **Mail:** SMTP (Zugangsdaten aus der Umgebung), Empfänger konfigurierbar.
+- **Deployment:** Container mit Docker Compose. Der eingebaute Scheduler bringt beide Termine mit; alternativ zwei Aufgaben auf dem Host:
   - `generate-month`: am vorletzten Freitag des Monats, erzeugt den Plan für den Folgemonat und schickt eine Vorschau.
   - `send-weekly`: jeden Freitag 07:00 Europe/Berlin.
 - **Konfiguration:** `config.yaml` (Personen, Portionsfaktoren, Protein-Ziel, Ausschlüsse, Wiederholungsregeln, Freezer, Empfänger).
