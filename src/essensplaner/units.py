@@ -132,6 +132,11 @@ def _einheit_anzeige(einheit: str) -> str:
     return _SINGULAR.get(e, einheit.strip())
 
 
+def einheit_anzeige(einheit: str) -> str:
+    """Schreibweise einer Einheit in der Einzahl ("EL", "Dose", "g")."""
+    return _einheit_anzeige(einheit)
+
+
 def formatiere(menge: float, einheit: str) -> str:
     """Eine Menge lesbar ausgeben, inklusive Umstieg auf die größere Einheit."""
     e = normalisiere_einheit(einheit)
