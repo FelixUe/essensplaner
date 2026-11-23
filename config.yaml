@@ -124,6 +124,14 @@ mail:
   erinnerung_uhrzeit: "18:00"
   betreff_erinnerung: "Morgen einkaufen: {von}–{bis}"
 
+mealie:
+  # Der Wocheneinkauf geht zusätzlich in diese Mealie-Einkaufsliste, sobald
+  # MEALIE_URL und MEALIE_TOKEN gesetzt sind. Gemeint ist der Einkauf am
+  # nächsten Freitag. Leerer Tag schaltet den automatischen Lauf ab.
+  einkaufsliste: "Wocheneinkauf"
+  einkauf_tag: "Sonntag"
+  einkauf_uhrzeit: "18:00"
+
 ai:
   # Neue Rezeptvorschläge über die Claude API. Vorschläge landen in
   # data/recipes/_pending/ und werden erst nach Freigabe eingeplant.

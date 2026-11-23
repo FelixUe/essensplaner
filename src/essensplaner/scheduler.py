@@ -10,6 +10,8 @@ Termine (Zeitzone aus der Konfiguration, Default Europe/Berlin):
 
 * ``send-weekly``    jeden Freitag zur konfigurierten Uhrzeit, Default 07:00
 * ``generate-month`` am vorletzten Freitag des Monats, 30 Minuten später
+* ``mealie-einkauf`` am konfigurierten Tag (Default Sonntag 18:00), nur mit
+  ``MEALIE_URL``/``MEALIE_TOKEN``: der Zettel für den nächsten Freitag
 
 Jede Aufgabe wird pro Termin höchstens einmal ausgeführt. Der Zustand liegt
 in ``plans/state.json``, damit ein Neustart nicht zu einer zweiten Mail führt.
@@ -26,6 +28,7 @@ from . import kalender
 from .config import Config
 from .runner import (
     Kontext,
+    einkauf_nach_mealie,
     generate_month,
     lade_state,
     send_reminder,
@@ -89,6 +92,15 @@ class Scheduler:
         self.erinnerung_stunde, self.erinnerung_minute = _parse_uhrzeit(
             self.config.erinnerung_uhrzeit, (18, 0), "Erinnerungszeit"
         )
+        self.einkauf_tag = kalender.wochentag_nummer(self.config.mealie_einkauf_tag)
+        if self.einkauf_tag is None and self.config.mealie_einkauf_tag:
+            log.warning(
+                "mealie.einkauf_tag %r ist kein Wochentag – der Mealie-Einkauf bleibt aus.",
+                self.config.mealie_einkauf_tag,
+            )
+        self.einkauf_stunde, self.einkauf_minute = _parse_uhrzeit(
+            self.config.mealie_einkauf_uhrzeit, (18, 0), "Mealie-Einkaufszeit"
+        )
 
     # ------------------------------------------------------------ Fälligkeit
 
@@ -130,6 +142,23 @@ class Scheduler:
             return None
         freitag = kalender.naechster_freitag(heute, inklusiv=False)
         if state.get("erinnerung") == freitag.isoformat():
+            return None
+        return freitag
+
+    def mealie_einkauf_faellig(self, jetzt: datetime, state: dict[str, str]) -> date | None:
+        """Der Freitag, dessen Zettel jetzt nach Mealie gehört – oder ``None``."""
+        if self.einkauf_tag is None or not self.config.mealie_konfiguriert:
+            return None
+        heute = jetzt.date()
+        if heute.weekday() != self.einkauf_tag:
+            return None
+        termin = jetzt.replace(
+            hour=self.einkauf_stunde, minute=self.einkauf_minute, second=0, microsecond=0
+        )
+        if not termin <= jetzt < termin + timedelta(hours=2):
+            return None
+        freitag = kalender.naechster_freitag(heute)
+        if state.get("mealie-einkauf") == freitag.isoformat():
             return None
         return freitag
 
@@ -205,6 +234,23 @@ class Scheduler:
                 # Die Erinnerung ist Beiwerk, die Freitagsmail ist es nicht.
                 log.exception("Erinnerung für %s fehlgeschlagen: %s", freitag, exc)
 
+        freitag = self.mealie_einkauf_faellig(jetzt, state)
+        if freitag:
+            try:
+                ctx = Kontext.laden(self.config)
+                bericht = einkauf_nach_mealie(ctx, freitag=freitag)
+                text = (
+                    f"mealie-einkauf {freitag}: {len(bericht.angelegt)} neu, "
+                    f"{len(bericht.aktualisiert)} geändert, {len(bericht.geloescht)} gelöscht"
+                )
+                log.info("%s", text)
+                state["mealie-einkauf"] = freitag.isoformat()
+                speichere_state(self.config, state)
+                erledigt.append(text)
+            except Exception as exc:  # noqa: BLE001
+                # Mealie ist Beiwerk: ein Ausfall dort darf die Mails nicht stoppen.
+                log.exception("mealie-einkauf für %s fehlgeschlagen: %s", freitag, exc)
+
         return erledigt
 
     def run(self, einmal: bool = False) -> None:
@@ -232,6 +278,14 @@ class Scheduler:
                 kalender.WOCHENTAGE[self.erinnerung_tag],
                 self.erinnerung_stunde,
                 self.erinnerung_minute,
+            )
+        if self.config.mealie_konfiguriert and self.einkauf_tag is not None:
+            log.info(
+                "Mealie-Einkauf %s %02d:%02d in die Liste %r.",
+                kalender.WOCHENTAGE[self.einkauf_tag],
+                self.einkauf_stunde,
+                self.einkauf_minute,
+                self.config.mealie_einkaufsliste,
             )
         if self.config.smtp.konfiguriert:
             log.info("Empfänger: %s", ", ".join(self.config.mail_empfaenger) or "(keine)")

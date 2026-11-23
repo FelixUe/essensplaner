@@ -222,6 +222,7 @@ pytest
 | `essensplaner preview weekly\|monthly` | Eine Mail als HTML-Datei schreiben, ohne zu verschicken |
 | `essensplaner serve` | Eingebauter Scheduler für den Dauerbetrieb |
 | `essensplaner mealie-sync [--dry-run]` | Alle Rezepte nach [Mealie](https://mealie.io) übertragen (siehe unten) |
+| `essensplaner mealie-einkauf [--freitag DATUM] [--dry-run]` | Den Einkaufszettel der Woche in die Mealie-Einkaufsliste schreiben |
 
 `--dry-run` gibt es bei `generate-month` und `send-weekly`: alles wird gebaut
 und angezeigt, aber nichts verschickt.
@@ -247,6 +248,36 @@ Braucht `MEALIE_URL` (aus Sicht des Containers, z. B. `http://mealie:9000`) und
 ```bash
 docker compose run --rm essensplaner mealie-sync --dry-run
 docker compose run --rm essensplaner mealie-sync
+```
+
+### Einkaufszettel nach Mealie
+
+`essensplaner mealie-einkauf` schreibt den Zettel aus der Oberfläche
+(Frischware, Vorratszutaten der Woche, Grundeinkauf, „nur diese Woche“) in die
+Mealie-Einkaufsliste **Wocheneinkauf**. Abgewähltes fehlt, abgehakt wird in
+Mealie. Gemeint ist der Einkauf am nächsten Freitag; `--freitag 2026-12-04`
+wählt einen anderen. Der Scheduler macht das von selbst **sonntags um 18:00**
+(`mealie.einkauf_tag`/`einkauf_uhrzeit` in `config.yaml`, leerer Tag schaltet
+es ab), sobald `MEALIE_URL` und `MEALIE_TOKEN` gesetzt sind.
+
+Der Lauf darf beliebig oft wiederholt werden:
+
+- Eigene Zeilen erkennt er an `extras.essensplaner_key`. Was von Hand oder vom
+  [Angebotsscanner](https://github.com/FelixUe/angebotsscanner) auf der Liste
+  steht, bleibt unangetastet.
+- Geänderte Zeilen werden aktualisiert, nicht mehr gebrauchte gelöscht.
+  **Abgehakte Zeilen bleiben stehen.** Zeilen einer vergangenen Woche
+  verschwinden, abgehakt oder nicht.
+- Alles ab `🏷` in der Notiz gehört dem Angebotsscanner und übersteht jedes
+  Update.
+- Für andere Programme stehen Kurzname, Menge, Einheit, Gerichte und ob es
+  Frischware ist in `extras` (`essensplaner_slug`, `essensplaner_menge`, …).
+
+Fehlt der Monatsplan, wird er wie bei der Wochenmail erzeugt; der Dry-Run legt
+keinen an.
+
+```bash
+docker compose run --rm essensplaner mealie-einkauf --dry-run
 ```
 
 ---
@@ -355,9 +386,10 @@ src/essensplaner/
   shopping.py            Frischeliste und Vorratsliste
   units.py               Einheiten zusammenfassen und ausgeben
   mealie.py              Rezepte nach Mealie übertragen (mealie-sync)
+  mealie_einkauf.py      Einkaufszettel in die Mealie-Liste (mealie-einkauf)
   mail.py                Mails rendern und verschicken
   templates/             HTML- und Text-Vorlagen
-  runner.py              die beiden geplanten Läufe
+  runner.py              die geplanten Läufe
   scheduler.py           eingebauter Scheduler
   cli.py                 Kommandozeile
   web.py                 Weboberfläche (Flask, nur mit Passwort)

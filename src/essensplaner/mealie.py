@@ -192,6 +192,9 @@ class MealieSync:
         self._tags = {t["name"].lower(): t for t in self._alle("/api/organizers/tags")}
         self._einheiten = {e["name"].lower(): e for e in self._alle("/api/units")}
         self._lebensmittel = {f["name"].lower(): f for f in self._alle("/api/foods")}
+        self.lade_labels()
+
+    def lade_labels(self) -> None:
         self._labels = {lb["name"].lower(): lb for lb in self._alle("/api/groups/labels")}
 
     def _hole_oder_lege_an(

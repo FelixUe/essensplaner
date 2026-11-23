@@ -8,6 +8,7 @@
     essensplaner preview weekly            Mail als HTML-Datei schreiben
     essensplaner serve                     Scheduler im Container
     essensplaner mealie-sync               Rezepte nach Mealie übertragen
+    essensplaner mealie-einkauf            Wocheneinkauf in die Mealie-Einkaufsliste
 
 Die Unterbefehle ``generate-month`` und ``send-weekly`` sind die, die in
 Coolify als Scheduled Task laufen.
@@ -30,6 +31,7 @@ from .planner import PlanungsFehler
 from .runner import (
     Kontext,
     RunnerFehler,
+    einkauf_nach_mealie,
     generate_month,
     plan_laden_oder_erzeugen,
     send_reminder,
@@ -474,6 +476,37 @@ def mealie_sync_cmd(ctx: click.Context, dry_run: bool) -> None:
         )
         for slug in bericht.verwaist:
             click.echo(f"  ? {slug}")
+
+
+@cli.command("mealie-einkauf")
+@click.option("--freitag", help="Einkaufstag JJJJ-MM-TT (Default: nächster Freitag).")
+@click.option("--dry-run", is_flag=True, help="Nur anzeigen, was sich in Mealie ändern würde.")
+@click.pass_context
+def mealie_einkauf_cmd(ctx: click.Context, freitag: str | None, dry_run: bool) -> None:
+    """Den Einkaufszettel der Woche in die Mealie-Einkaufsliste schreiben.
+
+    Eigene Einträge werden ersetzt, abgehakte bleiben stehen, alles andere
+    auf der Liste wird nicht angefasst. Braucht MEALIE_URL und MEALIE_TOKEN.
+    """
+    from .mealie import MealieFehler
+
+    config = ctx.obj["config"]
+    tag = _parse_datum(freitag) if freitag else None
+    if tag is not None and tag.weekday() != kalender.FREITAG:
+        _fehler(f"{tag} ist kein Freitag.")
+    kontext = _kontext(config)
+    try:
+        bericht = einkauf_nach_mealie(kontext, freitag=tag, dry_run=dry_run)
+    except (MealieFehler, RunnerFehler) as exc:
+        _fehler(str(exc))
+        raise
+
+    vorsilbe = "Würde " if dry_run else ""
+    click.echo(f"Mealie-Liste {bericht.liste!r}, Einkauf am {bericht.woche}")
+    click.echo(f"{vorsilbe}neu anlegen: {len(bericht.angelegt)}")
+    click.echo(f"{vorsilbe}ändern: {len(bericht.aktualisiert)}")
+    click.echo(f"{vorsilbe}löschen: {len(bericht.geloescht)}")
+    click.echo(f"unverändert: {bericht.unveraendert}, abgehakt: {len(bericht.abgehakt)}")
 
 
 if __name__ == "__main__":

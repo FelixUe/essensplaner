@@ -12,6 +12,7 @@ zurück, was passiert ist, damit der Aufrufer es protokollieren kann.
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -20,6 +21,8 @@ from . import data, kalender, katalog, mail, rules, shopping
 from .config import Config
 from .models import Ingredient, MonthPlan, Recipe
 from .planner import Planner, PlanungsFehler
+
+log = logging.getLogger(__name__)
 
 
 class RunnerFehler(Exception):
@@ -228,6 +231,59 @@ def send_reminder(
         mail.sende(nachricht, ctx.config)
     ergebnis.versendet = mail_senden
     return ergebnis
+
+
+def einkauf_nach_mealie(
+    ctx: Kontext,
+    freitag: date | None = None,
+    transport=None,
+    dry_run: bool = False,
+):
+    """Den Zettel für den Einkauf am ``freitag`` in die Mealie-Liste schreiben.
+
+    Ohne ``freitag`` ist der nächste Freitag gemeint, heute eingeschlossen.
+    Es ist derselbe Zettel wie in der Oberfläche: mit Vorratszutaten der
+    Woche, ohne Abgewähltes.
+
+    Fehlt der Monatsplan, wird er wie bei der Wochenmail erzeugt – nur nicht
+    im Dry-Run: ein Probelauf darf nichts anlegen, auch keinen Plan.
+    """
+    from .mealie import HttpTransport
+    from .mealie_einkauf import EinkaufSync, eintraege
+
+    freitag = freitag or kalender.naechster_freitag(date.today())
+    monat = kalender.monat_der_woche(freitag)
+    if dry_run and not data.plan_vorhanden(ctx.config.plans_dir, monat):
+        raise RunnerFehler(
+            f"Für {monat} gibt es noch keinen Plan – der Dry-Run legt keinen an. "
+            f"Erst `essensplaner generate-month {monat}` oder ohne --dry-run."
+        )
+    plan, erzeugt = plan_laden_oder_erzeugen(ctx, monat)
+    if erzeugt:
+        log.info("Für %s gab es noch keinen Plan – er wurde jetzt erzeugt.", monat)
+    woche = plan.woche_ab(freitag) or plan.woche_fuer(freitag)
+    if woche is None:
+        raise RunnerFehler(f"Im Plan {monat} gibt es keine Woche ab {freitag}.")
+
+    config = ctx.config
+    frisch = shopping.frischeliste(woche, ctx.rezepte, ctx.zutaten, config, ctx.bestand)
+    vorrat = shopping.wochen_pantry_liste(woche, ctx.rezepte, ctx.zutaten, config, ctx.bestand)
+    zeilen, _ = shopping.lade_grundeinkauf(config)
+    schluessel = woche.start.isoformat()
+    soll = eintraege(
+        woche.start,
+        frisch,
+        vorrat,
+        zeilen,
+        shopping.lade_abwahl(config, schluessel),
+        shopping.lade_extra(config, schluessel),
+    )
+    if transport is None:
+        if not config.mealie_konfiguriert:
+            raise RunnerFehler("MEALIE_URL und MEALIE_TOKEN müssen gesetzt sein.")
+        transport = HttpTransport(config.mealie_url, config.mealie_token)
+    sync = EinkaufSync(transport, liste=config.mealie_einkaufsliste, dry_run=dry_run)
+    return sync.synchronisiere(woche.start, soll)
 
 
 def send_weekly(

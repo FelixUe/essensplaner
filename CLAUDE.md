@@ -104,6 +104,12 @@ diesem Rauchtest noch scheitern, wenn eine Datei nicht ins Image kommt.
 - **Neue Abhängigkeiten müssen auf ARM ohne Übersetzen laufen.** Das Image
   entsteht für `linux/amd64` **und** `linux/arm64` — deshalb `waitress` statt
   eines Servers mit C-Erweiterung.
+- **Die Mealie-Einkaufsliste teilen sich zwei Programme.** `mealie-einkauf`
+  fasst nur Zeilen mit `extras.essensplaner_key` an, nie abgehakte, und lässt
+  in der Notiz alles ab `🏷` stehen – das schreibt der Angebotsscanner. Die
+  `essensplaner_*`-Schlüssel in `extras` sind sein Datenvertrag: umbenennen
+  nur zusammen mit dem Scanner. Mealie legt gleichlautende Notizen beim
+  Anlegen zusammen, deshalb dedupliziert `eintraege` vorher.
 - **Mailversand ist optional.** Ohne `SMTP_HOST` erzeugt der Scheduler weiter
   Pläne und verschickt nur nichts. Diesen Pfad funktionsfähig halten.
 - **LF ist erzwungen** (`.gitattributes`), das Image läuft unter Linux. CRLF in

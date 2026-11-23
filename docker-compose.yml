@@ -62,9 +62,12 @@ services:
       ESSENSPLANER_SEED: ${ESSENSPLANER_SEED:-}
       ESSENSPLANER_AI: ${ESSENSPLANER_AI:-false}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      # Optional: essensplaner mealie-sync (Rezepte nach Mealie übertragen)
+      # Optional: Rezepte (mealie-sync) und Einkaufszettel (mealie-einkauf,
+      # sonntags automatisch) nach Mealie. MEALIE_EINKAUFSLISTE ändert den
+      # Listennamen (Default "Wocheneinkauf").
       MEALIE_URL: ${MEALIE_URL:-}
       MEALIE_TOKEN: ${MEALIE_TOKEN:-}
+      MEALIE_EINKAUFSLISTE: ${MEALIE_EINKAUFSLISTE:-}
 
     expose:
       - "8080"
