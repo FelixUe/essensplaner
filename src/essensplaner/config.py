@@ -290,6 +290,38 @@ class Config:
             self.raw.get("mail", {}).get("betreff_erinnerung", "Morgen einkaufen: {von}–{bis}")
         )
 
+    # -------------------------------------------------------------- Mealie
+    @property
+    def mealie_einkauf_tag(self) -> str:
+        """Wochentag, an dem der Zettel nach Mealie geht; leer schaltet es ab.
+
+        Sonntag, damit der Angebotsscanner am Abend danach die Angebote ab
+        Montag dazuschreiben kann – lange vor dem Einkauf am Freitag.
+        """
+        return str(self.raw.get("mealie", {}).get("einkauf_tag", "Sonntag")).strip()
+
+    @property
+    def mealie_einkauf_uhrzeit(self) -> str:
+        return str(self.raw.get("mealie", {}).get("einkauf_uhrzeit", "18:00"))
+
+    @property
+    def mealie_einkaufsliste(self) -> str:
+        return os.environ.get("MEALIE_EINKAUFSLISTE") or str(
+            self.raw.get("mealie", {}).get("einkaufsliste", "Wocheneinkauf")
+        )
+
+    @property
+    def mealie_url(self) -> str:
+        return os.environ.get("MEALIE_URL", "").strip()
+
+    @property
+    def mealie_token(self) -> str:
+        return os.environ.get("MEALIE_TOKEN", "").strip()
+
+    @property
+    def mealie_konfiguriert(self) -> bool:
+        return bool(self.mealie_url and self.mealie_token)
+
     # ------------------------------------------------------------------ AI
     @property
     def ai_aktiv(self) -> bool:
