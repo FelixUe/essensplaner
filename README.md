@@ -502,3 +502,7 @@ Aus der Spec noch offen:
   Review-Warteschlange unter `data/recipes/_pending/`; Vorschläge werden erst
   nach Freigabe eingeplant und laufen vorher durch Ausschluss- und
   Protein-Check.
+
+## Lizenz
+
+MIT, siehe [LICENSE](LICENSE).
