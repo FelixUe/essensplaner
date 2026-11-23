@@ -221,9 +221,33 @@ pytest
 | `essensplaner shopping MONAT` | Einkaufslisten im Terminal |
 | `essensplaner preview weekly\|monthly` | Eine Mail als HTML-Datei schreiben, ohne zu verschicken |
 | `essensplaner serve` | Eingebauter Scheduler für den Dauerbetrieb |
+| `essensplaner mealie-sync [--dry-run]` | Alle Rezepte nach [Mealie](https://mealie.io) übertragen (siehe unten) |
 
 `--dry-run` gibt es bei `generate-month` und `send-weekly`: alles wird gebaut
 und angezeigt, aber nichts verschickt.
+
+### Rezepte nach Mealie übertragen
+
+`essensplaner mealie-sync` schreibt alle Rezepte – Repo und eigene – in eine
+Mealie-Instanz. **Einseitig:** der Essensplaner ist die Quelle, Änderungen an
+diesen Rezepten in Mealie überschreibt der nächste Lauf. Rezepte, die in Mealie
+von Hand entstehen, fasst der Sync nicht an.
+
+- Erkennung über das Tag `Essensplaner` und `extras.essensplaner_slug` – ein
+  zweiter Lauf aktualisiert, statt doppelt anzulegen; Umbenennen ist unkritisch.
+- Zutaten als Mealie-Einheiten und -Lebensmittel, die Abteilung als Label
+  (sortierte Einkaufslisten in Mealie). Varianten landen als Notiz, Protein je
+  Portion in den Nährwerten, Slots und Saison in der Beschreibung.
+- Gestrichene Gerichte bekommen das Tag `Gestrichen`; Rezepte, die es im
+  Essensplaner nicht mehr gibt, werden nur gemeldet, nicht gelöscht.
+
+Braucht `MEALIE_URL` (aus Sicht des Containers, z. B. `http://mealie:9000`) und
+`MEALIE_TOKEN` (Mealie → Profil → API-Tokens). Einmal von Hand im Container:
+
+```bash
+docker compose run --rm essensplaner mealie-sync --dry-run
+docker compose run --rm essensplaner mealie-sync
+```
 
 ---
 
@@ -330,6 +354,7 @@ src/essensplaner/
   katalog.py             eigene Rezepte und gestrichene Gerichte
   shopping.py            Frischeliste und Vorratsliste
   units.py               Einheiten zusammenfassen und ausgeben
+  mealie.py              Rezepte nach Mealie übertragen (mealie-sync)
   mail.py                Mails rendern und verschicken
   templates/             HTML- und Text-Vorlagen
   runner.py              die beiden geplanten Läufe

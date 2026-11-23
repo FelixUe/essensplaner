@@ -7,6 +7,7 @@
     essensplaner shopping 2026-12          Einkaufslisten im Terminal
     essensplaner preview weekly            Mail als HTML-Datei schreiben
     essensplaner serve                     Scheduler im Container
+    essensplaner mealie-sync               Rezepte nach Mealie übertragen
 
 Die Unterbefehle ``generate-month`` und ``send-weekly`` sind die, die in
 Coolify als Scheduled Task laufen.
@@ -431,6 +432,48 @@ def serve_cmd(ctx: click.Context, once: bool, web: bool | None) -> None:
         starte(kontext)
     except WebFehler as exc:
         _fehler(str(exc))
+
+
+# --------------------------------------------------------------- mealie-sync
+
+
+@cli.command("mealie-sync")
+@click.option("--dry-run", is_flag=True, help="Nur anzeigen, was angelegt/aktualisiert würde.")
+@click.pass_context
+def mealie_sync_cmd(ctx: click.Context, dry_run: bool) -> None:
+    """Alle Rezepte nach Mealie übertragen (einseitig, Essensplaner gewinnt).
+
+    Braucht MEALIE_URL (z. B. http://mealie:9000) und MEALIE_TOKEN
+    (API-Token aus dem Mealie-Profil).
+    """
+    import os
+
+    from .mealie import HttpTransport, MealieFehler, MealieSync
+
+    url = os.environ.get("MEALIE_URL", "").strip()
+    token = os.environ.get("MEALIE_TOKEN", "").strip()
+    if not url or not token:
+        _fehler("MEALIE_URL und MEALIE_TOKEN müssen gesetzt sein.")
+
+    kontext = _kontext(ctx.obj["config"])
+    sync = MealieSync(HttpTransport(url, token), dry_run=dry_run)
+    try:
+        bericht = sync.synchronisiere(kontext.rezepte, kontext.zutaten, kontext.gestrichen)
+    except MealieFehler as exc:
+        _fehler(str(exc))
+        raise
+
+    vorsilbe = "Würde " if dry_run else ""
+    click.echo(f"{vorsilbe}neu anlegen: {len(bericht.angelegt)}")
+    for slug in bericht.angelegt:
+        click.echo(f"  + {slug}")
+    click.echo(f"{vorsilbe}aktualisieren: {len(bericht.aktualisiert)}")
+    if bericht.verwaist:
+        click.echo(
+            f"In Mealie, aber nicht mehr im Essensplaner ({len(bericht.verwaist)}, bleiben stehen):"
+        )
+        for slug in bericht.verwaist:
+            click.echo(f"  ? {slug}")
 
 
 if __name__ == "__main__":

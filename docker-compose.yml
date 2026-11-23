@@ -62,6 +62,9 @@ services:
       ESSENSPLANER_SEED: ${ESSENSPLANER_SEED:-}
       ESSENSPLANER_AI: ${ESSENSPLANER_AI:-false}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Optional: essensplaner mealie-sync (Rezepte nach Mealie übertragen)
+      MEALIE_URL: ${MEALIE_URL:-}
+      MEALIE_TOKEN: ${MEALIE_TOKEN:-}
 
     expose:
       - "8080"
