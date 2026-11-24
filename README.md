@@ -256,9 +256,33 @@ docker compose run --rm essensplaner mealie-sync
 (Frischware, Vorratszutaten der Woche, Grundeinkauf, „nur diese Woche“) in die
 Mealie-Einkaufsliste **Wocheneinkauf**. Abgewähltes fehlt, abgehakt wird in
 Mealie. Gemeint ist der Einkauf am nächsten Freitag; `--freitag 2026-12-04`
-wählt einen anderen. Der Scheduler macht das von selbst **sonntags um 18:00**
-(`mealie.einkauf_tag`/`einkauf_uhrzeit` in `config.yaml`, leerer Tag schaltet
-es ab), sobald `MEALIE_URL` und `MEALIE_TOKEN` gesetzt sind.
+wählt einen anderen. Normalerweise geht der Zettel über den Knopf
+**„Zettel fertig“** auf der Einkaufsseite nach Mealie (siehe Wochenablauf). Wer
+das vergisst, bekommt ihn trotzdem: Der Scheduler überträgt ihn spätestens
+**donnerstags um 18:00** (`mealie.einkauf_tag`/`einkauf_uhrzeit` in
+`config.yaml`, leerer Tag schaltet den Rückfall ab), sobald `MEALIE_URL` und
+`MEALIE_TOKEN` gesetzt sind.
+
+### Wochenablauf: Vorschlag, prüfen, fertig
+
+1. **Mittwoch 19:30** (`ablauf.vorschlag_tag`/`vorschlag_uhrzeit`) kommt ein
+   Push über [ntfy](https://ntfy.sh) mit den Gerichten der Woche ab Freitag.
+   Ein Tipp öffnet die Woche in der Oberfläche, dort lässt sich tauschen.
+2. Auf dem **Einkaufszettel** abwählen, was noch zu Hause ist, Fehlendes
+   ergänzen, dann **„Zettel fertig“**. Der Zettel geht sofort nach Mealie.
+3. Danach stößt der Essensplaner einen Lauf des
+   [Angebotsscanners](https://github.com/FelixUe/angebotsscanner) an. Ein
+   zweiter Push meldet den fertigen Zettel samt Angeboten.
+
+Ohne Knopfdruck läuft Schritt 2 und 3 zum Rückfalltermin automatisch.
+Umgebung (alles optional):
+
+| Variable | Wofür |
+|---|---|
+| `NTFY_TOPIC` | Topic für die Pushes. Bei ntfy.sh die einzige Zugangskontrolle: lang und zufällig wählen, wie ein Passwort behandeln |
+| `NTFY_SERVER`, `NTFY_TOKEN` | eigener ntfy-Server statt ntfy.sh, ggf. mit Zugriffstoken |
+| `ESSENSPLANER_BASIS_URL` | Adresse der Oberfläche für die Links im Push, z. B. `http://essen.home.arpa` |
+| `ANGEBOTSSCANNER_URL`, `ANGEBOTSSCANNER_AUSLOESER_TOKEN` | Scanner-Lauf auf Zuruf, z. B. `http://angebotsscanner:8099` im gemeinsamen Docker-Netz |
 
 Der Lauf darf beliebig oft wiederholt werden:
 
@@ -387,6 +411,7 @@ src/essensplaner/
   units.py               Einheiten zusammenfassen und ausgeben
   mealie.py              Rezepte nach Mealie übertragen (mealie-sync)
   mealie_einkauf.py      Einkaufszettel in die Mealie-Liste (mealie-einkauf)
+  wochenablauf.py        Vorschlag per ntfy, Zettel fertig, Scanner anstoßen
   mail.py                Mails rendern und verschicken
   templates/             HTML- und Text-Vorlagen
   runner.py              die geplanten Läufe

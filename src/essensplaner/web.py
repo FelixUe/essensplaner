@@ -24,6 +24,7 @@ import hmac
 import logging
 import os
 import secrets
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -39,7 +40,7 @@ from flask import (
     url_for,
 )
 
-from . import data, kalender, katalog, shopping, units
+from . import data, kalender, katalog, shopping, units, wochenablauf
 from .editing import (
     AenderungsFehler,
     finde_mahlzeit,
@@ -50,7 +51,7 @@ from .katalog import KatalogFehler
 from .models import MonthPlan
 from .planner import Planner, PlanungsFehler
 from .rules import nur_fehler, pruefe_rezept
-from .runner import Kontext
+from .runner import Kontext, RunnerFehler, einkauf_nach_mealie, lade_state, speichere_state
 
 log = logging.getLogger(__name__)
 
@@ -452,6 +453,8 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             grundeinkauf_eigen=eigen,
             abteilungen=shopping.grundeinkauf_abteilungen(zeilen),
             config=ctx.config,
+            fertig=lade_state(ctx.config).get("zettel-fertig") == woche.start.isoformat(),
+            mealie=ctx.config.mealie_konfiguriert,
         )
 
     @app.post("/monat/<monat>/woche/<freitag>/einkauf/ergaenzen")
@@ -523,6 +526,51 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             shopping.speichere_abwahl(ctx.config, woche.start.isoformat(), set())
         flash("Alle Posten stehen wieder auf dem Zettel.", "hinweis")
         return redirect(url_for("einkauf", monat=monat, freitag=freitag))
+
+    @app.post("/monat/<monat>/woche/<freitag>/einkauf/fertig")
+    def einkauf_fertig(monat: str, freitag: str):
+        """Der Zettel ist geprüft: nach Mealie damit, dann die Angebote dazu.
+
+        Mealie wird sofort beschrieben, damit ein Fehler hier auf der Seite
+        steht. Der Angebotsscanner braucht Minuten und läuft deshalb im
+        Hintergrund; sein Ergebnis kommt per Push. Der Eintrag im Zustand
+        sorgt dafür, dass der Rückfall am Donnerstag nicht noch einmal läuft.
+        Erneut tippen überträgt den Zettel noch einmal.
+        """
+        from .mealie import MealieFehler
+
+        csrf_pruefen()
+        _, woche = _woche_holen(monat, freitag)
+        ziel = url_for("einkauf", monat=monat, freitag=freitag)
+        if not ctx.config.mealie_konfiguriert:
+            flash("Mealie ist nicht eingerichtet (MEALIE_URL, MEALIE_TOKEN).", "fehler")
+            return redirect(ziel)
+        try:
+            with data.PLAN_SPERRE:
+                bericht = einkauf_nach_mealie(ctx, freitag=woche.start)
+                state = lade_state(ctx.config)
+                state["mealie-einkauf"] = woche.start.isoformat()
+                state["zettel-fertig"] = woche.start.isoformat()
+                speichere_state(ctx.config, state)
+        except (MealieFehler, RunnerFehler, OSError) as exc:
+            log.warning("Zettel fertig: Übertragen fehlgeschlagen: %s", exc)
+            flash(f"Mealie hat den Zettel nicht angenommen: {exc}", "fehler")
+            return redirect(ziel)
+
+        posten = wochenablauf.posten_aus_bericht(bericht)
+        threading.Thread(
+            target=wochenablauf.nach_dem_uebertragen,
+            args=(woche.start, posten),
+            name="nach-dem-uebertragen",
+            daemon=True,
+        ).start()
+        nachsatz = (
+            " Die Angebote kommen in ein paar Minuten per Push."
+            if wochenablauf.scanner_konfiguriert()
+            else ""
+        )
+        flash(f"Fertig: {posten} Posten stehen in Mealie.{nachsatz}", "erfolg")
+        return redirect(ziel)
 
     @app.get("/monat/<monat>/<datum>/<slot>")
     def tauschen_zeigen(monat: str, datum: str, slot: str):

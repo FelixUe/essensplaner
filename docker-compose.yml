@@ -63,11 +63,22 @@ services:
       ESSENSPLANER_AI: ${ESSENSPLANER_AI:-false}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Optional: Rezepte (mealie-sync) und Einkaufszettel (mealie-einkauf,
-      # sonntags automatisch) nach Mealie. MEALIE_EINKAUFSLISTE ändert den
+      # per „Zettel fertig“, sonst donnerstags automatisch) nach Mealie.
+      # MEALIE_EINKAUFSLISTE ändert den
       # Listennamen (Default "Wocheneinkauf").
       MEALIE_URL: ${MEALIE_URL:-}
       MEALIE_TOKEN: ${MEALIE_TOKEN:-}
       MEALIE_EINKAUFSLISTE: ${MEALIE_EINKAUFSLISTE:-}
+
+      # Optional: Wochenablauf. Vorschlag am Mittwoch per ntfy, nach „Zettel
+      # fertig“ ein Lauf des Angebotsscanners. Das Topic wie ein Passwort
+      # behandeln, es gehört in die .env.
+      NTFY_TOPIC: ${NTFY_TOPIC:-}
+      NTFY_SERVER: ${NTFY_SERVER:-}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      ESSENSPLANER_BASIS_URL: ${ESSENSPLANER_BASIS_URL:-}
+      ANGEBOTSSCANNER_URL: ${ANGEBOTSSCANNER_URL:-}
+      ANGEBOTSSCANNER_AUSLOESER_TOKEN: ${ANGEBOTSSCANNER_AUSLOESER_TOKEN:-}
 
     expose:
       - "8080"
