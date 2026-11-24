@@ -124,12 +124,20 @@ mail:
   erinnerung_uhrzeit: "18:00"
   betreff_erinnerung: "Morgen einkaufen: {von}–{bis}"
 
+ablauf:
+  # Wochenablauf: Vorschlag der Gerichte per ntfy (NTFY_TOPIC in der .env),
+  # dann Zettel prüfen und „Zettel fertig“ tippen. Leerer Tag schaltet den
+  # Vorschlag ab. Links im Push zeigen auf ESSENSPLANER_BASIS_URL.
+  vorschlag_tag: "Mittwoch"
+  vorschlag_uhrzeit: "19:30"
+
 mealie:
   # Der Wocheneinkauf geht zusätzlich in diese Mealie-Einkaufsliste, sobald
-  # MEALIE_URL und MEALIE_TOKEN gesetzt sind. Gemeint ist der Einkauf am
-  # nächsten Freitag. Leerer Tag schaltet den automatischen Lauf ab.
+  # MEALIE_URL und MEALIE_TOKEN gesetzt sind: mit „Zettel fertig“ sofort,
+  # sonst spätestens zum Rückfalltermin hier. Gemeint ist der Einkauf am
+  # nächsten Freitag. Leerer Tag schaltet den Rückfall ab.
   einkaufsliste: "Wocheneinkauf"
-  einkauf_tag: "Sonntag"
+  einkauf_tag: "Donnerstag"
   einkauf_uhrzeit: "18:00"
 
 ai:

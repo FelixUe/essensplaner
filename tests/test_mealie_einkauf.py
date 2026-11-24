@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import itertools
+import threading
 from datetime import date, datetime
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
@@ -351,30 +352,49 @@ def mit_mealie(monkeypatch):
     monkeypatch.setenv("MEALIE_TOKEN", "test")
 
 
-def test_einkauf_ist_sonntags_um_achtzehn_faellig(tmp_config, mit_mealie):
+DONNERSTAG = date(2026, 12, 3)
+
+
+@pytest.fixture
+def ohne_erinnerung(tmp_config):
+    """Die Erinnerung liegt auf demselben Termin; hier geht es nur um Mealie."""
+    tmp_config.raw.setdefault("mail", {})["erinnerung_tag"] = ""
+
+
+def test_rueckfall_ist_donnerstags_um_achtzehn_faellig(tmp_config, mit_mealie):
     s = Scheduler(tmp_config)
-    sonntag = date(2026, 11, 29)
-    assert s.mealie_einkauf_faellig(_um(sonntag, 18), {}) == FREITAG
-    assert s.mealie_einkauf_faellig(_um(sonntag, 17), {}) is None
-    assert s.mealie_einkauf_faellig(_um(sonntag, 21), {}) is None
-    assert s.mealie_einkauf_faellig(_um(date(2026, 11, 30), 18), {}) is None
-    assert s.mealie_einkauf_faellig(_um(sonntag, 18), {"mealie-einkauf": "2026-12-04"}) is None
+    assert s.mealie_einkauf_faellig(_um(DONNERSTAG, 18), {}) == FREITAG
+    assert s.mealie_einkauf_faellig(_um(DONNERSTAG, 17), {}) is None
+    assert s.mealie_einkauf_faellig(_um(DONNERSTAG, 21), {}) is None
+    assert s.mealie_einkauf_faellig(_um(date(2026, 11, 29), 18), {}) is None
+
+
+def test_rueckfall_entfaellt_nach_zettel_fertig(tmp_config, mit_mealie):
+    s = Scheduler(tmp_config)
+    assert s.mealie_einkauf_faellig(_um(DONNERSTAG, 18), {"mealie-einkauf": "2026-12-04"}) is None
 
 
 def test_einkauf_ohne_mealie_nie_faellig(tmp_config, monkeypatch):
     monkeypatch.delenv("MEALIE_URL", raising=False)
     s = Scheduler(tmp_config)
-    assert s.mealie_einkauf_faellig(_um(date(2026, 11, 29), 18), {}) is None
+    assert s.mealie_einkauf_faellig(_um(DONNERSTAG, 18), {}) is None
 
 
 def test_leerer_tag_schaltet_einkauf_ab(tmp_config, mit_mealie):
     tmp_config.raw.setdefault("mealie", {})["einkauf_tag"] = ""
     s = Scheduler(tmp_config)
-    assert s.mealie_einkauf_faellig(_um(date(2026, 11, 29), 18), {}) is None
+    assert s.mealie_einkauf_faellig(_um(DONNERSTAG, 18), {}) is None
 
 
-def test_tick_fuehrt_einkauf_aus_und_merkt_ihn_sich(tmp_config, mit_mealie, monkeypatch):
+def test_tick_fuehrt_einkauf_aus_und_merkt_ihn_sich(
+    tmp_config, mit_mealie, ohne_erinnerung, monkeypatch
+):
     aufrufe = []
+    danach = []
+    monkeypatch.setattr(
+        "essensplaner.wochenablauf.nach_dem_uebertragen",
+        lambda freitag, posten, automatisch=False: danach.append((freitag, posten, automatisch)),
+    )
 
     def fake(ctx, freitag):
         aufrufe.append(freitag)
@@ -384,17 +404,21 @@ def test_tick_fuehrt_einkauf_aus_und_merkt_ihn_sich(tmp_config, mit_mealie, monk
 
     monkeypatch.setattr("essensplaner.scheduler.einkauf_nach_mealie", fake)
     s = Scheduler(tmp_config)
-    jetzt = _um(date(2026, 11, 29), 18)
+    jetzt = _um(DONNERSTAG, 18)
     assert s.tick(jetzt) == ["mealie-einkauf 2026-12-04: 1 neu, 0 geändert, 0 gelöscht"]
     assert s.tick(jetzt) == []
     assert aufrufe == [FREITAG]
+    for t in threading.enumerate():
+        if t.name == "nach-dem-uebertragen":
+            t.join(5)
+    assert danach == [(FREITAG, 1, True)]
 
 
-def test_tick_ueberlebt_mealie_ausfall(tmp_config, mit_mealie, monkeypatch):
+def test_tick_ueberlebt_mealie_ausfall(tmp_config, mit_mealie, ohne_erinnerung, monkeypatch):
     def kaputt(ctx, freitag):
         raise RuntimeError("Mealie down")
 
     monkeypatch.setattr("essensplaner.scheduler.einkauf_nach_mealie", kaputt)
     s = Scheduler(tmp_config)
-    assert s.tick(_um(date(2026, 11, 29), 18)) == []
+    assert s.tick(_um(DONNERSTAG, 18)) == []
     assert runner.lade_state(tmp_config).get("mealie-einkauf") is None

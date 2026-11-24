@@ -10,8 +10,12 @@ Termine (Zeitzone aus der Konfiguration, Default Europe/Berlin):
 
 * ``send-weekly``    jeden Freitag zur konfigurierten Uhrzeit, Default 07:00
 * ``generate-month`` am vorletzten Freitag des Monats, 30 Minuten später
-* ``mealie-einkauf`` am konfigurierten Tag (Default Sonntag 18:00), nur mit
-  ``MEALIE_URL``/``MEALIE_TOKEN``: der Zettel für den nächsten Freitag
+* ``vorschlag``      Mittwoch 19:30 (``ablauf``), nur mit ``NTFY_TOPIC``: die
+  Gerichte der Woche ab Freitag als Push, siehe :mod:`essensplaner.wochenablauf`
+* ``mealie-einkauf`` Rückfall am konfigurierten Tag (Default Donnerstag 18:00),
+  nur mit ``MEALIE_URL``/``MEALIE_TOKEN``: der Zettel für den nächsten
+  Freitag, falls niemand in der Oberfläche auf „Zettel fertig“ getippt hat.
+  Danach Angebotsscanner und Push wie beim Knopf.
 
 Jede Aufgabe wird pro Termin höchstens einmal ausgeführt. Der Zustand liegt
 in ``plans/state.json``, damit ein Neustart nicht zu einer zweiten Mail führt.
@@ -20,17 +24,19 @@ in ``plans/state.json``, damit ein Neustart nicht zu einer zweiten Mail führt.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from datetime import UTC, date, datetime, timedelta, tzinfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from . import kalender
+from . import kalender, wochenablauf
 from .config import Config
 from .runner import (
     Kontext,
     einkauf_nach_mealie,
     generate_month,
     lade_state,
+    plan_laden_oder_erzeugen,
     send_reminder,
     send_weekly,
     speichere_state,
@@ -101,6 +107,15 @@ class Scheduler:
         self.einkauf_stunde, self.einkauf_minute = _parse_uhrzeit(
             self.config.mealie_einkauf_uhrzeit, (18, 0), "Mealie-Einkaufszeit"
         )
+        self.vorschlag_tag = kalender.wochentag_nummer(self.config.vorschlag_tag)
+        if self.vorschlag_tag is None and self.config.vorschlag_tag:
+            log.warning(
+                "ablauf.vorschlag_tag %r ist kein Wochentag – der Vorschlag bleibt aus.",
+                self.config.vorschlag_tag,
+            )
+        self.vorschlag_stunde, self.vorschlag_minute = _parse_uhrzeit(
+            self.config.vorschlag_uhrzeit, (19, 30), "Vorschlagszeit"
+        )
 
     # ------------------------------------------------------------ Fälligkeit
 
@@ -159,6 +174,23 @@ class Scheduler:
             return None
         freitag = kalender.naechster_freitag(heute)
         if state.get("mealie-einkauf") == freitag.isoformat():
+            return None
+        return freitag
+
+    def vorschlag_faellig(self, jetzt: datetime, state: dict[str, str]) -> date | None:
+        """Der Freitag, dessen Gerichte jetzt per Push vorgeschlagen werden – oder ``None``."""
+        if self.vorschlag_tag is None or not wochenablauf.ntfy_konfiguriert():
+            return None
+        heute = jetzt.date()
+        if heute.weekday() != self.vorschlag_tag:
+            return None
+        termin = jetzt.replace(
+            hour=self.vorschlag_stunde, minute=self.vorschlag_minute, second=0, microsecond=0
+        )
+        if not termin <= jetzt < termin + timedelta(hours=2):
+            return None
+        freitag = kalender.naechster_freitag(heute, inklusiv=False)
+        if state.get("vorschlag") == freitag.isoformat():
             return None
         return freitag
 
@@ -234,6 +266,27 @@ class Scheduler:
                 # Die Erinnerung ist Beiwerk, die Freitagsmail ist es nicht.
                 log.exception("Erinnerung für %s fehlgeschlagen: %s", freitag, exc)
 
+        freitag = self.vorschlag_faellig(jetzt, state)
+        if freitag:
+            try:
+                ctx = Kontext.laden(self.config)
+                plan, _ = plan_laden_oder_erzeugen(ctx, kalender.monat_der_woche(freitag))
+                woche = plan.woche_ab(freitag) or plan.woche_fuer(freitag)
+                if woche is None:
+                    raise ValueError(f"keine Woche ab {freitag} im Plan")
+                push = wochenablauf.vorschlag_push(woche, self.config.slot_kochtag)
+                if not wochenablauf.sende_push(push):
+                    raise RuntimeError("ntfy hat den Vorschlag nicht angenommen")
+                text = f"vorschlag {freitag}: {len(woche.meals)} Gerichte per ntfy"
+                log.info("%s", text)
+                state["vorschlag"] = freitag.isoformat()
+                speichere_state(self.config, state)
+                erledigt.append(text)
+            except Exception as exc:  # noqa: BLE001
+                # Ohne Eintrag im Zustand versucht es der nächste Takt erneut,
+                # solange das Zeitfenster offen ist.
+                log.exception("Vorschlag für %s fehlgeschlagen: %s", freitag, exc)
+
         freitag = self.mealie_einkauf_faellig(jetzt, state)
         if freitag:
             try:
@@ -247,6 +300,14 @@ class Scheduler:
                 state["mealie-einkauf"] = freitag.isoformat()
                 speichere_state(self.config, state)
                 erledigt.append(text)
+                # Scanner und Push im Hintergrund: der Scanner braucht Minuten,
+                # der Takt soll weiterlaufen.
+                threading.Thread(
+                    target=wochenablauf.nach_dem_uebertragen,
+                    args=(freitag, wochenablauf.posten_aus_bericht(bericht), True),
+                    name="nach-dem-uebertragen",
+                    daemon=True,
+                ).start()
             except Exception as exc:  # noqa: BLE001
                 # Mealie ist Beiwerk: ein Ausfall dort darf die Mails nicht stoppen.
                 log.exception("mealie-einkauf für %s fehlgeschlagen: %s", freitag, exc)
@@ -279,9 +340,16 @@ class Scheduler:
                 self.erinnerung_stunde,
                 self.erinnerung_minute,
             )
+        if wochenablauf.ntfy_konfiguriert() and self.vorschlag_tag is not None:
+            log.info(
+                "Vorschlag per ntfy %s %02d:%02d für die Woche ab Freitag.",
+                kalender.WOCHENTAGE[self.vorschlag_tag],
+                self.vorschlag_stunde,
+                self.vorschlag_minute,
+            )
         if self.config.mealie_konfiguriert and self.einkauf_tag is not None:
             log.info(
-                "Mealie-Einkauf %s %02d:%02d in die Liste %r.",
+                "Mealie-Einkauf spätestens %s %02d:%02d in die Liste %r.",
                 kalender.WOCHENTAGE[self.einkauf_tag],
                 self.einkauf_stunde,
                 self.einkauf_minute,

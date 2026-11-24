@@ -71,3 +71,17 @@ def mach_plan(planner, plan_cache):
 def plan(mach_plan):
     """Ein Standardplan für Tests, die nur irgendeinen Plan brauchen."""
     return mach_plan("2026-12", 42)
+
+
+@pytest.fixture(autouse=True)
+def _ohne_wochenablauf_umgebung(monkeypatch):
+    """Kein Test soll versehentlich ntfy.sh oder einen Scanner erreichen."""
+    for name in (
+        "NTFY_TOPIC",
+        "NTFY_SERVER",
+        "NTFY_TOKEN",
+        "ANGEBOTSSCANNER_URL",
+        "ANGEBOTSSCANNER_AUSLOESER_TOKEN",
+        "ESSENSPLANER_BASIS_URL",
+    ):
+        monkeypatch.delenv(name, raising=False)

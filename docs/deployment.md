@@ -222,6 +222,10 @@ mit:
   Standard 07:00 in der Zeitzone aus `TZ`.
 - **Monatsplan** am vorletzten Freitag des Monats, 30 Minuten später, für den
   Folgemonat. Die Vorschau geht per Mail raus.
+- **Vorschlag** per ntfy am Mittwoch 19:30, nur mit `NTFY_TOPIC`.
+- **Erinnerung** am Donnerstag 18:00 (Mail).
+- **Mealie-Rückfall** am Donnerstag 18:00, nur mit Mealie-Zugang und nur, wenn
+  niemand auf „Zettel fertig“ getippt hat.
 
 Jede Aufgabe läuft pro Termin höchstens einmal. Der Zustand liegt in
 `/data/plans/state.json`. Ein Neustart am Freitagvormittag holt eine noch nicht

@@ -124,6 +124,30 @@
   </div>
 </section>
 
+{% if mealie %}
+<section class="karte">
+  <div class="kopf">
+    <h2>{% if fertig %}Zettel ist fertig{% else %}Alles geprüft?{% endif %}</h2>
+  </div>
+  <p class="leise">
+    {% if fertig %}
+      Der Zettel steht in Mealie, die Angebote kamen per Push. Nach Änderungen
+      einfach noch einmal übertragen.
+    {% else %}
+      Was noch zu Hause ist, oben abwählen. Dann geht der Zettel nach Mealie,
+      und der Angebotsscanner schreibt die Angebote dazu.
+    {% endif %}
+  </p>
+  <form method="post"
+        action="{{ url_for('einkauf_fertig', monat=monat, freitag=woche.start.isoformat()) }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="knopf{% if not fertig %} haupt{% endif %}" type="submit">
+      {% if fertig %}Erneut übertragen{% else %}Zettel fertig{% endif %}
+    </button>
+  </form>
+</section>
+{% endif %}
+
 <p>
   <a class="knopf" href="{{ url_for('woche_ansehen', monat=monat, freitag=woche.start.isoformat()) }}">Zurück zur Woche</a>
   <a class="knopf" href="{{ url_for('grundeinkauf') }}">Speicher verwalten</a>

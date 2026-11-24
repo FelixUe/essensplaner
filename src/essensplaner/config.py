@@ -293,16 +293,27 @@ class Config:
     # -------------------------------------------------------------- Mealie
     @property
     def mealie_einkauf_tag(self) -> str:
-        """Wochentag, an dem der Zettel nach Mealie geht; leer schaltet es ab.
+        """Rückfalltermin: an diesem Tag geht der Zettel spätestens nach Mealie.
 
-        Sonntag, damit der Angebotsscanner am Abend danach die Angebote ab
-        Montag dazuschreiben kann – lange vor dem Einkauf am Freitag.
+        Normalerweise tippt man nach dem Vorschlag am Mittwoch auf „Zettel
+        fertig“. Wer das vergisst, bekommt ihn am Donnerstagabend trotzdem,
+        mit den Angeboten. Leer schaltet den Rückfall ab.
         """
-        return str(self.raw.get("mealie", {}).get("einkauf_tag", "Sonntag")).strip()
+        return str(self.raw.get("mealie", {}).get("einkauf_tag", "Donnerstag")).strip()
 
     @property
     def mealie_einkauf_uhrzeit(self) -> str:
         return str(self.raw.get("mealie", {}).get("einkauf_uhrzeit", "18:00"))
+
+    # ------------------------------------------------------------- Ablauf
+    @property
+    def vorschlag_tag(self) -> str:
+        """Wochentag des Vorschlags per ntfy; leer schaltet ihn ab."""
+        return str(self.raw.get("ablauf", {}).get("vorschlag_tag", "Mittwoch")).strip()
+
+    @property
+    def vorschlag_uhrzeit(self) -> str:
+        return str(self.raw.get("ablauf", {}).get("vorschlag_uhrzeit", "19:30"))
 
     @property
     def mealie_einkaufsliste(self) -> str:
