@@ -37,6 +37,7 @@ from .runner import (
     generate_month,
     lade_state,
     plan_laden_oder_erzeugen,
+    plan_nach_mealie,
     send_reminder,
     send_weekly,
     speichere_state,
@@ -233,6 +234,18 @@ class Scheduler:
                 state["generate-month"] = monat
                 speichere_state(self.config, state)
                 erledigt.append(str(ergebnis))
+                if self.config.mealie_konfiguriert:
+                    try:
+                        bericht = plan_nach_mealie(ctx, monat=monat)
+                        text = (
+                            f"mealie-plan {monat}: {len(bericht.angelegt)} neu, "
+                            f"{len(bericht.aktualisiert)} geändert"
+                        )
+                        log.info("%s", text)
+                        erledigt.append(text)
+                    except Exception as exc:  # noqa: BLE001
+                        # Beiwerk: der Monatsplan steht schon, die Mail ist raus.
+                        log.exception("mealie-plan für %s fehlgeschlagen: %s", monat, exc)
             except Exception as exc:  # noqa: BLE001
                 # Ein Fehler darf den Scheduler nicht beenden – sonst fällt
                 # auch die Wochenmail aus.

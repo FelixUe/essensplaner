@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 
@@ -1168,3 +1168,64 @@ def test_der_zettel_bringt_mit_was_das_skript_braucht(angemeldet, plan):
     assert 'id="zuruecksetzen"' in text
     # Der Haken bleibt ein Formular - ohne Skript muss er weiter abschicken.
     assert 'class="haken" type="submit"' in text
+
+
+# ---------------------------------------------- Speiseplan nach Mealie
+
+
+def test_ohne_mealie_steht_der_knopf_nicht_da(angemeldet):
+    """Ein Knopf, der nur eine Fehlermeldung bringt, gehört nicht auf die Seite."""
+    text = angemeldet.get(f"/monat/{MONAT}").get_data(as_text=True)
+    assert "Speiseplan nach Mealie" not in text
+
+
+def test_ohne_mealie_sagt_die_route_es_deutlich(angemeldet):
+    seite = angemeldet.get(f"/monat/{MONAT}")
+    antwort = angemeldet.post(
+        f"/monat/{MONAT}/speiseplan",
+        data={"csrf": _token(seite.data)},
+        follow_redirects=True,
+    )
+    assert "Mealie ist nicht eingerichtet" in antwort.get_data(as_text=True)
+
+
+def test_speiseplan_ohne_token_passiert_nichts(angemeldet):
+    assert angemeldet.post(f"/monat/{MONAT}/speiseplan").status_code == 400
+
+
+def test_speiseplan_verlangt_anmeldung(client):
+    antwort = client.post(f"/monat/{MONAT}/speiseplan")
+    assert antwort.status_code == 302
+    assert "/anmelden" in antwort.headers["Location"]
+
+
+def test_speiseplan_fuer_einen_monat_ohne_plan(angemeldet):
+    seite = angemeldet.get(f"/monat/{MONAT}")
+    antwort = angemeldet.post("/monat/2030-05/speiseplan", data={"csrf": _token(seite.data)})
+    assert antwort.status_code == 404
+
+
+def test_der_knopf_meldet_was_in_mealie_passiert_ist(angemeldet, monkeypatch):
+    """Mit eingerichtetem Mealie: der Bericht landet als Meldung auf der Seite."""
+    from essensplaner.mealie_speiseplan import SpeiseplanBericht
+
+    bericht = SpeiseplanBericht(
+        von=date(2026, 11, 27),
+        bis=date(2026, 12, 31),
+        angelegt=["2026-12-04 abends: Pizza"],
+        fehlende_rezepte=["gibt-es-nicht"],
+    )
+    monkeypatch.setenv("MEALIE_URL", "http://mealie.test")
+    monkeypatch.setenv("MEALIE_TOKEN", "test-token")
+    monkeypatch.setattr(web, "plan_nach_mealie", lambda *a, **k: bericht)
+
+    seite = angemeldet.get(f"/monat/{MONAT}")
+    antwort = angemeldet.post(
+        f"/monat/{MONAT}/speiseplan",
+        data={"csrf": _token(seite.data)},
+        follow_redirects=True,
+    )
+    text = antwort.get_data(as_text=True)
+    assert "Speiseplan in Mealie: 1 neu" in text
+    assert "gibt-es-nicht" not in text
+    assert "1 Rezepte fehlen in Mealie" in text

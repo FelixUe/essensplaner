@@ -146,6 +146,18 @@
     </p>
   {% endif %}
 
+  {% if mealie %}
+    <form method="post" action="{{ url_for('monat_nach_mealie', monat=monat) }}"
+          style="margin-bottom: 14px;">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="knopf" type="submit">Speiseplan nach Mealie</button>
+      <span class="leise" style="font-size: 12.5px;">
+        Jede Mahlzeit als Abendessen, der Folgetag mittags dazu. Beim Erzeugen
+        eines Monats läuft das von selbst – nach einem Tausch von Hand hier.
+      </span>
+    </form>
+  {% endif %}
+
   <script id="tauschdaten" type="application/json">{{ tauschkarte | tojson }}</script>
   <form id="verschiebeform" method="post" hidden
         data-basis="{{ url_for('monat_ansehen', monat=monat) }}">

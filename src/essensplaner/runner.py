@@ -286,6 +286,49 @@ def einkauf_nach_mealie(
     return sync.synchronisiere(woche.start, soll)
 
 
+def plan_nach_mealie(
+    ctx: Kontext,
+    monat: str | None = None,
+    transport=None,
+    dry_run: bool = False,
+):
+    """Den Monatsplan in Mealies Speiseplan schreiben.
+
+    Ohne ``monat`` ist der laufende Monat gemeint. Fehlt der Plan, wird er
+    erzeugt – im Dry-Run nicht: ein Probelauf legt nichts an.
+
+    Der Zeitraum ergibt sich aus den Einträgen selbst, nicht aus dem
+    Kalendermonat. Eine Woche reicht über den Monatswechsel, und gelöscht
+    werden soll nur dort, wo dieser Plan auch zuständig ist.
+    """
+    from .mealie import HttpTransport
+    from .mealie_speiseplan import SpeiseplanSync, eintraege
+
+    heute = date.today()
+    monat = monat or kalender.monat_str(heute.year, heute.month)
+    if dry_run and not data.plan_vorhanden(ctx.config.plans_dir, monat):
+        raise RunnerFehler(
+            f"Für {monat} gibt es noch keinen Plan – der Dry-Run legt keinen an. "
+            f"Erst `essensplaner generate-month {monat}` oder ohne --dry-run."
+        )
+    plan, erzeugt = plan_laden_oder_erzeugen(ctx, monat)
+    if erzeugt:
+        log.info("Für %s gab es noch keinen Plan – er wurde jetzt erzeugt.", monat)
+
+    soll = eintraege(plan)
+    if not soll:
+        raise RunnerFehler(f"Der Plan {monat} enthält keine Mahlzeiten.")
+    von = min(e.datum for e in soll)
+    bis = max(e.datum for e in soll)
+
+    if transport is None:
+        if not ctx.config.mealie_konfiguriert:
+            raise RunnerFehler("MEALIE_URL und MEALIE_TOKEN müssen gesetzt sein.")
+        transport = HttpTransport(ctx.config.mealie_url, ctx.config.mealie_token)
+    sync = SpeiseplanSync(transport, dry_run=dry_run)
+    return sync.synchronisiere(von, bis, soll)
+
+
 def send_weekly(
     ctx: Kontext,
     tag: date | None = None,

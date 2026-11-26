@@ -51,7 +51,14 @@ from .katalog import KatalogFehler
 from .models import MonthPlan
 from .planner import Planner, PlanungsFehler
 from .rules import nur_fehler, pruefe_rezept
-from .runner import Kontext, RunnerFehler, einkauf_nach_mealie, lade_state, speichere_state
+from .runner import (
+    Kontext,
+    RunnerFehler,
+    einkauf_nach_mealie,
+    lade_state,
+    plan_nach_mealie,
+    speichere_state,
+)
 
 log = logging.getLogger(__name__)
 
@@ -319,10 +326,52 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             rezepte=kat.rezepte,
             config=ctx.config,
             tauschkarte=_tauschkarte(plan),
+            mealie=ctx.config.mealie_konfiguriert,
             voriger=_nachbarmonat(monat, -1),
             naechster=_nachbarmonat(monat, 1),
             heute=date.today(),
         )
+
+    @app.post("/monat/<monat>/speiseplan")
+    def monat_nach_mealie(monat: str):
+        """Den Monatsplan in Mealies Speiseplan schreiben.
+
+        Der Scheduler macht das beim Erzeugen eines Monats von selbst. Nach
+        einem Tausch von Hand steht in Mealie aber noch das alte Gericht -
+        dafür dieser Knopf.
+        """
+        from .mealie import MealieFehler
+
+        csrf_pruefen()
+        ziel = url_for("monat_ansehen", monat=monat)
+        if plan_holen(monat) is None:
+            abort(404)
+        if not ctx.config.mealie_konfiguriert:
+            flash("Mealie ist nicht eingerichtet (MEALIE_URL, MEALIE_TOKEN).", "fehler")
+            return redirect(ziel)
+        try:
+            with data.PLAN_SPERRE:
+                bericht = plan_nach_mealie(ctx, monat=monat)
+        except (MealieFehler, RunnerFehler) as exc:
+            flash(f"Mealie hat den Speiseplan nicht angenommen: {exc}", "fehler")
+            return redirect(ziel)
+
+        geaendert = len(bericht.angelegt) + len(bericht.aktualisiert) + len(bericht.geloescht)
+        if geaendert:
+            flash(
+                f"Speiseplan in Mealie: {len(bericht.angelegt)} neu, "
+                f"{len(bericht.aktualisiert)} geändert, {len(bericht.geloescht)} gelöscht.",
+                "erfolg",
+            )
+        else:
+            flash("Mealies Speiseplan stand schon richtig.", "hinweis")
+        if bericht.fehlende_rezepte:
+            flash(
+                f"{len(bericht.fehlende_rezepte)} Rezepte fehlen in Mealie – "
+                "erst `essensplaner mealie-sync` laufen lassen.",
+                "hinweis",
+            )
+        return redirect(ziel)
 
     def _tauschkarte(plan: MonthPlan | None) -> dict[str, list[str]]:
         """Zu jedem Platz die Plätze, mit denen er tauschen darf.

@@ -9,6 +9,7 @@
     essensplaner serve                     Scheduler im Container
     essensplaner mealie-sync               Rezepte nach Mealie übertragen
     essensplaner mealie-einkauf            Wocheneinkauf in die Mealie-Einkaufsliste
+    essensplaner mealie-plan               Monatsplan in Mealies Speiseplan
 
 Die Unterbefehle ``generate-month`` und ``send-weekly`` sind die, die in
 Coolify als Scheduled Task laufen.
@@ -34,6 +35,7 @@ from .runner import (
     einkauf_nach_mealie,
     generate_month,
     plan_laden_oder_erzeugen,
+    plan_nach_mealie,
     send_reminder,
     send_weekly,
 )
@@ -507,6 +509,47 @@ def mealie_einkauf_cmd(ctx: click.Context, freitag: str | None, dry_run: bool) -
     click.echo(f"{vorsilbe}ändern: {len(bericht.aktualisiert)}")
     click.echo(f"{vorsilbe}löschen: {len(bericht.geloescht)}")
     click.echo(f"unverändert: {bericht.unveraendert}, abgehakt: {len(bericht.abgehakt)}")
+
+
+@cli.command("mealie-plan")
+@click.argument("monat", required=False)
+@click.option("--dry-run", is_flag=True, help="Nur anzeigen, was sich in Mealie ändern würde.")
+@click.pass_context
+def mealie_plan_cmd(ctx: click.Context, monat: str | None, dry_run: bool) -> None:
+    """Den Monatsplan in Mealies Speiseplan eintragen (Default: dieser Monat).
+
+    Gekocht wird abends, der Folgetag bekommt die Mittagsportion. Eigene
+    Einträge werden nachgeführt, von Hand eingetragene bleiben stehen.
+    Braucht MEALIE_URL und MEALIE_TOKEN.
+    """
+    from .mealie import MealieFehler
+
+    kontext = _kontext(ctx.obj["config"])
+    try:
+        bericht = plan_nach_mealie(kontext, monat=monat, dry_run=dry_run)
+    except (MealieFehler, RunnerFehler) as exc:
+        _fehler(str(exc))
+        raise
+
+    vorsilbe = "Würde " if dry_run else ""
+    click.echo(f"Speiseplan {bericht.von} bis {bericht.bis}")
+    click.echo(f"{vorsilbe}neu anlegen: {len(bericht.angelegt)}")
+    for zeile in bericht.angelegt:
+        click.echo(f"  + {zeile}")
+    click.echo(f"{vorsilbe}ändern: {len(bericht.aktualisiert)}")
+    for zeile in bericht.aktualisiert:
+        click.echo(f"  ~ {zeile}")
+    click.echo(f"{vorsilbe}löschen: {len(bericht.geloescht)}")
+    for zeile in bericht.geloescht:
+        click.echo(f"  - {zeile}")
+    click.echo(f"unverändert: {bericht.unveraendert}")
+    if bericht.fehlende_rezepte:
+        click.secho(
+            f"Nicht in Mealie, erst `essensplaner mealie-sync` ({len(bericht.fehlende_rezepte)}):",
+            fg="yellow",
+        )
+        for slug in bericht.fehlende_rezepte:
+            click.echo(f"  ? {slug}")
 
 
 if __name__ == "__main__":

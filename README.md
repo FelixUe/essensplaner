@@ -223,6 +223,7 @@ pytest
 | `essensplaner serve` | Eingebauter Scheduler für den Dauerbetrieb |
 | `essensplaner mealie-sync [--dry-run]` | Alle Rezepte nach [Mealie](https://mealie.io) übertragen (siehe unten) |
 | `essensplaner mealie-einkauf [--freitag DATUM] [--dry-run]` | Den Einkaufszettel der Woche in die Mealie-Einkaufsliste schreiben |
+| `essensplaner mealie-plan [MONAT] [--dry-run]` | Den Monatsplan in Mealies Speiseplan eintragen |
 
 `--dry-run` gibt es bei `generate-month` und `send-weekly`: alles wird gebaut
 und angezeigt, aber nichts verschickt.
@@ -262,6 +263,28 @@ das vergisst, bekommt ihn trotzdem: Der Scheduler überträgt ihn spätestens
 **donnerstags um 18:00** (`mealie.einkauf_tag`/`einkauf_uhrzeit` in
 `config.yaml`, leerer Tag schaltet den Rückfall ab), sobald `MEALIE_URL` und
 `MEALIE_TOKEN` gesetzt sind.
+
+### Monatsplan in Mealies Speiseplan
+
+`essensplaner mealie-plan` trägt jede geplante Mahlzeit in Mealies Speiseplan
+ein. Gekocht wird abends, deshalb wird jedes Gericht ein **dinner** an seinem
+Kochtag; Montag und Mittwoch decken den Folgetag mittags ab und bekommen dort
+zusätzlich ein **lunch**. Im Speiseplan steht damit, was gegessen wird, und
+nicht nur, was am Herd steht.
+
+Der Lauf darf beliebig oft laufen:
+
+- Eigene Einträge trägt er mit `Essensplaner` im Textfeld und führt sie nach.
+- Steht ein Gericht schon am richtigen Tag – auch von Hand eingetragen –,
+  bleibt der Eintrag unberührt. Doppelt kommt nichts.
+- Andere Einträge in Mealie bleiben stehen, auch am selben Tag.
+- Gelöscht wird nur Eigenes, und nur im Zeitraum des Plans.
+
+Rezepte, die in Mealie fehlen, meldet der Bericht – erst `mealie-sync`, dann
+zeigt der Speiseplan auf sie. Ausgelöst wird es an drei Stellen: automatisch,
+wenn der Scheduler einen Monatsplan erzeugt, über den Knopf **„Speiseplan nach
+Mealie"** auf der Monatsseite (nach einem Tausch von Hand) und von Hand über
+die Kommandozeile.
 
 ### Wochenablauf: Vorschlag, prüfen, fertig
 
