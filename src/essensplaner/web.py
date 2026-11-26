@@ -514,6 +514,12 @@ def erstelle_app(ctx: Kontext, passwort: str | None = None) -> Flask:
             abgewaehlt = shopping.lade_abwahl(ctx.config, schluessel)
             abgewaehlt.symmetric_difference_update({key})
             shopping.speichere_abwahl(ctx.config, schluessel, abgewaehlt)
+        # Aus der Seite heraus kommt nur der neue Zustand zurück. Ohne
+        # Neuladen bleibt der Blick da, wo der Finger war – bei dreißig
+        # Posten hintereinander ist das der Unterschied zwischen Abhaken
+        # und Suchen. Ohne JavaScript bleibt es beim Sprung zum Anker.
+        if request.headers.get("Accept") == "application/json":
+            return {"abgewaehlt": key in abgewaehlt}
         ziel = url_for("einkauf", monat=monat, freitag=freitag)
         return redirect(f"{ziel}#posten-{shopping.anker(key)}")
 

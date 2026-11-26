@@ -1106,3 +1106,65 @@ def test_speicher_aendern_verlangt_anmeldung(client):
     antwort = client.post("/grundeinkauf/hinzufuegen", data={"text": "X"})
     assert antwort.status_code == 302
     assert "/anmelden" in antwort.headers["Location"]
+
+
+# ------------------------------------------------- Abhaken ohne Neuladen
+
+
+def test_abhaken_aus_der_seite_meldet_nur_den_neuen_stand(angemeldet, plan, config):
+    """Mit JavaScript bleibt die Seite stehen, der Server antwortet knapp."""
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    token = _token(angemeldet.get(pfad).data)
+    key = "grund:Milch"
+
+    antwort = angemeldet.post(
+        pfad + "/umschalten",
+        data={"csrf": token, "key": key},
+        headers={"Accept": "application/json"},
+    )
+    assert antwort.status_code == 200
+    assert antwort.get_json() == {"abgewaehlt": True}
+    assert shopping.lade_abwahl(config, woche.start.isoformat()) == {key}
+
+    antwort = angemeldet.post(
+        pfad + "/umschalten",
+        data={"csrf": token, "key": key},
+        headers={"Accept": "application/json"},
+    )
+    assert antwort.get_json() == {"abgewaehlt": False}
+    assert shopping.lade_abwahl(config, woche.start.isoformat()) == set()
+
+
+def test_ohne_javascript_bleibt_es_beim_sprung_zum_anker(angemeldet, plan):
+    """Ohne Skript muss der alte Weg unverändert funktionieren."""
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf"
+    token = _token(angemeldet.get(pfad).data)
+    antwort = angemeldet.post(pfad + "/umschalten", data={"csrf": token, "key": "grund:Milch"})
+    assert antwort.status_code == 302
+    assert "#posten-" in antwort.headers["Location"]
+
+
+def test_abhaken_ohne_token_antwortet_auch_json_nicht(angemeldet, plan, config):
+    """Der kurze Weg darf die Prüfung nicht umgehen."""
+    woche = plan.weeks[0]
+    pfad = f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf/umschalten"
+    antwort = angemeldet.post(
+        pfad, data={"key": "grund:Milch"}, headers={"Accept": "application/json"}
+    )
+    assert antwort.status_code == 400
+    assert shopping.lade_abwahl(config, woche.start.isoformat()) == set()
+
+
+def test_der_zettel_bringt_mit_was_das_skript_braucht(angemeldet, plan):
+    """Die Haken des Skripts: ohne sie ändert sich nichts auf der Seite."""
+    woche = plan.weeks[0]
+    text = angemeldet.get(f"/monat/{MONAT}/woche/{woche.start.isoformat()}/einkauf").get_data(
+        as_text=True
+    )
+    for marke in ('class="umschalten"', 'class="text', 'id="offen"', 'class="spanne zaehler"'):
+        assert marke in text, marke
+    assert 'id="zuruecksetzen"' in text
+    # Der Haken bleibt ein Formular - ohne Skript muss er weiter abschicken.
+    assert 'class="haken" type="submit"' in text

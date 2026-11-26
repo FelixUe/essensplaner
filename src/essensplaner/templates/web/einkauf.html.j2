@@ -6,8 +6,8 @@
 <p class="leise">
   Woche vom {{ woche.start | datum_lang }} bis {{ woche.ende | datum_lang }} &middot;
   {{ woche.meals | length }} Mahlzeiten &middot;
-  {{ offen }} {% if offen == 1 %}Posten{% else %}Posten{% endif %} zu holen
-  {%- if abgewaehlt %} &middot; {{ abgewaehlt }} abgewählt{% endif %}
+  <span id="offen">{{ offen }}</span> Posten zu holen<span
+    id="abgewaehlt">{%- if abgewaehlt %} &middot; {{ abgewaehlt }} abgewählt{% endif %}</span>
 </p>
 
 <style>
@@ -52,13 +52,13 @@
   <section class="karte">
     <div class="kopf">
       <h2>{{ abteilung }}</h2>
-      <span class="spanne">{{ posten | rejectattr('abgewaehlt') | list | length }} offen</span>
+      <span class="spanne zaehler">{{ posten | rejectattr('abgewaehlt') | list | length }} offen</span>
     </div>
     <div class="zeile" style="display: block;">
       <ul class="posten">
         {% for p in posten %}
           <li id="posten-{{ p.anker }}">
-            <form method="post"
+            <form method="post" class="umschalten"
                   action="{{ url_for('einkauf_umschalten', monat=monat, freitag=woche.start.isoformat()) }}">
               <input type="hidden" name="csrf" value="{{ csrf_token() }}">
               <input type="hidden" name="key" value="{{ p.key }}">
@@ -68,7 +68,7 @@
                 {%- if p.abgewaehlt %}&check;{% endif -%}
               </button>
             </form>
-            <span class="{% if p.abgewaehlt %}weg{% endif %}">
+            <span class="text{% if p.abgewaehlt %} weg{% endif %}">
               {{ p.text }}
               {%- if p.quelle == 'grund' %}
                 <span class="quelle">&middot; immer dabei</span>
@@ -151,14 +151,90 @@
 <p>
   <a class="knopf" href="{{ url_for('woche_ansehen', monat=monat, freitag=woche.start.isoformat()) }}">Zurück zur Woche</a>
   <a class="knopf" href="{{ url_for('grundeinkauf') }}">Speicher verwalten</a>
-  {% if abgewaehlt %}
-    <form method="post" style="display: inline;"
-          action="{{ url_for('einkauf_zuruecksetzen', monat=monat, freitag=woche.start.isoformat()) }}">
-      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <button class="knopf" type="submit">Alles wieder anwählen</button>
-    </form>
-  {% endif %}
+  <form method="post" id="zuruecksetzen" style="display: inline;"
+        {% if not abgewaehlt %}hidden{% endif %}
+        action="{{ url_for('einkauf_zuruecksetzen', monat=monat, freitag=woche.start.isoformat()) }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="knopf" type="submit">Alles wieder anwählen</button>
+  </form>
 </p>
+
+<script>
+/* Abhaken, ohne die Seite neu zu laden.
+ *
+ * Der Haken ist weiter ein echtes Formular: ohne JavaScript wird es
+ * abgeschickt, die Seite lädt neu und springt zum Anker. Mit JavaScript
+ * geht dasselbe Formular per fetch an dieselbe geprüfte Route, und nur
+ * die Zeile ändert sich. Der Blick bleibt, wo er war.
+ *
+ * Geht etwas schief - abgelaufene Sitzung, kein Netz -, wird das Formular
+ * ganz normal abgeschickt. Dann sieht man die Meldung des Servers, statt
+ * auf einen Haken zu starren, den es nie gab.
+ */
+(function () {
+  if (!window.fetch || !window.FormData) { return; }
+
+  function alle(auswahl, wo) {
+    return Array.prototype.slice.call((wo || document).querySelectorAll(auswahl));
+  }
+
+  function zeichnen(zeile, abgewaehlt) {
+    var knopf = zeile.querySelector(".haken");
+    var titel = abgewaehlt ? "Wieder auf den Zettel" : "Hab ich noch";
+    zeile.querySelector(".text").classList.toggle("weg", abgewaehlt);
+    knopf.innerHTML = abgewaehlt ? "&check;" : "";
+    knopf.title = titel;
+    knopf.setAttribute("aria-label", titel);
+  }
+
+  function zaehlen() {
+    var offen = 0;
+    var weg = 0;
+    alle("ul.posten").forEach(function (liste) {
+      var hier = alle("li .text", liste).filter(function (t) {
+        return !t.classList.contains("weg");
+      }).length;
+      offen += hier;
+      weg += alle("li .text.weg", liste).length;
+      var zaehler = liste.closest("section").querySelector(".zaehler");
+      if (zaehler) { zaehler.textContent = hier + " offen"; }
+    });
+    var gesamt = document.getElementById("offen");
+    if (gesamt) { gesamt.textContent = offen; }
+    var rest = document.getElementById("abgewaehlt");
+    if (rest) { rest.innerHTML = weg ? " &middot; " + weg + " abgewählt" : ""; }
+    var zurueck = document.getElementById("zuruecksetzen");
+    if (zurueck) { zurueck.hidden = weg === 0; }
+  }
+
+  document.addEventListener("submit", function (e) {
+    var formular = e.target;
+    if (!formular.classList || !formular.classList.contains("umschalten")) { return; }
+    e.preventDefault();
+
+    var zeile = formular.closest("li");
+    var knopf = formular.querySelector(".haken");
+    knopf.disabled = true;
+
+    fetch(formular.action, {
+      method: "POST",
+      headers: { "Accept": "application/json" },
+      body: new FormData(formular),
+      credentials: "same-origin"
+    }).then(function (antwort) {
+      if (!antwort.ok) { throw new Error(antwort.status); }
+      return antwort.json();
+    }).then(function (stand) {
+      zeichnen(zeile, stand.abgewaehlt);
+      zaehlen();
+      knopf.disabled = false;
+    }).catch(function () {
+      knopf.disabled = false;
+      formular.submit();
+    });
+  });
+})();
+</script>
 {% endblock %}
 
 {% block fuss %}
